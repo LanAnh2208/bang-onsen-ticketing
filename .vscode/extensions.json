@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "batisteo.vscode-django",
+    "formulahendry.auto-rename-tag",
+    "esbenp.prettier-vscode",
+    "qwtel.sqlite-viewer",
+    "rangav.vscode-thunder-client",
+    "eamodio.gitlens"
+  ]
+}

@@ -15,6 +15,19 @@ cccd_validator = RegexValidator(
     message='Số CCCD phải gồm đúng 12 chữ số.'
 )
 
+TICKET_TYPE_CHOICES = [
+    ('ADULT', 'Người lớn và trẻ em trên 1.4m'),
+    ('CHILD', 'Trẻ em từ 1m – 1.4m'),
+    ('INFANT', 'Trẻ em dưới 1m (Miễn phí vé)'),
+]
+
+PAYMENT_METHOD_CHOICES = [
+    ('CASH', 'Tiền mặt'),
+    ('BANK_TRANSFER', 'Chuyển khoản ngân hàng / VietQR'),
+    ('CARD', 'Thẻ ngân hàng / Máy POS'),
+    ('E_WALLET', 'Ví điện tử (VNPAY / MoMo)'),
+]
+
 
 # ==============================================================================
 # 1. TÀI KHOẢN PHÂN QUYỀN
@@ -72,7 +85,7 @@ class Customer(models.Model):
 class Service(models.Model):
     STATUS_CHOICES = [
         ('Active', 'Đang kinh doanh'),
-        ('Inactive', 'Ngừng kinh doanh'),
+        ('Inactive', 'Tạm ngưng hoạt động'),
     ]
 
     service_id = models.CharField(max_length=10, unique=True, verbose_name='Mã gói dịch vụ')
@@ -87,16 +100,12 @@ class Service(models.Model):
         return cls.objects.filter(service_status='Active')
 
     def __str__(self):
-        return f"{self.service_id} - {self.service_name}"
+        return f"{self.service_id} - {self.service_name} ({self.get_service_status_display()})"
 
 
 class ServicePrice(models.Model):
-    TICKET_TYPE_CHOICES = [
-        ('ADULT', 'Người lớn'),
-        ('CHILD', 'Trẻ em'),
-    ]
     DAY_TYPE_CHOICES = [
-        ('WEEKDAY', 'Ngày thường (T2 - T6)'),
+        ('WEEKDAY', 'Đầu tuần (T2 - T6)'),
         ('WEEKEND', 'Cuối tuần (T7 - CN)'),
     ]
 
@@ -105,8 +114,8 @@ class ServicePrice(models.Model):
     service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name='prices', verbose_name='Gói dịch vụ')
     ticket_type = models.CharField(max_length=20, choices=TICKET_TYPE_CHOICES, default='ADULT', verbose_name='Loại vé')
     day_type = models.CharField(max_length=20, choices=DAY_TYPE_CHOICES, default='WEEKDAY', verbose_name='Khung ngày áp dụng')
-    price = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], verbose_name='Giá bán')
-    quang_tri_price = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], null=True, blank=True, verbose_name='Giá ưu đãi CCCD Quảng Trị')
+    price = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], verbose_name='Giá công bố')
+    quang_tri_price = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)], null=True, blank=True, verbose_name='Giá ưu đãi người Quảng Trị')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Cập nhật lần cuối')
 
     class Meta:
@@ -189,7 +198,7 @@ class Voucher(models.Model):
         )
 
     def __str__(self):
-        return f"{self.voucher_code} ({self.discount_value} - {self.discount_type})"
+        return f"{self.voucher_code} ({self.discount_value:,.0f} - {self.get_discount_type_display()})"
 
 
 # ==============================================================================
@@ -199,11 +208,6 @@ class Order(models.Model):
     CHANNEL_CHOICES = [
         ('COUNTER', 'Tại quầy (POS)'),
         ('ONLINE', 'Đặt trực tuyến (Website)'),
-    ]
-    PAYMENT_METHOD_CHOICES = [
-        ('CASH', 'Tiền mặt'),
-        ('CARD', 'Thẻ ngân hàng / POS'),
-        ('E_WALLET', 'Ví điện tử / VNPAY / VietQR'),
     ]
     ORDER_STATUS_CHOICES = [
         ('New', 'Chờ thanh toán'),
@@ -281,11 +285,6 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
-    TICKET_TYPE_CHOICES = [
-        ('ADULT', 'Người lớn'),
-        ('CHILD', 'Trẻ em'),
-    ]
-
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', verbose_name='Hóa đơn')
     service = models.ForeignKey(Service, on_delete=models.PROTECT, limit_choices_to={'service_status': 'Active'}, verbose_name='Gói dịch vụ Onsen')
     ticket_type = models.CharField(max_length=20, choices=TICKET_TYPE_CHOICES, default='ADULT', verbose_name='Loại vé')
@@ -308,9 +307,9 @@ class OrderItem(models.Model):
 
     def clean(self):
         if not self.pk and self.service_id and self.service.service_status != 'Active':
-            raise ValidationError({'service': 'Gói dịch vụ này đã ngừng kinh doanh (Inactive), vui lòng chọn gói khác.'})
+            raise ValidationError({'service': 'Gói dịch vụ này đang tạm ngưng hoạt động, vui lòng chọn gói khác.'})
         if self.cccd_number and self.quantity > 1:
-            raise ValidationError({'quantity': 'Mỗi số CCCD ưu đãi Quảng Trị chỉ áp dụng cho 1 vé (Số lượng = 1). Vui lòng tách dòng riêng cho từng khách ưu đãi.'})
+            raise ValidationError({'quantity': 'Mỗi số CCCD ưu đãi Quảng Trị chỉ áp dụng cho 1 vé (Số lượng = 1). Vui lòng tách dòng riêng.'})
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -350,6 +349,7 @@ class PaymentTransaction(models.Model):
     transaction_id = models.CharField(max_length=30, unique=True, editable=False, verbose_name='Mã giao dịch nội bộ')
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='transactions', verbose_name='Đơn hàng')
     transaction_type = models.CharField(max_length=15, choices=TXN_TYPE_CHOICES, default='INITIAL', verbose_name='Loại giao dịch')
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='BANK_TRANSFER', verbose_name='Phương thức giao dịch')
 
     gateway_transaction_id = models.CharField(max_length=50, unique=True, null=True, blank=True, verbose_name='Mã giao dịch cổng thanh toán')
     bank_ref = models.CharField(max_length=50, null=True, blank=True, verbose_name='Mã tham chiếu ngân hàng')

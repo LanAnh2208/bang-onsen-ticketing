@@ -1,0 +1,60 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>{% block title %}Phân hệ Nhân viên | Bang Onsen Spa &amp; Resort{% endblock %}</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/pos.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header class="pos-header">
+        <div class="pos-container pos-header-inner">
+            <a href="{% url 'pos:counter_sale' %}" class="pos-brand">
+                <img src="{% static 'images/logo.png' %}" alt="Logo Bang Onsen Spa &amp; Resort" class="pos-header-logo">
+                <span class="pos-badge-brown">POS Lễ tân</span>
+            </a>
+
+            <nav class="pos-nav" aria-label="Điều hướng phân hệ nhân viên">
+                <a href="{% url 'pos:counter_sale' %}" class="pos-nav-link {% if request.resolver_match.url_name == 'counter_sale' %}active{% endif %}">
+                    Bán vé tại quầy (POS)
+                </a>
+                <a href="{% url 'pos:shift_reconciliation' %}" class="pos-nav-link {% if request.resolver_match.url_name == 'shift_reconciliation' %}active{% endif %}">
+                    Kết ca &amp; Đối soát
+                </a>
+            </nav>
+
+            <div class="pos-user-bar">
+                <span class="pos-staff-name">
+                    {{ request.user.full_name|default:request.user.username }}
+                </span>
+                <a href="{% url 'pos:logout' %}" class="pos-logout-btn">Đăng xuất</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="pos-main">
+        <div class="pos-container">
+            {% if messages %}
+            <div class="pos-messages">
+                {% for message in messages %}
+                <div class="pos-alert pos-alert-{{ message.tags|default:'info' }}" role="alert">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% block pos_content %}{% endblock %}
+        </div>
+    </main>
+
+    <script src="{% static 'js/pos.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

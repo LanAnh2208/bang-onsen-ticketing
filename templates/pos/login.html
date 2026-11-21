@@ -1,0 +1,75 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Đăng nhập nội bộ | Bang Onsen Spa &amp; Resort</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/pos.css' %}">
+    <style>
+        .pos-login-page {
+            background-image: url("{% static 'images/login-bg.webp' %}");
+        }
+    </style>
+</head>
+<body>
+    <div class="pos-login-page">
+        <div class="pos-login-card">
+            <div class="pos-login-brand">
+                <img src="{% static 'images/logo.png' %}" alt="Logo Bang Onsen Spa &amp; Resort" class="pos-login-logo">
+                <h1 class="pos-login-title">Đăng nhập nội bộ</h1>
+                <p class="pos-login-subtitle">Dành cho Nhân viên lễ tân &amp; Quản lý</p>
+            </div>
+
+            {% if error_message %}
+            <div class="pos-alert-err" role="alert">
+                {{ error_message }}
+            </div>
+            {% endif %}
+
+            <form method="post" novalidate class="pos-login-form">
+                {% csrf_token %}
+
+                <div class="pos-field">
+                    <label for="{{ form.username.id_for_label }}" class="pos-label">
+                        {{ form.username.label }} <span class="pos-req">*</span>
+                    </label>
+                    {{ form.username }}
+                    {% if form.username.errors %}
+                    <div class="pos-field-error">{{ form.username.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="pos-field pos-field-lg">
+                    <label for="{{ form.password.id_for_label }}" class="pos-label">
+                        {{ form.password.label }} <span class="pos-req">*</span>
+                    </label>
+                    <div class="pos-password-wrap">
+                        {{ form.password }}
+                        <button type="button" class="pos-pw-toggle" id="togglePasswordBtn" aria-label="Hiện hoặc ẩn mật khẩu">
+                            Hiện
+                        </button>
+                    </div>
+                    {% if form.password.errors %}
+                    <div class="pos-field-error">{{ form.password.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="pos-btn-primary pos-btn-lg">
+                    Đăng nhập
+                </button>
+            </form>
+
+            <div class="pos-login-footer">
+                <a href="/" class="pos-back-link">← Quay về Website Bang Onsen</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/pos.js' %}"></script>
+</body>
+</html>

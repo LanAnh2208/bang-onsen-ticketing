@@ -1,0 +1,43 @@
+{% load static %}
+<footer>
+  <div class="w">
+    <div class="ft-grid">
+      <div class="ft-col">
+        <span class="chip">
+          <img src="{% static 'images/logo/logo-bang-onsen.png' %}" alt="Bang Onsen Spa & Resort" style="height:36px;width:auto;display:block">
+        </span>
+        <p style="margin:0 0 10px;color:#F8F9FA;line-height:1.6">
+          Khu nghỉ dưỡng suối khoáng nóng tự nhiên 105°C chuẩn Nhật Bản thuộc Tập đoàn Trường Thịnh tại suối Bang, tỉnh Quảng Trị.
+        </p>
+        <small style="color:#ABB8C3;font-style:normal">Giờ mở cửa khu Onsen: 07:30 – 21:00 hằng ngày</small>
+      </div>
+
+      <div class="ft-col">
+        <h4>Dịch vụ & Trải nghiệm</h4>
+        <ul>
+          {% for s in services %}
+            <li><a href="{% url 'booking:onsen_detail' s.id %}">Gói dịch vụ {{ s.name }}</a></li>
+          {% endfor %}
+          <li><a href="{% url 'booking:info_page' 'rooms' %}">Phòng nghỉ chuẩn Nhật</a></li>
+          <li><a href="{% url 'booking:info_page' 'spa' %}">Spa & Trị liệu khoáng nóng</a></li>
+          <li><a href="{% url 'booking:info_page' 'dining' %}">Nhà hàng & Hội nghị</a></li>
+        </ul>
+      </div>
+
+      <div class="ft-col">
+        <h4>Hỗ trợ khách hàng</h4>
+        <ul>
+          <li><a href="#flt">Đặt vé Onsen trực tuyến</a></li>
+          <li><a href="{% url 'booking:lookup' %}">Tra cứu / Đổi / Hủy vé</a></li>
+          <li><a href="{% url 'booking:info_page' 'about' %}">Giới thiệu Bang Onsen</a></li>
+          <li><a href="{% url 'booking:info_page' 'contact' %}">Liên hệ & Bản đồ chỉ đường</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="ft-bot">
+      <span>© 2026 Bang Onsen Spa & Resort – Tập đoàn Trường Thịnh. Hệ thống đặt vé trực tuyến.</span>
+      <a class="staff-link" href="{% url 'booking:staff_login' %}">Cổng nội bộ / Đăng nhập nhân viên</a>
+    </div>
+  </div>
+</footer>

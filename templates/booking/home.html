@@ -1,0 +1,299 @@
+{% extends 'booking/base_booking.html' %}
+{% load humanize %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Resort",
+      "name": "Bang Onsen Spa & Resort",
+      "description": "Khu nghỉ dưỡng suối khoáng nóng tự nhiên 105°C chuẩn Nhật Bản của Tập đoàn Trường Thịnh tại Quảng Trị.",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Suối Bang",
+        "addressRegion": "Quảng Trị",
+        "addressCountry": "VN"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Bang Onsen Spa & Resort nằm ở đâu?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Bang Onsen Spa & Resort tọa lạc tại khu vực suối khoáng nóng Bang, tỉnh Quảng Trị."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Giá vé Bang Onsen bao nhiêu và có ưu đãi gì?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Giá vé công bố từ 390.000 VNĐ/người lớn ngày thường. Trẻ em dưới 1m được miễn phí vé vào; khách hàng có CCCD Quảng Trị được áp dụng bảng giá ưu đãi riêng."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+  <!-- 1. HERO BANNER (PARALLAX SCROLLING) -->
+  <section class="hero">
+    <div class="hbg" role="img" aria-label="Toàn cảnh suối khoáng nóng tự nhiên Bang Onsen Spa & Resort Quảng Trị">
+      <span>📷 Khung ảnh nền chìm Parallax – Toàn cảnh suối khoáng nóng Bang Onsen</span>
+    </div>
+    <div class="w">
+      <span class="hero-tag">♨ Nguồn khoáng nóng tự nhiên 105°C · Chuẩn nghỉ dưỡng Nhật Bản</span>
+      <h1>Bang Onsen Spa & Resort – Tắm Onsen & suối khoáng nóng Quảng Trị</h1>
+      <p>Đặt vé Bang Onsen online 24/7: chọn ngày đi, so sánh giá vé các khu Onsen và nhận vé QR điện tử qua email chỉ trong 2 phút – không cần xếp hàng tại quầy.</p>
+      <div class="hero-trust">
+        <span>Xác nhận giữ chỗ tức thì</span>
+        <span>Tự động áp ưu đãi CCCD Quảng Trị</span>
+        <span>Hỗ trợ đổi / hủy vé trực tuyến</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. BỘ LỌC ĐẶT VÉ NHANH (QUICK BOOKING WIDGET) -->
+  <!-- 2. BỘ LỌC ĐẶT VÉ NHANH (QUICK BOOKING WIDGET) -->
+  <div class="w flt-wrap" id="flt">
+    <div class="flt">
+      <div class="flt-head">
+        <div>
+          <h2 style="font-size:20px;margin:0">Đặt vé Onsen nhanh</h2>
+          <small style="font-style:normal">Chọn ngày sử dụng để kiểm tra tình trạng vé và chọn số lượng cho từng gói dịch vụ</small>
+        </div>
+        <span class="bd" id="fday-badge">{{ default_day_label }}</span>
+      </div>
+
+      <div class="qb">
+        <label>Ngày đi *
+          <input type="date" id="fd" min="{{ today_iso }}" value="{{ default_date_iso }}" onchange="updateDayLabel(this.value)">
+        </label>
+
+        <button type="button" class="btn p" onclick="findTickets()">🔍 Tìm vé</button>
+      </div>
+
+      <div id="res"></div>
+    </div>
+  </div>
+
+  <div class="w">
+    <!-- 3. KHÁM PHÁ & SO SÁNH 3 GÓI DỊCH VỤ ONSEN -->
+    <section class="sec" aria-labelledby="onsen-sec">
+      <div class="sec-head">
+        <div>
+          <span class="sec-sub">Trải nghiệm khoáng nóng</span>
+          <h2 id="onsen-sec" style="margin:0">Ba gói dịch vụ Onsen tại Bang Onsen</h2>
+        </div>
+        <span class="sm" style="font-style:normal">Trẻ em dưới 1m miễn phí vé vào · Mang theo CCCD gốc khi áp dụng ưu đãi Quảng Trị</span>
+      </div>
+
+      <div class="g3">
+        {% for s in services %}
+          <article class="cd" id="cd{{ s.id }}">
+            <figure class="ph" style="height:150px" role="img" aria-label="Ảnh gói dịch vụ {{ s.name }}">
+              <span>📷 Khung ảnh – Gói dịch vụ {{ s.name }}</span>
+            </figure>
+
+            <div class="row" style="justify-content:space-between;margin-top:12px">
+              <span class="bd">{{ s.name }}</span>
+              <span class="sm" style="font-style:normal">Tối đa {{ s.cap }} khách/ngày</span>
+            </div>
+
+            <h3 style="margin:10px 0 4px">Gói dịch vụ {{ s.name }}</h3>
+            <div class="pc">Từ {{ s.price_weekday }} ₫</div>
+            <small class="ps2">Trẻ em 1–1,4m: từ {{ s.price_child_weekday }} ₫ · Người Quảng Trị: từ {{ s.price_qt_weekday }} ₫</small>
+            <p class="sm hl">{{ s.highlights }}</p>
+
+            <div class="act">
+              <div class="row">
+                <a class="btn s sm" href="{% url 'booking:onsen_detail' s.id %}">Xem chi tiết</a>
+                <button type="button" class="btn p sm" onclick="quickPickService({{ s.id }})">Đặt vé gói này</button>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+
+      <!-- Bảng so sánh nhanh 3 gói Onsen -->
+      <div class="cmp-wrap">
+        <button type="button" class="cmp-toggle" onclick="toggleCompareTable(this)">
+          <span>📊 Bảng so sánh nhanh tiện ích & giá vé 3 gói Onsen</span>
+          <span>Mở bảng so sánh ▼</span>
+        </button>
+        <div class="cmp-body" id="cmp-body" hidden>
+          <table>
+            <thead>
+              <tr>
+                <th>Tiêu chí so sánh</th>
+                {% for s in services %}
+                  <th>Gói {{ s.name }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>Giá người lớn (T2–T6)</b></td>
+                {% for s in services %}
+                  <td><b style="color:var(--red)">{{ s.price_weekday }} ₫</b></td>
+                {% endfor %}
+              </tr>
+              <tr>
+                <td><b>Giá người lớn (T7–CN)</b></td>
+                {% for s in services %}
+                  <td>{{ s.price_weekend }} ₫</td>
+                {% endfor %}
+              </tr>
+              <tr>
+                <td><b>Ưu đãi người Quảng Trị (T2–T6)</b></td>
+                {% for s in services %}
+                  <td><span style="color:var(--ok);font-weight:600">{{ s.price_qt_weekday }} ₫</span></td>
+                {% endfor %}
+              </tr>
+              <tr>
+                <td><b>Trẻ em (1m – 1,4m)</b></td>
+                {% for s in services %}
+                  <td>Từ {{ s.price_child_weekday }} ₫ (Dưới 1m miễn phí)</td>
+                {% endfor %}
+              </tr>
+              <tr>
+                <td><b>Tiện ích & Ẩm thực đi kèm</b></td>
+                {% for s in services %}
+                  <td>{{ s.highlights }}</td>
+                {% endfor %}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. QUY TRÌNH ĐẶT VÉ ONLINE 3 BƯỚC -->
+    <section class="sec" aria-labelledby="step-sec">
+      <div class="sec-head">
+        <div>
+          <span class="sec-sub">Tiện lợi & Nhanh chóng</span>
+          <h2 id="step-sec" style="margin:0">Đặt vé trực tuyến chỉ với 3 bước</h2>
+        </div>
+      </div>
+
+      <div class="g3">
+        <div class="step-card">
+          <span class="step-num">1</span>
+          <h3>Chọn ngày & Gói Onsen</h3>
+          <p class="sm" style="font-style:normal;margin:0">Kiểm tra số vé trống theo thời gian thực và chọn cùng lúc 1 hoặc nhiều gói Onsen phù hợp.</p>
+        </div>
+        <div class="step-card">
+          <span class="step-num">2</span>
+          <h3>Khai báo & Thanh toán</h3>
+          <p class="sm" style="font-style:normal;margin:0">Phân bổ vé theo chiều cao, nhập CCCD nhận ưu đãi Quảng Trị, áp voucher và thanh toán bảo mật.</p>
+        </div>
+        <div class="step-card">
+          <span class="step-num">3</span>
+          <h3>Nhận vé QR qua Email</h3>
+          <p class="sm" style="font-style:normal;margin:0">Mã QR điện tử gửi thẳng về email sau 2 phút. Quét mã tại cổng check-in, không cần xếp hàng.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. HỆ SINH THÁI BANG ONSEN SPA & RESORT -->
+    <section class="sec" id="eco-sec" aria-labelledby="eco-title">
+      <div class="sec-head">
+        <div>
+          <span class="sec-sub">Nghỉ dưỡng toàn diện</span>
+          <h2 id="eco-title" style="margin:0">Hệ sinh thái Bang Onsen Spa & Resort</h2>
+        </div>
+        <a class="btn s sm" href="{% url 'booking:info_page' 'about' %}">Tìm hiểu câu chuyện suối Bang →</a>
+      </div>
+
+      <div class="g3">
+        <article class="eco-card">
+          <figure class="ph" style="height:150px"><span>📷 Không gian Phòng nghỉ Bang Onsen</span></figure>
+          <h3>Phòng nghỉ</h3>
+          <p class="sm">{{ info_pages.rooms.desc }}</p>
+          <a class="btn s sm" href="{% url 'booking:info_page' 'rooms' %}">Khám phá phòng nghỉ</a>
+        </article>
+
+        <article class="eco-card">
+          <figure class="ph" style="height:150px"><span>📷 Không gian Spa & Trị liệu</span></figure>
+          <h3>Spa & Trị liệu</h3>
+          <p class="sm">{{ info_pages.spa.desc }}</p>
+          <a class="btn s sm" href="{% url 'booking:info_page' 'spa' %}">Khám phá spa & trị liệu</a>
+        </article>
+
+        <article class="eco-card">
+          <figure class="ph" style="height:150px"><span>📷 Không gian Nhà hàng & Hội nghị</span></figure>
+          <h3>Nhà hàng & Hội nghị</h3>
+          <p class="sm">{{ info_pages.dining.desc }}</p>
+          <a class="btn s sm" href="{% url 'booking:info_page' 'dining' %}">Khám phá nhà hàng & hội nghị</a>
+        </article>
+      </div>
+    </section>
+
+    <!-- 6. THƯ VIỆN KHÔNG GIAN & TRẢI NGHIỆM -->
+    <section class="sec" aria-labelledby="gal-sec">
+      <div class="sec-head">
+        <div>
+          <span class="sec-sub">Thư viện hình ảnh</span>
+          <h2 id="gal-sec" style="margin:0">Không gian & trải nghiệm tại Bang Onsen</h2>
+        </div>
+        <span class="sm" style="font-style:normal">Bấm vào từng khung ảnh để xem phóng to</span>
+      </div>
+
+      <div class="g3">
+        <div class="gal-item" onclick="previewGallery('Bể Onsen ngoài trời', 'Bể khoáng nóng ngoài trời giữa rừng nguyên sinh')">
+          <figure class="ph" style="height:180px"><span>📷 Bể khoáng nóng ngoài trời giữa rừng nguyên sinh</span></figure>
+          <span class="gal-cap">Bể Onsen ngoài trời</span>
+        </div>
+
+        <div class="gal-item" onclick="previewGallery('Khu xông hơi trị liệu', 'Phòng xông hơi tinh dầu & xông đá muối chuẩn Nhật')">
+          <figure class="ph" style="height:180px"><span>📷 Phòng xông hơi tinh dầu & xông đá muối chuẩn Nhật</span></figure>
+          <span class="gal-cap">Khu xông hơi trị liệu</span>
+        </div>
+
+        <div class="gal-item" onclick="previewGallery('Không gian nhà hàng & nghỉ dưỡng', 'Kiến trúc gỗ tối giản & ẩm thực Nhật – Việt')">
+          <figure class="ph" style="height:180px"><span>📷 Kiến trúc gỗ tối giản & ẩm thực Nhật – Việt</span></figure>
+          <span class="gal-cap">Không gian nhà hàng & nghỉ dưỡng</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. CÂU HỎI THƯỜNG GẶP (FAQ ACCORDION) -->
+    <section class="sec" aria-labelledby="faq-title">
+      <div class="sec-head">
+        <div>
+          <span class="sec-sub">Giải đáp thông tin</span>
+          <h2 id="faq-title" style="margin:0">Câu hỏi thường gặp về Bang Onsen</h2>
+        </div>
+      </div>
+
+      <details class="faq-item" open>
+        <summary>Bang Onsen Spa & Resort nằm ở đâu?</summary>
+        <p>Bang Onsen Spa & Resort tọa lạc tại khu vực suối khoáng nóng Bang, tỉnh Quảng Trị — nơi sở hữu nguồn nước khoáng nóng tự nhiên sôi ở nhiệt độ 105°C, được Tập đoàn Trường Thịnh đầu tư vận hành theo tiêu chuẩn nghỉ dưỡng Nhật Bản.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Bang Onsen có những dịch vụ gì nổi bật?</summary>
+        <p>Khu nghỉ dưỡng gồm 03 phân khu tắm khoáng Onsen chuyên biệt (Onsen 1, Onsen 2, Onsen 3 kết hợp công viên nước), hệ thống phòng nghỉ chuẩn Nhật, khu Spa & trị liệu chuyên sâu cùng chuỗi nhà hàng ẩm thực Nhật – Việt và trung tâm hội nghị.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Giá vé Bang Onsen bao nhiêu? Chính sách cho trẻ em và người Quảng Trị như thế nào?</summary>
+        <p>Giá vé công bố ngày thường (T2–T6) từ <b>{{ min_price }} ₫</b>/người lớn. Trẻ em dưới 1m được miễn phí vé vào; trẻ em từ 1m–1,4m tính bằng 50% giá người lớn. Khách hàng có CCCD tỉnh Quảng Trị (đầu số 045) được hệ thống tự động áp bảng giá ưu đãi riêng khi khai báo thông tin đặt vé.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Tôi có thể đổi ngày đi hoặc hủy vé đã đặt online không?</summary>
+        <p>Quý khách có thể chủ động tra cứu vé bằng số điện thoại tại mục <a href="{% url 'booking:lookup' %}" style="color:var(--red);font-weight:600">Tra cứu vé</a> để thực hiện đổi vé (sang vé có giá trị bằng hoặc cao hơn) hoặc hủy vé online trước giờ sử dụng theo quy định của khu nghỉ dưỡng.</p>
+      </details>
+    </section>
+  </div>
+{% endblock %}

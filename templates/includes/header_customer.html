@@ -1,0 +1,36 @@
+{% load static %}
+<header class="h">
+  <div class="w">
+    <a class="brand" href="{% url 'booking:home' %}" aria-label="Trang chủ Bang Onsen Spa & Resort">
+      <img src="{% static 'images/logo/logo-bang-onsen.png' %}" alt="Bang Onsen Spa & Resort">
+    </a>
+
+    <button type="button" class="mob-btn" onclick="document.getElementById('cnav').classList.toggle('open')" aria-label="Mở menu điều hướng">☰</button>
+
+    <nav id="cnav">
+      <div class="dd" onclick="this.classList.toggle('open')">
+        <a class="on" href="#flt">Đặt vé Onsen ▾</a>
+        <div class="dm">
+          {% for s in services %}
+            <a href="{% url 'booking:onsen_detail' s.id %}">Gói dịch vụ {{ s.name }}</a>
+          {% endfor %}
+        </div>
+      </div>
+
+      <a href="{% url 'booking:lookup' %}">Tra cứu vé</a>
+
+      <div class="dd" onclick="this.classList.toggle('open')">
+        <a>Dịch vụ khác ▾</a>
+        <div class="dm">
+          <a href="{% url 'booking:info_page' 'rooms' %}">Phòng nghỉ</a>
+          <a href="{% url 'booking:info_page' 'spa' %}">Spa & Trị liệu</a>
+          <a href="{% url 'booking:info_page' 'dining' %}">Nhà hàng & Hội nghị</a>
+          <a href="{% url 'booking:info_page' 'about' %}">Giới thiệu</a>
+          <a href="{% url 'booking:info_page' 'contact' %}">Liên hệ</a>
+        </div>
+      </div>
+
+      <a class="btn p sm" href="#flt">Đặt vé ngay</a>
+    </nav>
+  </div>
+</header>

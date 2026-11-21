@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/booking.css' %}">
+{% endblock %}
+
+{% block layout %}
+  {% include 'includes/preloader.html' %}
+  {% include 'includes/header_customer.html' %}
+
+  <main class="pg tc">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% include 'includes/footer_customer.html' %}
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'js/booking.js' %}"></script>
+{% endblock %}

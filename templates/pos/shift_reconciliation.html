@@ -1,0 +1,226 @@
+{% extends "pos/pos_base.html" %}
+{% load pos_filters %}
+
+{% block title %}Kết ca &amp; Đối soát doanh thu | Bang Onsen{% endblock %}
+
+{% block pos_content %}
+<!-- Thanh chọn Ca làm việc + Ngày làm việc -->
+<div class="pos-top-bar">
+    <div class="pos-tabs">
+        <a href="?shift=MORNING" class="pos-tab-btn {% if shift_type == 'MORNING' %}active{% endif %}" style="text-decoration:none;">
+            Ca sáng
+        </a>
+        <a href="?shift=EVENING" class="pos-tab-btn {% if shift_type == 'EVENING' %}active{% endif %}" style="text-decoration:none;">
+            Ca tối
+        </a>
+    </div>
+
+    <div class="pos-date-meta">
+        <span>Ngày làm việc: <strong>{{ today|date:"d/m/Y" }}</strong></span>
+        <span class="pos-badge-brown">{{ shift_label }}</span>
+    </div>
+</div>
+
+<!-- 4 Thẻ chỉ số tổng hợp doanh thu ca -->
+<div class="pos-kpi-grid">
+    <div class="pos-card pos-kpi-card">
+        <div class="pos-kpi-label">Tổng số vé đã bán</div>
+        <div class="pos-kpi-value">{{ total_tickets }} vé</div>
+        <div class="pos-note" style="margin:4px 0 0;">Từ {{ total_orders }} đơn tại quầy</div>
+    </div>
+
+    <div class="pos-card pos-kpi-card">
+        <div class="pos-kpi-label">Chuyển khoản / QR</div>
+        <div class="pos-kpi-value">{{ non_cash_revenue|vnd }}</div>
+        <div class="pos-note" style="margin:4px 0 0;">Không tiền mặt</div>
+    </div>
+
+    <div class="pos-card pos-kpi-card pos-kpi-brown">
+        <div class="pos-kpi-label">Tiền mặt hệ thống</div>
+        <div class="pos-kpi-value">{{ cash_revenue|vnd }}</div>
+        <div class="pos-note" style="margin:4px 0 0;">Số tiền cần đối chiếu két</div>
+    </div>
+
+    <div class="pos-card pos-kpi-card pos-kpi-red">
+        <div class="pos-kpi-label">Tổng doanh thu ca</div>
+        <div class="pos-kpi-value pos-text-red">{{ total_revenue|vnd }}</div>
+        <div class="pos-note" style="margin:4px 0 0;">Tiền mặt + Chuyển khoản</div>
+    </div>
+</div>
+
+<div class="pos-grid-shift">
+    <!-- Cột trái: Form nhập tiền thực nhận HOẶC Biên bản đã chốt -->
+    <div>
+        {% if existing_shift %}
+        <div class="pos-card pos-receipt-box pos-shift-result">
+            <div class="pos-row-between" style="margin-bottom:14px;">
+                <div>
+                    <h2 class="pos-card-title" style="margin:0;">Biên bản Kết ca {{ existing_shift.shift_id }}</h2>
+                    <div class="pos-note" style="margin:4px 0 0;">
+                        Chốt lúc: <strong>{{ existing_shift.reconciled_at|date:"H:i d/m/Y" }}</strong> ·
+                        Nhân viên: <strong>{{ existing_shift.receptionist.full_name|default:existing_shift.receptionist.username }}</strong>
+                    </div>
+                </div>
+                {% if existing_shift.cash_variance == 0 %}
+                    <span class="pos-badge-ok">✓ Khớp doanh thu</span>
+                {% else %}
+                    <span class="pos-badge-err">Có chênh lệch tiền mặt</span>
+                {% endif %}
+            </div>
+
+            {% if existing_shift.cash_variance == 0 %}
+            <div class="pos-alert pos-alert-success">
+                Tiền mặt thực nhận khớp 100% với doanh thu hệ thống ghi nhận.
+            </div>
+            {% else %}
+            <div class="pos-alert pos-alert-error">
+                Phát sinh chênh lệch tiền mặt (<strong>{% if existing_shift.cash_variance > 0 %}+{% endif %}{{ existing_shift.cash_variance|vnd }}</strong>). Hệ thống đã tự động ghi nhận cảnh báo gửi Quản lý.
+            </div>
+            {% endif %}
+
+            <table class="pos-table">
+                <tbody>
+                    <tr>
+                        <td>Doanh thu tiền mặt hệ thống</td>
+                        <td class="pos-tr"><strong>{{ existing_shift.cash_revenue|vnd }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Tiền mặt thực nhận cuối ca</td>
+                        <td class="pos-tr"><strong>{{ existing_shift.actual_cash|vnd }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Chênh lệch tiền mặt</td>
+                        <td class="pos-tr">
+                            <strong class="{% if existing_shift.cash_variance == 0 %}pos-text-ok{% else %}pos-text-red{% endif %}">
+                                {% if existing_shift.cash_variance > 0 %}+{% endif %}{{ existing_shift.cash_variance|vnd }}
+                            </strong>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Doanh thu không tiền mặt (QR/Thẻ)</td>
+                        <td class="pos-tr">{{ existing_shift.non_cash_revenue|vnd }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tổng doanh thu ca</strong></td>
+                        <td class="pos-tr"><strong class="pos-text-red">{{ existing_shift.total_revenue|vnd }}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            {% if existing_shift.note %}
+            <div class="pos-note" style="margin-bottom:16px;">
+                <strong>Ghi chú giải trình:</strong> {{ existing_shift.note }}
+            </div>
+            {% endif %}
+
+            <div class="pos-row-between pos-receipt-actions">
+                <button type="button" class="pos-btn-secondary" onclick="window.print()">In phiếu kết ca</button>
+                <a href="{% url 'pos:logout' %}" class="pos-btn-primary pos-btn-sm" style="width:auto;text-decoration:none;padding:10px 20px;">
+                    Đăng xuất &amp; Kết thúc ca
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <div class="pos-card pos-shift-form-card">
+            <h2 class="pos-card-title">Đối soát tiền mặt cuối ca</h2>
+            <form method="post" id="shiftReconcileForm">
+                {% csrf_token %}
+                <input type="hidden" name="shift_type" value="{{ shift_type }}">
+
+                <div class="pos-field">
+                    <label for="actualCashInput" class="pos-label">
+                        Số tiền mặt thực nhận tại két (VNĐ) <span class="pos-req">*</span>
+                    </label>
+                    <input type="number" name="actual_cash" id="actualCashInput" class="pos-input"
+                           min="0" step="1000" required inputmode="numeric"
+                           data-system-cash="{{ cash_revenue|floatformat:0 }}"
+                           oninput="posCalcShiftVariance()">
+                </div>
+
+                <!-- Khung hiển thị chênh lệch real-time -->
+                <div id="shiftVarianceBox" class="pos-variance-box" style="display:none;"></div>
+
+                <div class="pos-field pos-field-lg">
+                    <label for="shiftNoteInput" class="pos-label">Ghi chú giải trình (nếu có chênh lệch)</label>
+                    <textarea name="note" id="shiftNoteInput" rows="3" class="pos-input" style="min-height:84px;resize:vertical;"></textarea>
+                </div>
+
+                <div class="pos-row-between" style="gap:10px;">
+                    <a href="{% url 'pos:counter_sale' %}" class="pos-btn-secondary" style="text-decoration:none;">
+                        ← Quay lại POS
+                    </a>
+                    <button type="submit" class="pos-btn-primary pos-btn-lg" style="flex:1;">
+                        Xác nhận Kết ca &amp; Đối soát
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Cột phải: Lịch sử chốt ca gần đây -->
+    <aside>
+        <div class="pos-card">
+            <h2 class="pos-card-title">Lịch sử chốt ca gần đây</h2>
+            {% if recent_shifts %}
+            <div class="pos-recent-list">
+                {% for s in recent_shifts %}
+                <div class="pos-recent-item">
+                    <div class="pos-row-between">
+                        <strong>{{ s.shift_id }}</strong>
+                        {% if s.cash_variance == 0 %}
+                            <span class="pos-badge-ok">Khớp</span>
+                        {% else %}
+                            <span class="pos-badge-err">Lệch {{ s.cash_variance|vnd }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="pos-note" style="margin:4px 0 0;">
+                        {{ s.shift_date|date:"d/m/Y" }} · {{ s.get_shift_type_display }} · Tổng: <strong>{{ s.total_revenue|vnd }}</strong>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="pos-note" style="margin:0;">Chưa có lịch sử chốt ca nào.</p>
+            {% endif %}
+        </div>
+    </aside>
+</div>
+
+<!-- Bảng danh sách giao dịch tại quầy trong ngày -->
+<div class="pos-card pos-no-print">
+    <div class="pos-row-between" style="margin-bottom:12px;">
+        <h2 class="pos-card-title" style="margin:0;">Danh sách giao dịch tại quầy hôm nay ({{ total_orders }} đơn)</h2>
+    </div>
+    {% if shift_orders %}
+    <div style="overflow-x:auto;">
+        <table class="pos-table">
+            <thead>
+                <tr>
+                    <th>Mã đơn</th>
+                    <th>Giờ bán</th>
+                    <th>Khách hàng</th>
+                    <th class="pos-tc">SL vé</th>
+                    <th>Thanh toán</th>
+                    <th class="pos-tr">Tổng tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ord in shift_orders %}
+                <tr>
+                    <td><strong>{{ ord.order_id }}</strong></td>
+                    <td>{{ ord.created_time|date:"H:i" }}</td>
+                    <td>{{ ord.customer.customer_name|default:"Khách lẻ tại quầy" }}</td>
+                    <td class="pos-tc">{{ ord.total_quantity }}</td>
+                    <td>{{ ord.get_payment_method_display }}</td>
+                    <td class="pos-tr"><strong>{{ ord.total_amount|vnd }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="pos-note" style="margin:0;">Chưa có giao dịch bán vé tại quầy nào trong ngày hôm nay.</p>
+    {% endif %}
+</div>
+{% endblock %}

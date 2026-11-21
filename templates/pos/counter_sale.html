@@ -1,0 +1,349 @@
+{% extends "pos/pos_base.html" %}
+{% load pos_filters %}
+
+{% block title %}Bán vé &amp; Check-in (POS) | Bang Onsen{% endblock %}
+
+{% block pos_content %}
+<!-- Thanh 2 Tab + Ngày làm việc nằm gọn trên cùng 1 hàng -->
+<div class="pos-top-bar">
+    <div class="pos-tabs" role="tablist">
+        <button type="button" id="tabBtnSale" class="pos-tab-btn {% if active_tab == 'sale' %}active{% endif %}" onclick="posSwitchTab('sale')">
+            Bán vé tại quầy
+        </button>
+        <button type="button" id="tabBtnCheckin" class="pos-tab-btn {% if active_tab == 'checkin' %}active{% endif %}" onclick="posSwitchTab('checkin')">
+            Quét mã QR Check-in
+        </button>
+    </div>
+
+    <div class="pos-date-meta">
+        <span>Ngày làm việc: <strong>{{ today|date:"d/m/Y" }}</strong></span>
+        <span class="pos-badge-brown">{{ day_type_label }}</span>
+    </div>
+</div>
+
+<!-- ==================== TAB 1: BÁN VÉ TẠI QUẦY ==================== -->
+<div id="tabSalePanel" {% if active_tab != 'sale' %}style="display:none;"{% endif %}>
+    {% if created_order %}
+    <div class="pos-card pos-receipt-box">
+        <div class="pos-row-between">
+            <span class="pos-badge-ok">✓ Đã thanh toán &amp; Xuất vé giấy</span>
+            <div class="pos-receipt-actions">
+                <button type="button" class="pos-btn-secondary pos-btn-sm" onclick="window.print()">In vé giấy</button>
+                <a href="{% url 'pos:counter_sale' %}" class="pos-btn-primary pos-btn-sm" style="width:auto;display:inline-block;text-decoration:none;">Bán đơn mới</a>
+            </div>
+        </div>
+        <h2 class="pos-card-title" style="margin-top:14px;">Hóa đơn {{ created_order.order_id }}</h2>
+        <table class="pos-table">
+            <thead>
+                <tr>
+                    <th>Gói Onsen</th>
+                    <th>Loại vé</th>
+                    <th class="pos-tc">SL</th>
+                    <th class="pos-tr">Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in created_order.items.all %}
+                <tr>
+                    <td><strong>{{ item.service.service_name }}</strong></td>
+                    <td>
+                        {{ item.get_ticket_type_display }}
+                        {% if item.is_quang_tri_local %}<span class="pos-text-ok"> (Ưu đãi QT – {{ item.cccd_number }})</span>{% endif %}
+                    </td>
+                    <td class="pos-tc">{{ item.quantity }}</td>
+                    <td class="pos-tr">{{ item.subtotal|vnd }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="pos-receipt-total">
+            <span>Tổng thanh toán ({{ created_order.get_payment_method_display }}):</span>
+            <strong class="pos-text-red">{{ created_order.total_amount|vnd }}</strong>
+        </div>
+        {% if created_order.payment_method == 'CASH' %}
+        <div class="pos-note">
+            Khách đưa: {{ cash_received|vnd }} · Tiền thừa trả khách: <strong>{{ cash_change|vnd }}</strong>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+
+    <form method="post" id="posSaleForm">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="counter_sale">
+        <input type="hidden" name="cart_data" id="cartDataInput" value="{}">
+        <input type="hidden" name="qt_allocations" id="qtAllocationsInput" value="[]">
+
+        <div class="pos-grid-main">
+            <!-- Cột trái -->
+            <div class="pos-col-left">
+                <div class="pos-service-grid">
+                    {% for item in service_list %}
+                    <div class="pos-card pos-service-card" data-service-id="{{ item.obj.id }}">
+                        <div class="pos-row-between" style="margin-bottom:10px;">
+                            <span class="pos-badge-brown">{{ item.obj.service_name }}</span>
+                            {% if item.remaining > 0 %}
+                                <span class="pos-badge-ok">Còn {{ item.remaining }} vé</span>
+                            {% else %}
+                                <span class="pos-badge-err">Hết vé</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="pos-qty-row">
+                            <div>
+                                <div class="pos-qty-label">Trên 1,4m</div>
+                                <div class="pos-price-val" id="price-{{ item.obj.id }}-ADULT">0 VNĐ</div>
+                            </div>
+                            <div class="pos-stepper">
+                                <button type="button" onclick="posUpdateQty('{{ item.obj.id }}', 'ADULT', -1)">−</button>
+                                <span id="qty-{{ item.obj.id }}-ADULT">0</span>
+                                <button type="button" onclick="posUpdateQty('{{ item.obj.id }}', 'ADULT', 1)" {% if item.remaining == 0 %}disabled{% endif %}>+</button>
+                            </div>
+                        </div>
+
+                        <div class="pos-qty-row">
+                            <div>
+                                <div class="pos-qty-label">Từ 1m – 1,4m</div>
+                                <div class="pos-price-val" id="price-{{ item.obj.id }}-CHILD">0 VNĐ</div>
+                            </div>
+                            <div class="pos-stepper">
+                                <button type="button" onclick="posUpdateQty('{{ item.obj.id }}', 'CHILD', -1)">−</button>
+                                <span id="qty-{{ item.obj.id }}-CHILD">0</span>
+                                <button type="button" onclick="posUpdateQty('{{ item.obj.id }}', 'CHILD', 1)" {% if item.remaining == 0 %}disabled{% endif %}>+</button>
+                            </div>
+                        </div>
+
+                        <div class="pos-qty-row pos-qty-last">
+                            <div>
+                                <div class="pos-qty-label">Dưới 1m</div>
+                                <div class="pos-note" style="margin:0;">Miễn phí vé vào</div>
+                            </div>
+                            <div class="pos-stepper">
+                                <button type="button" onclick="posUpdateQty('{{ item.obj.id }}', 'INFANT', -1)">−</button>
+                                <span id="qty-{{ item.obj.id }}-INFANT">0</span>
+                                <button type="button" onclick="posUpdateQty('{{ item.obj.id }}', 'INFANT', 1)" {% if item.remaining == 0 %}disabled{% endif %}>+</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="pos-card">Chưa có gói dịch vụ Onsen nào đang hoạt động.</div>
+                    {% endfor %}
+                </div>
+
+                <!-- Thông tin khách hàng -->
+                <div class="pos-card">
+                    <h2 class="pos-card-title">Thông tin khách hàng</h2>
+                    <div class="pos-form-grid-3">
+                        <div>
+                            <label for="{{ customer_form.customer_name.id_for_label }}" class="pos-label">{{ customer_form.customer_name.label }}</label>
+                            {{ customer_form.customer_name }}
+                        </div>
+                        <div>
+                            <label for="{{ customer_form.phone.id_for_label }}" class="pos-label">{{ customer_form.phone.label }}</label>
+                            {{ customer_form.phone }}
+                        </div>
+                        <div>
+                            <label for="{{ customer_form.cccd_number.id_for_label }}" class="pos-label">{{ customer_form.cccd_number.label }}</label>
+                            {{ customer_form.cccd_number }}
+                        </div>
+                    </div>
+
+                    <div id="mainQtTargetWrap" class="pos-main-qt-wrap" style="display:none;">
+                        <label for="mainQtTargetSelect" class="pos-label" style="margin-bottom:4px;">Áp ưu đãi CCCD người đại diện cho vé:</label>
+                        <select id="mainQtTargetSelect" class="pos-input pos-qt-select" onchange="posRenderSummary()"></select>
+                    </div>
+
+                    <div id="extraCccdSection" class="pos-extra-cccd" style="display:none;">
+                        <div class="pos-row-between" style="margin-bottom:8px;">
+                            <span class="pos-note" style="margin:0;">Mỗi CCCD Quảng Trị (đầu số 044/045) chỉ áp dụng ưu đãi cho <strong>01 vé</strong>.</span>
+                            <button type="button" id="addExtraCccdBtn" class="pos-btn-secondary pos-btn-sm" onclick="posAddExtraCccd()">
+                                + Thêm CCCD ưu đãi khác
+                            </button>
+                        </div>
+                        <div id="extraCccdList" class="pos-extra-cccd-list"></div>
+                        <div id="cccdWarning" class="pos-field-error" style="display:none;"></div>
+                    </div>
+                </div>
+
+                <!-- Danh sách Voucher -->
+                <div class="pos-card">
+                    <h2 class="pos-card-title">Khuyến mãi &amp; Voucher hiện hành</h2>
+                    <div class="pos-chip-list">
+                        <label class="pos-chip">
+                            <input type="radio" name="voucher_code" value="" checked onchange="posRenderSummary()">
+                            <span>Không áp dụng</span>
+                        </label>
+                        {% for v in active_vouchers %}
+                        <label class="pos-chip">
+                            <input type="radio" name="voucher_code" value="{{ v.voucher_code }}" onchange="posRenderSummary()">
+                            <span>
+                                <strong>{{ v.voucher_code }}</strong>
+                                ({% if v.discount_type == 'Percent' %}-{{ v.discount_value|floatformat:0 }}%{% else %}-{{ v.discount_value|vnd }}{% endif %})
+                            </span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cột phải: Hóa đơn tạm tính & Thanh toán -->
+            <aside class="pos-col-right">
+                <div class="pos-card pos-sticky">
+                    <div class="pos-row-between" style="margin-bottom:12px;">
+                        <h2 class="pos-card-title" style="margin:0;">Hóa đơn tạm tính</h2>
+                        <span id="priceTierBadge" class="pos-badge-brown">Giá công bố</span>
+                    </div>
+
+                    <div id="summaryItems" class="pos-summary-items">
+                        <p class="pos-note" style="margin:0;">Chưa chọn vé nào.</p>
+                    </div>
+
+                    <div class="pos-summary-totals">
+                        <div class="pos-row-between pos-sum-line">
+                            <span>Tạm tính</span>
+                            <span id="summarySubtotal">0 VNĐ</span>
+                        </div>
+                        <div class="pos-row-between pos-sum-line pos-text-ok" id="summaryDiscountRow" style="display:none;">
+                            <span>Giảm giá Voucher</span>
+                            <span id="summaryDiscount">-0 VNĐ</span>
+                        </div>
+                        <div class="pos-row-between pos-sum-grand">
+                            <span>Tổng thanh toán</span>
+                            <span id="summaryTotal" class="pos-text-red">0 VNĐ</span>
+                        </div>
+                    </div>
+
+                    <hr class="pos-divider">
+
+                    <div class="pos-label">Phương thức thanh toán</div>
+                    <div class="pos-pay-tabs">
+                        <label class="pos-chip pos-pay-opt">
+                            <input type="radio" name="payment_method" value="CASH" checked onchange="posTogglePayment()">
+                            <span>Tiền mặt</span>
+                        </label>
+                        <label class="pos-chip pos-pay-opt">
+                            <input type="radio" name="payment_method" value="BANK_TRANSFER" onchange="posTogglePayment()">
+                            <span>Chuyển khoản QR</span>
+                        </label>
+                    </div>
+
+                    <div id="cashSection" class="pos-pay-box">
+                        <label for="cashReceivedInput" class="pos-label">Số tiền khách đưa (VNĐ)</label>
+                        <input type="number" name="cash_received" id="cashReceivedInput" class="pos-input" min="0" step="1000" inputmode="numeric" oninput="posCalcChange()">
+                        <div id="cashChangeDisplay" class="pos-change-text"></div>
+                    </div>
+
+                    <div id="qrSection" class="pos-pay-box pos-qr-box" style="display:none;">
+                        <div class="pos-qr-title">VietQR động tại quầy</div>
+                        <p class="pos-note" style="margin:4px 0 0;">Khách quét mã chuyển khoản đúng số tiền <strong id="qrAmountText" class="pos-text-red">0 VNĐ</strong></p>
+                    </div>
+
+                    <button type="submit" id="submitSaleBtn" class="pos-btn-primary pos-btn-lg" disabled>
+                        Xác nhận thanh toán &amp; Xuất vé
+                    </button>
+                </div>
+            </aside>
+        </div>
+    </form>
+
+    <script>
+        window.POS_PRICES = {{ prices_map_json|safe }};
+        window.POS_VOUCHERS = {{ vouchers_map_json|safe }};
+    </script>
+    {% endif %}
+</div>
+
+<!-- ==================== TAB 2: QUÉT MÃ QR CHECK-IN ==================== -->
+<div id="tabCheckinPanel" {% if active_tab != 'checkin' %}style="display:none;"{% endif %}>
+    <div class="pos-card pos-checkin-box">
+        <h2 class="pos-card-title">Tra cứu &amp; Xác nhận Check-in vé Online</h2>
+        <form method="post" class="pos-checkin-form">
+            {% csrf_token %}
+            <input type="hidden" name="form_type" value="qr_lookup">
+            <input type="text" name="qr_code" id="qrCodeInput" value="{{ qr_query }}" class="pos-input"
+                   placeholder="Quét hoặc nhập mã QR / mã đơn hàng (VD: ORD-261121-...)" autocomplete="off">
+            <button type="submit" class="pos-btn-primary pos-checkin-btn">Kiểm tra vé</button>
+        </form>
+    </div>
+
+    {% if checked_order %}
+    <div class="pos-card pos-checkin-box">
+        <div class="pos-row-between" style="margin-bottom:14px;">
+            <div>
+                <h2 class="pos-card-title" style="margin:0;">Đơn hàng {{ checked_order.order_id }}</h2>
+                <div class="pos-note" style="margin:4px 0 0;">Mã QR: <strong>{{ checked_order.qr_code|default:"—" }}</strong></div>
+            </div>
+            {% if checked_order.ticket_status == 'USED' %}
+                <span class="pos-badge-err">Đã check-in</span>
+            {% elif can_checkin %}
+                <span class="pos-badge-ok">Chưa sử dụng (Hợp lệ)</span>
+            {% else %}
+                <span class="pos-badge-err">{{ checked_order.get_ticket_status_display }}</span>
+            {% endif %}
+        </div>
+
+        <div class="pos-alert {% if can_checkin %}pos-alert-success{% elif checked_order.ticket_status == 'USED' and checkin_status_msg == 'Đã xác nhận Check-in thành công!' %}pos-alert-success{% else %}pos-alert-error{% endif %}">
+            {{ checkin_status_msg }}
+        </div>
+
+        {% if qt_cccd_list %}
+        <div class="pos-alert pos-alert-warning">
+            <strong>Lưu ý đối chiếu CCCD Quảng Trị:</strong> Đơn này có áp dụng giá ưu đãi. Vui lòng kiểm tra CCCD bản gốc khớp với số:
+            <strong>{{ qt_cccd_list|join:", " }}</strong>
+        </div>
+        {% endif %}
+
+        <div class="pos-checkin-meta">
+            <div><span>Khách hàng:</span> <strong>{{ checked_order.customer.customer_name|default:"Khách lẻ" }}</strong></div>
+            <div><span>Số điện thoại:</span> <strong>{{ checked_order.customer.phone|default:"—" }}</strong></div>
+            <div><span>Ngày sử dụng:</span> <strong>{{ checked_order.visit_date|date:"d/m/Y" }}</strong></div>
+            <div><span>Kênh đặt:</span> <strong>{{ checked_order.get_channel_display }}</strong></div>
+            {% if checked_order.checked_in_at %}
+            <div><span>Giờ check-in:</span> <strong>{{ checked_order.checked_in_at|date:"H:i d/m/Y" }}</strong></div>
+            <div><span>Nhân viên duyệt:</span> <strong>{{ checked_order.checked_in_by.full_name|default:checked_order.checked_in_by.username }}</strong></div>
+            {% endif %}
+        </div>
+
+        <table class="pos-table" style="margin-top:14px;">
+            <thead>
+                <tr>
+                    <th>Gói Onsen</th>
+                    <th>Loại vé</th>
+                    <th class="pos-tc">SL</th>
+                    <th class="pos-tr">Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in checked_order.items.all %}
+                <tr>
+                    <td><strong>{{ item.service.service_name }}</strong></td>
+                    <td>
+                        {{ item.get_ticket_type_display }}
+                        {% if item.is_quang_tri_local %}<span class="pos-text-ok"> (Ưu đãi QT – {{ item.cccd_number }})</span>{% endif %}
+                    </td>
+                    <td class="pos-tc">{{ item.quantity }}</td>
+                    <td class="pos-tr">{{ item.subtotal|vnd }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="pos-receipt-total" style="margin-bottom:16px;">
+            <span>Tổng giá trị đơn:</span>
+            <strong class="pos-text-red">{{ checked_order.total_amount|vnd }}</strong>
+        </div>
+
+        {% if can_checkin %}
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="form_type" value="qr_confirm">
+            <input type="hidden" name="order_id" value="{{ checked_order.order_id }}">
+            <button type="submit" class="pos-btn-primary pos-btn-lg">
+                ✓ Xác nhận Check-in / Vào cổng
+            </button>
+        </form>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

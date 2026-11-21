@@ -1,0 +1,1129 @@
+:root {
+    --pos-bg: #F8F9FA;
+    --pos-white: #FFFFFF;
+    --pos-text: #333333;
+    --pos-gray: #ABB8C3;
+    --pos-red: #BC202F;
+    --pos-red-hover: #9E1926;
+    --pos-brown: #8B4D3E;
+    --pos-err-bg: #FDECEA;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background-color: var(--pos-bg);
+    color: var(--pos-text);
+    font-family: 'Montserrat', sans-serif;
+}
+
+/* ================= TRANG ĐĂNG NHẬP NỘI BỘ ================= */
+.pos-login-page {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 16px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.pos-login-card {
+    width: 100%;
+    max-width: 420px;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    padding: 34px 28px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+
+.pos-login-brand {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.pos-login-logo {
+    max-height: 60px;
+    max-width: 220px;
+    width: auto;
+    object-fit: contain;
+    margin-bottom: 14px;
+}
+
+.pos-login-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--pos-text);
+    margin: 0 0 6px;
+    line-height: 1.25;
+}
+
+.pos-login-subtitle {
+    font-size: 13.5px;
+    color: #5C6B77;
+    margin: 0;
+}
+
+.pos-field {
+    margin-bottom: 16px;
+}
+
+.pos-field-lg {
+    margin-bottom: 24px;
+}
+
+.pos-label {
+    display: block;
+    font-size: 13.5px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--pos-text);
+}
+
+.pos-req {
+    color: var(--pos-red);
+}
+
+.pos-input {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    font-family: inherit;
+    font-size: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--pos-gray);
+    padding: 10px 14px;
+    color: var(--pos-text);
+    background-color: var(--pos-white);
+}
+
+.pos-input:focus {
+    border-color: var(--pos-red);
+    box-shadow: 0 0 0 3px rgba(188, 32, 47, 0.15);
+    outline: none;
+}
+
+.pos-password-wrap {
+    position: relative;
+}
+
+.pos-password-wrap .pos-input {
+    padding-right: 68px;
+}
+
+.pos-pw-toggle {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--pos-brown);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+.pos-btn-primary {
+    display: block;
+    width: 100%;
+    background-color: var(--pos-red);
+    border: 1px solid var(--pos-red);
+    color: var(--pos-white);
+    font-family: inherit;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.pos-btn-primary:hover,
+.pos-btn-primary:focus {
+    background-color: var(--pos-red-hover);
+    border-color: var(--pos-red-hover);
+}
+
+.pos-btn-primary:disabled {
+    background-color: var(--pos-gray);
+    border-color: var(--pos-gray);
+    cursor: not-allowed;
+}
+
+.pos-btn-lg {
+    min-height: 48px;
+    font-size: 15px;
+}
+
+.pos-alert-err {
+    background-color: var(--pos-err-bg);
+    border: 1px solid var(--pos-red);
+    color: var(--pos-red);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13.5px;
+    font-weight: 500;
+    margin-bottom: 18px;
+}
+
+.pos-field-error {
+    color: var(--pos-red);
+    font-size: 12.5px;
+    margin-top: 4px;
+}
+
+.pos-login-footer {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #EEF1F3;
+}
+
+.pos-back-link {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--pos-brown);
+    text-decoration: none;
+}
+
+.pos-back-link:hover {
+    color: var(--pos-red);
+    text-decoration: underline;
+}
+
+@media (max-width: 576px) {
+    .pos-login-page {
+        padding: 16px 14px;
+    }
+
+    .pos-login-card {
+        padding: 26px 20px;
+        border-radius: 12px;
+    }
+
+    .pos-login-logo {
+        max-height: 50px;
+    }
+
+    .pos-login-title {
+        font-size: 20px;
+    }
+
+    .pos-input {
+        font-size: 16px;
+    }
+}
+
+/* ================= GIAO DIỆN CHUNG PHÂN HỆ POS ================= */
+.pos-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+.pos-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--pos-white);
+    border-bottom: 1px solid #E3E8EC;
+}
+
+.pos-header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 64px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.pos-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.pos-header-logo {
+    height: 36px;
+    width: auto;
+    object-fit: contain;
+}
+
+.pos-nav {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.pos-nav-link {
+    text-decoration: none;
+    color: var(--pos-text);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 8px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.pos-nav-link:hover {
+    background: var(--pos-err-bg);
+    color: var(--pos-red);
+}
+
+.pos-nav-link.active {
+    background: var(--pos-red);
+    color: var(--pos-white);
+}
+
+.pos-user-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13.5px;
+}
+
+.pos-staff-name {
+    font-weight: 600;
+    color: var(--pos-text);
+}
+
+.pos-logout-btn {
+    text-decoration: none;
+    color: var(--pos-brown);
+    font-weight: 600;
+    padding: 6px 12px;
+    border: 1px solid var(--pos-brown);
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.pos-logout-btn:hover {
+    background: var(--pos-brown);
+    color: var(--pos-white);
+}
+
+.pos-main {
+    padding-top: 24px;
+    padding-bottom: 40px;
+}
+
+.pos-page-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.pos-page-title {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.pos-date-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+}
+
+.pos-card {
+    background: var(--pos-white);
+    border: 1px solid #E3E8EC;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.pos-card-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 0 14px;
+}
+
+.pos-row-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Badges & Alerts */
+.pos-badge-brown {
+    display: inline-block;
+    background: var(--pos-brown);
+    color: var(--pos-white);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+
+.pos-badge-ok {
+    display: inline-block;
+    background: #E8F5E9;
+    color: #2E7D32;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+
+.pos-badge-err {
+    display: inline-block;
+    background: var(--pos-err-bg);
+    color: var(--pos-red);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+
+.pos-alert {
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid transparent;
+}
+
+.pos-alert-success { background: #E8F5E9; border-color: #2E7D32; color: #1B5E20; }
+.pos-alert-error   { background: var(--pos-err-bg); border-color: var(--pos-red); color: var(--pos-red); }
+.pos-alert-warning { background: #FEF3C7; border-color: #D97706; color: #92400E; }
+.pos-alert-info    { background: #F1F4F6; border-color: var(--pos-gray); color: var(--pos-text); }
+
+/* Bố cục 2 cột POS */
+.pos-grid-main {
+    display: grid;
+    grid-template-columns: 1fr 370px;
+    gap: 20px;
+    align-items: start;
+}
+
+.pos-sticky {
+    position: sticky;
+    top: 84px;
+}
+
+.pos-service-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+}
+
+.pos-service-card {
+    margin-bottom: 16px;
+}
+
+.pos-qty-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #EEF1F3;
+}
+
+.pos-qty-last {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.pos-qty-label {
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+.pos-price-val {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--pos-red);
+    margin-top: 2px;
+}
+
+.pos-stepper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pos-stepper button {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--pos-gray);
+    background: var(--pos-white);
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pos-stepper button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pos-stepper span {
+    min-width: 22px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.pos-form-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+/* Khu vực thêm CCCD ưu đãi đi cùng */
+.pos-extra-cccd {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed #E3E8EC;
+}
+
+.pos-extra-cccd-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.pos-extra-cccd-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.pos-remove-cccd-btn {
+    width: 40px;
+    height: 44px;
+    border-radius: 8px;
+    border: 1px solid var(--pos-red);
+    background: var(--pos-err-bg);
+    color: var(--pos-red);
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.pos-note {
+    font-size: 12.5px;
+    font-style: italic;
+    color: #5C6B77;
+    margin-top: 8px;
+}
+
+.pos-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.pos-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    border: 1px solid #E3E8EC;
+    border-radius: 8px;
+    font-size: 13.5px;
+    cursor: pointer;
+    background: var(--pos-white);
+}
+
+.pos-chip input {
+    width: auto;
+    margin: 0;
+    accent-color: var(--pos-red);
+}
+
+/* Hóa đơn & Thanh toán */
+.pos-summary-items {
+    margin-bottom: 14px;
+}
+
+.pos-sum-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #F1F4F6;
+    font-size: 13.5px;
+}
+
+.pos-sum-line {
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.pos-sum-grand {
+    font-size: 18px;
+    font-weight: 700;
+    padding-top: 10px;
+    border-top: 1px solid #E3E8EC;
+    margin-top: 6px;
+}
+
+.pos-text-red { color: var(--pos-red); }
+.pos-text-ok  { color: #2E7D32; }
+
+.pos-divider {
+    border: none;
+    border-top: 1px solid #E3E8EC;
+    margin: 16px 0;
+}
+
+.pos-pay-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.pos-pay-opt {
+    justify-content: center;
+    width: 100%;
+}
+
+.pos-pay-box {
+    margin-bottom: 16px;
+}
+
+.pos-change-text {
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+.pos-qr-box {
+    text-align: center;
+    padding: 14px;
+    border: 1px dashed var(--pos-brown);
+    border-radius: 8px;
+    background: #FBF8F7;
+}
+
+.pos-qr-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--pos-brown);
+}
+
+.pos-btn-secondary {
+    background: var(--pos-white);
+    border: 1px solid var(--pos-brown);
+    color: var(--pos-brown);
+    font-family: inherit;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 8px 16px;
+}
+
+.pos-btn-secondary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.pos-btn-sm {
+    padding: 7px 14px;
+    font-size: 13px;
+}
+
+/* Bảng biên lai in vé */
+.pos-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.pos-table th, .pos-table td {
+    padding: 9px 8px;
+    border-bottom: 1px solid #E3E8EC;
+    text-align: left;
+}
+
+.pos-table th {
+    background: #F1F4F6;
+    font-weight: 600;
+}
+
+.pos-tc { text-align: center !important; }
+.pos-tr { text-align: right !important; }
+
+.pos-receipt-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 17px;
+    padding-top: 6px;
+}
+
+.pos-receipt-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Responsive tối ưu Tablet & Mobile */
+@media (max-width: 992px) {
+    .pos-grid-main {
+        grid-template-columns: 1fr;
+    }
+    .pos-service-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .pos-sticky {
+        position: static;
+    }
+}
+
+@media (max-width: 640px) {
+    .pos-page-title {
+        font-size: 21px;
+    }
+    .pos-service-grid,
+    .pos-form-grid-3 {
+        grid-template-columns: 1fr;
+    }
+    .pos-nav {
+        width: 100%;
+        order: 3;
+    }
+    .pos-nav-link {
+        flex: 1;
+        text-align: center;
+        padding: 8px 6px;
+        font-size: 12.5px;
+    }
+    .pos-stepper button {
+        width: 38px;
+        height: 38px;
+    }
+}
+
+@media print {
+    .pos-header, .pos-page-head, .pos-messages, #posSaleForm, .pos-receipt-actions {
+        display: none !important;
+    }
+    .pos-receipt-box {
+        border: none;
+        box-shadow: none;
+    }
+    .pos-main-qt-wrap {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #F4FBF5;
+    border: 1px solid #C8E6C9;
+    border-radius: 8px;
+}
+
+.pos-qt-select {
+    font-size: 13.5px;
+    cursor: pointer;
+}
+
+@media (max-width: 640px) {
+    .pos-extra-cccd-row {
+        flex-wrap: wrap;
+    }
+    .pos-extra-cccd-row .extra-cccd-input,
+    .pos-extra-cccd-row .extra-cccd-target {
+        flex: 1 1 100%;
+    }
+}
+}
+/* ================= THANH TAB & QUÉT MÃ QR CHECK-IN ================= */
+.pos-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+    border-bottom: 2px solid #E3E8EC;
+    padding-bottom: 10px;
+}
+
+.pos-tab-btn {
+    background: var(--pos-white);
+    border: 1px solid #E3E8EC;
+    color: var(--pos-text);
+    font-family: inherit;
+    font-size: 14.5px;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pos-tab-btn:hover {
+    border-color: var(--pos-red);
+    color: var(--pos-red);
+}
+
+.pos-tab-btn.active {
+    background: var(--pos-red);
+    border-color: var(--pos-red);
+    color: var(--pos-white);
+}
+
+.pos-checkin-box {
+    max-width: 780px;
+}
+
+.pos-checkin-form {
+    display: flex;
+    gap: 10px;
+}
+
+.pos-checkin-btn {
+    width: auto;
+    padding: 0 24px;
+    white-space: nowrap;
+}
+
+.pos-checkin-meta {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 16px;
+    font-size: 14px;
+    padding: 12px 14px;
+    background: #F8F9FA;
+    border-radius: 8px;
+}
+
+.pos-checkin-meta span {
+    color: #5C6B77;
+}
+
+@media (max-width: 640px) {
+    .pos-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+    .pos-tab-btn {
+        padding: 10px 8px;
+        font-size: 13px;
+        text-align: center;
+    }
+    .pos-checkin-form {
+        flex-direction: column;
+    }
+    .pos-checkin-btn {
+        width: 100%;
+        min-height: 44px;
+    }
+    .pos-checkin-meta {
+        grid-template-columns: 1fr;
+    }
+}
+/* ================= NÂNG CẤP THẨM MỸ & MICRO-INTERACTIONS POS ================= */
+@keyframes posSlideFade {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes posPricePulse {
+    0%   { transform: scale(1); }
+    45%  { transform: scale(1.06); }
+    100% { transform: scale(1); }
+}
+
+@keyframes posSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* Hàng đầu tiên gom Tab + Ngày làm việc gọn gàng */
+.pos-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #E3E8EC;
+}
+
+.pos-top-bar .pos-tabs {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+    background: #EEF1F4;
+    padding: 4px;
+    border-radius: 10px;
+    gap: 4px;
+}
+
+.pos-top-bar .pos-tab-btn {
+    border: none;
+    background: transparent;
+    padding: 9px 18px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease;
+}
+
+.pos-top-bar .pos-tab-btn:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.75);
+    color: var(--pos-red);
+}
+
+.pos-top-bar .pos-tab-btn.active {
+    background: var(--pos-red);
+    color: var(--pos-white);
+    box-shadow: 0 3px 10px rgba(188, 32, 47, 0.24);
+}
+
+.pos-top-bar .pos-tab-btn:active {
+    transform: scale(0.97);
+}
+
+/* Hiệu ứng chuyển Tab mượt */
+.pos-panel-anim {
+    animation: posSlideFade 0.22s ease-out;
+}
+
+/* Nâng cấp thẻ dịch vụ: hover nâng nhẹ + highlight khi đang có vé chọn */
+.pos-service-card {
+    border-top: 3px solid var(--pos-brown);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.pos-service-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(51, 51, 51, 0.08);
+    border-color: #D5DCE2;
+    border-top-color: var(--pos-brown);
+}
+
+.pos-service-card.is-selected {
+    border-color: rgba(188, 32, 47, 0.45);
+    border-top-color: var(--pos-red);
+    background: linear-gradient(180deg, #FFFDFD 0%, #FFFFFF 100%);
+    box-shadow: 0 8px 20px rgba(188, 32, 47, 0.1);
+}
+
+/* Nút +/- nảy nhẹ khi bấm & đổi màu khi hover */
+.pos-stepper button {
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.pos-stepper button:hover:not(:disabled) {
+    border-color: var(--pos-red);
+    color: var(--pos-red);
+    background: var(--pos-err-bg);
+}
+
+.pos-stepper button:active:not(:disabled) {
+    transform: scale(0.9);
+}
+
+/* Thẻ Hóa đơn tạm tính có viền nhấn đỏ đô & vùng tổng tiền nổi bật */
+.pos-col-right .pos-card {
+    border-top: 3px solid var(--pos-red);
+    box-shadow: 0 6px 22px rgba(51, 51, 51, 0.06);
+}
+
+.pos-summary-totals {
+    background: #FBF9F8;
+    border: 1px solid #EFE9E6;
+    border-radius: 10px;
+    padding: 12px 14px;
+}
+
+.pos-price-pulse {
+    display: inline-block;
+    animation: posPricePulse 0.25s ease-out;
+}
+
+/* Hover & Active cho Chip Voucher & Phương thức thanh toán */
+.pos-chip {
+    transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
+}
+
+.pos-chip:hover {
+    border-color: var(--pos-brown);
+    background: #FBF8F7;
+}
+
+.pos-chip:has(input:checked) {
+    border-color: var(--pos-red);
+    background: #FFF6F6;
+    box-shadow: 0 0 0 2px rgba(188, 32, 47, 0.12);
+}
+
+/* Nút CTA chính + Mini Pre-loader Spinner khi submit */
+.pos-btn-primary {
+    transition: background-color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
+}
+
+.pos-btn-primary:hover:not(:disabled) {
+    box-shadow: 0 6px 16px rgba(188, 32, 47, 0.25);
+    transform: translateY(-1px);
+}
+
+.pos-btn-primary:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.pos-btn-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.88;
+}
+
+.pos-btn-loading::after {
+    content: "";
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    margin-left: 8px;
+    vertical-align: -2px;
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    border-top-color: #FFFFFF;
+    border-radius: 50%;
+    animation: posSpin 0.65s linear infinite;
+}
+
+/* Dòng CCCD thêm mới trượt ra mượt */
+.pos-extra-cccd-row {
+    animation: posSlideFade 0.2s ease-out;
+}
+
+/* Nav header hover mượt hơn */
+.pos-nav-link, .pos-logout-btn, .pos-btn-secondary {
+    transition: all 0.18s ease;
+}
+
+.pos-btn-secondary:hover:not(:disabled) {
+    background: var(--pos-brown);
+    color: var(--pos-white);
+}
+
+@media (max-width: 640px) {
+    .pos-top-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .pos-top-bar .pos-date-meta {
+        justify-content: space-between;
+    }
+}
+/* ================= TRANG KẾT CA & ĐỐI SOÁT DOANH THU ================= */
+.pos-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.pos-kpi-card {
+    margin-bottom: 0;
+    border-top: 3px solid var(--pos-red);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pos-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(51, 51, 51, 0.06);
+}
+
+.pos-kpi-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #5C6B77;
+    margin-bottom: 6px;
+}
+
+.pos-kpi-value {
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--pos-text);
+}
+
+.pos-grid-shift {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+    align-items: start;
+}
+
+.pos-shift-form-card,
+.pos-shift-result {
+    border-top: 3px solid var(--pos-red);
+}
+
+.pos-variance-box {
+    border-radius: 8px;
+    padding: 11px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    animation: posSlideFade 0.2s ease-out;
+}
+
+.pos-variance-ok {
+    background: #E8F5E9;
+    border: 1px solid #2E7D32;
+    color: #1B5E20;
+}
+
+.pos-variance-diff {
+    background: var(--pos-err-bg);
+    border: 1px solid var(--pos-red);
+    color: var(--pos-red);
+}
+
+.pos-recent-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.pos-recent-item {
+    padding: 10px 12px;
+    background: #F8F9FA;
+    border: 1px solid #EEF1F3;
+    border-radius: 8px;
+}
+
+@media (max-width: 992px) {
+    .pos-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .pos-grid-shift {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 576px) {
+    .pos-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media print {
+    .pos-top-bar, .pos-kpi-grid, .pos-no-print, aside {
+        display: none !important;
+    }
+}

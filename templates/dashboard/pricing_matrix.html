@@ -1,0 +1,335 @@
+{% extends 'dashboard/base_admin.html' %}
+{% load humanize %}
+
+{% block title %}Dịch vụ & Bảng giá | Bang Onsen Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .col-5 { grid-column: span 5; }
+    .col-7 { grid-column: span 7; }
+    .col-12 { grid-column: span 12; }
+
+    .section-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .form-group.full {
+        grid-column: span 2;
+    }
+
+    .form-group label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-main);
+    }
+
+    .form-control {
+        min-height: 42px;
+        padding: 8px 12px;
+        border: 1px solid var(--border-muted);
+        border-radius: 6px;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 14px;
+        color: var(--text-main);
+        background-color: #FFFFFF;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--cta-red);
+    }
+
+    table.data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    table.data-table th {
+        text-align: left;
+        padding: 12px 14px;
+        background-color: var(--bg-main);
+        border-bottom: 1px solid var(--border-muted);
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    table.data-table td {
+        padding: 12px 14px;
+        border-bottom: 1px solid #EAECEF;
+        vertical-align: middle;
+    }
+
+    .tag-wood {
+        background-color: rgba(139, 77, 62, 0.12);
+        color: var(--accent-wood);
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .text-right { text-align: right !important; }
+    .font-semibold { font-weight: 600; }
+
+    @media (max-width: 1024px) {
+        .col-5, .col-7 { grid-column: span 12; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Quản lý Dịch vụ & Ma trận Giá</h1>
+        <p class="page-subtitle">Cấu hình gói Onsen, giá đầu tuần / cuối tuần và chính sách ưu đãi CCCD Quảng Trị (044, 045)</p>
+    </div>
+</div>
+
+<div class="grid-12" style="margin-bottom: 24px;">
+    <!-- KHỐI 1: THÊM GÓI DỊCH VỤ ONSEN -->
+    <div class="card col-5">
+        <div class="section-title">
+            <span>Thêm gói dịch vụ Onsen mới</span>
+        </div>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_service">
+
+            <div class="form-group">
+                <label>Mã gói dịch vụ</label>
+                {{ service_form.service_id }}
+            </div>
+
+            <div class="form-group">
+                <label>Sức chứa vé / ngày</label>
+                {{ service_form.daily_capacity }}
+            </div>
+
+            <div class="form-group full">
+                <label>Tên gói dịch vụ</label>
+                {{ service_form.service_name }}
+            </div>
+
+            <div class="form-group full">
+                <label>Mô tả tiện ích bể khoáng</label>
+                {{ service_form.description }}
+            </div>
+
+            <div class="form-group">
+                <label>Trạng thái kinh doanh</label>
+                {{ service_form.service_status }}
+            </div>
+
+            <div class="form-group" style="justify-content: flex-end;">
+                <button type="submit" class="btn-primary" style="justify-content: center;">+ Thêm gói dịch vụ</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- KHỐI 2: DANH SÁCH CÁC GÓI DỊCH VỤ HIỆN CÓ -->
+    <div class="card col-7">
+        <div class="section-title">
+            <span>Danh mục gói dịch vụ Onsen ({{ services.count }})</span>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Mã gói</th>
+                    <th>Tên gói dịch vụ</th>
+                    <th class="text-right">Sức chứa/ngày</th>
+                    <th>Trạng thái</th>
+                    <th class="text-right">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for srv in services %}
+                <tr>
+                    <td><span class="tag-wood">{{ srv.service_id }}</span></td>
+                    <td>
+                        <div class="font-semibold">{{ srv.service_name }}</div>
+                        <div style="font-size: 12px; color: #666;">{{ srv.description|truncatechars:60 }}</div>
+                    </td>
+                    <td class="text-right">{{ srv.daily_capacity }} vé</td>
+                    <td>
+                        {% if srv.service_status == 'Active' %}
+                            <span class="badge badge-success">Đang kinh doanh</span>
+                        {% else %}
+                            <span class="badge badge-danger">Tạm ngưng</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-right">
+                        <form method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="toggle_service">
+                            <input type="hidden" name="service_pk" value="{{ srv.id }}">
+                            <button type="submit" class="btn-secondary btn-sm">
+                                {% if srv.service_status == 'Active' %}Tạm ngưng{% else %}Mở bán lại{% endif %}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #777;">Chưa có gói dịch vụ nào. Hãy thêm gói Onsen ở khung bên trái.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- KHỐI 3: THIẾT LẬP & CẬP NHẬT MA TRẬN GIÁ -->
+    <div class="card col-5">
+        <div class="section-title">
+            <span>Cấu hình / Cập nhật Bảng giá</span>
+        </div>
+        <p style="font-size: 12px; font-style: italic; color: var(--accent-wood); margin-bottom: 16px;">
+            * Chọn trùng Gói + Loại vé + Khung ngày sẽ tự động cập nhật mức giá hiện tại và ghi nhật ký kiểm toán.
+        </p>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_price">
+
+            <div class="form-group full">
+                <label>Chọn gói dịch vụ</label>
+                {{ price_form.service }}
+            </div>
+
+            <div class="form-group">
+                <label>Đối tượng / Loại vé</label>
+                {{ price_form.ticket_type }}
+            </div>
+
+            <div class="form-group">
+                <label>Khung ngày áp dụng</label>
+                {{ price_form.day_type }}
+            </div>
+
+            <div class="form-group">
+                <label>Giá công bố (VNĐ)</label>
+                {{ price_form.price }}
+            </div>
+
+            <div class="form-group">
+                <label>Giá ưu đãi Quảng Trị (VNĐ)</label>
+                {{ price_form.quang_tri_price }}
+            </div>
+
+            <div class="form-group full" style="margin-top: 8px;">
+                <button type="submit" class="btn-primary" style="justify-content: center;">Lưu cấu hình bảng giá</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- KHỐI 4: BẢNG MA TRẬN GIÁ ĐANG ÁP DỤNG -->
+    <div class="card col-7">
+        <div class="section-title">
+            <span>Ma trận giá vé đang áp dụng</span>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Gói dịch vụ</th>
+                    <th>Loại vé</th>
+                    <th>Khung ngày</th>
+                    <th class="text-right">Giá niêm yết</th>
+                    <th class="text-right">Ưu đãi Quảng Trị</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in prices %}
+                <tr>
+                    <td class="font-semibold">{{ p.service.service_name }}</td>
+                    <td>{{ p.get_ticket_type_display }}</td>
+                    <td>
+                        {% if p.day_type == 'WEEKEND' %}
+                            <span class="badge badge-warning">Cuối tuần</span>
+                        {% else %}
+                            <span class="tag-wood">Đầu tuần</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-right font-semibold">{{ p.price|floatformat:0|intcomma }} đ</td>
+                    <td class="text-right">
+                        {% if p.quang_tri_price is not None %}
+                            <span class="badge badge-success">{{ p.quang_tri_price|floatformat:0|intcomma }} đ</span>
+                        {% else %}
+                            <span style="color: #999;">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #777;">Chưa có cấu hình giá nào trong ma trận.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- KHỐI 5: NHẬT KÝ THAY ĐỔI GIÁ (PRICE AUDIT LOG) -->
+    <div class="card col-12">
+        <div class="section-title">
+            <span>Lịch sử điều chỉnh bảng giá (Audit Log)</span>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Thời gian</th>
+                    <th>Gói dịch vụ & Loại vé</th>
+                    <th class="text-right">Giá niêm yết (Cũ → Mới)</th>
+                    <th class="text-right">Ưu đãi Quảng Trị (Cũ → Mới)</th>
+                    <th>Người cập nhật</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in audit_logs %}
+                <tr>
+                    <td>{{ log.changed_at|date:"d/m/Y H:i" }}</td>
+                    <td class="font-semibold">
+                        {{ log.service_price.service.service_name }} — {{ log.service_price.get_ticket_type_display }} ({{ log.service_price.get_day_type_display }})
+                    </td>
+                    <td class="text-right">
+                        {{ log.old_price|floatformat:0|intcomma }}đ → <strong style="color: var(--cta-red);">{{ log.new_price|floatformat:0|intcomma }}đ</strong>
+                    </td>
+                    <td class="text-right">
+                        {% if log.old_quang_tri_price or log.new_quang_tri_price %}
+                            {{ log.old_quang_tri_price|default:0|floatformat:0|intcomma }}đ → <strong style="color: var(--success-text);">{{ log.new_quang_tri_price|default:0|floatformat:0|intcomma }}đ</strong>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>{{ log.changed_by.full_name|default:log.changed_by.username }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #777;">Chưa ghi nhận lịch sử thay đổi giá nào.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

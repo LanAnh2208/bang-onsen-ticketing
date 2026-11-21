@@ -1,0 +1,245 @@
+{% extends 'dashboard/base_admin.html' %}
+
+{% block title %}Nhân sự & Phân quyền | Bang Onsen Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    .kpi-box {
+        background: #FFFFFF;
+        border: 1px solid var(--border-muted);
+        border-radius: 8px;
+        padding: 20px 24px;
+    }
+
+    .kpi-box.highlight {
+        border-color: var(--cta-red);
+    }
+
+    .kpi-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--accent-wood);
+        margin-bottom: 6px;
+    }
+
+    .kpi-num {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--text-main);
+    }
+
+    .filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 16px;
+        align-items: center;
+    }
+
+    .form-control {
+        height: 40px;
+        padding: 0 12px;
+        border: 1px solid var(--border-muted);
+        border-radius: 6px;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 13px;
+        color: var(--text-main);
+        background-color: #FFFFFF;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--cta-red);
+    }
+
+    .filter-row .form-control {
+        min-width: 200px;
+    }
+
+    table.data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    table.data-table th {
+        text-align: left;
+        padding: 12px 14px;
+        background-color: var(--bg-main);
+        border-bottom: 1px solid var(--border-muted);
+        font-weight: 600;
+        color: var(--text-main);
+    }
+
+    table.data-table td {
+        padding: 12px 14px;
+        border-bottom: 1px solid #EAECEF;
+        vertical-align: middle;
+    }
+
+    .inline-form {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .inline-select {
+        height: 34px;
+        padding: 0 8px;
+        border: 1px solid var(--border-muted);
+        border-radius: 6px;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 12px;
+        background: #FFFFFF;
+    }
+
+    .btn-sm {
+        height: 34px;
+        padding: 0 12px;
+        font-size: 12px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid var(--border-muted);
+        background: #FFFFFF;
+        color: var(--text-main);
+        font-family: 'Montserrat', sans-serif;
+    }
+
+    .btn-sm:hover {
+        border-color: var(--accent-wood);
+        color: var(--accent-wood);
+    }
+
+    .btn-sm-cta {
+        background: var(--cta-red);
+        border-color: var(--cta-red);
+        color: #FFFFFF;
+    }
+
+    .text-right { text-align: right; }
+
+    @media (max-width: 1024px) {
+        .kpi-grid { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Nhân sự & Phân quyền</h1>
+        <p class="page-subtitle">Quản lý tài khoản nhân viên, vai trò vận hành và trạng thái truy cập hệ thống</p>
+    </div>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-box highlight">
+        <div class="kpi-label">TỔNG TÀI KHOẢN</div>
+        <div class="kpi-num">{{ stats.total_users }} tài khoản</div>
+    </div>
+    <div class="kpi-box">
+        <div class="kpi-label">ĐANG HOẠT ĐỘNG</div>
+        <div class="kpi-num">{{ stats.active_users }} tài khoản</div>
+    </div>
+    <div class="kpi-box">
+        <div class="kpi-label">QUẢN TRỊ VIÊN / ADMIN</div>
+        <div class="kpi-num">{{ stats.admin_users }} tài khoản</div>
+    </div>
+</div>
+
+<div class="card">
+    <form method="get" class="filter-row">
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Tìm theo tên, username hoặc email..." class="form-control">
+        <select name="status" class="form-control">
+            <option value="">Tất cả trạng thái</option>
+            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Đang hoạt động</option>
+            <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Tạm khóa</option>
+        </select>
+        <button type="submit" class="btn-secondary" style="height: 40px; padding: 0 16px; font-size: 13px;">Lọc</button>
+    </form>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Tài khoản</th>
+                <th>Họ tên / Email</th>
+                <th>Trạng thái</th>
+                <th>Phân quyền</th>
+                <th class="text-right">Trạng thái tài khoản</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>
+                    <div style="font-weight: 700; color: var(--accent-wood);">{{ u.username }}</div>
+                    {% if has_role_field %}
+                        <div style="font-size: 11px; color: #666;">Vai trò hiện tại: {{ u.role }}</div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if has_full_name_field and u.full_name %}
+                        <div style="font-weight: 600;">{{ u.full_name }}</div>
+                    {% endif %}
+                    <div style="font-size: 12px; color: #666;">{{ u.email|default:"Chưa cập nhật email" }}</div>
+                </td>
+                <td>
+                    {% if u.is_active %}
+                        <span class="badge badge-success">Hoạt động</span>
+                    {% else %}
+                        <span class="badge badge-danger">Tạm khóa</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <form method="post" class="inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_permission">
+                        <input type="hidden" name="user_pk" value="{{ u.pk }}">
+
+                        {% if has_role_field and role_choices %}
+                            <select name="role" class="inline-select">
+                                {% for code, label in role_choices %}
+                                    <option value="{{ code }}" {% if u.role == code %}selected{% endif %}>{{ label }} ({{ code }})</option>
+                                {% endfor %}
+                            </select>
+                        {% else %}
+                            <select name="perm_level" class="inline-select">
+                                <option value="admin" {% if u.is_superuser %}selected{% endif %}>Admin (Superuser)</option>
+                                <option value="staff" {% if not u.is_superuser and u.is_staff %}selected{% endif %}>Nhân viên (Staff)</option>
+                                <option value="user" {% if not u.is_staff and not u.is_superuser %}selected{% endif %}>Tài khoản thường</option>
+                            </select>
+                        {% endif %}
+
+                        <button type="submit" class="btn-sm btn-sm-cta">Lưu quyền</button>
+                    </form>
+                </td>
+                <td class="text-right">
+                    <form method="post" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="toggle_active">
+                        <input type="hidden" name="user_pk" value="{{ u.pk }}">
+                        <button type="submit" class="btn-sm">
+                            {% if u.is_active %}Khóa tài khoản{% else %}Mở khóa{% endif %}
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align: center; color: #777; padding: 24px;">
+                    Không tìm thấy tài khoản nào phù hợp.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

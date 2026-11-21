@@ -1,0 +1,371 @@
+{% extends 'dashboard/base_admin.html' %}
+{% load humanize %}
+
+{% block title %}Tổng quan & Báo cáo | Bang Onsen Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-end;
+        background: #FFFFFF;
+        border: 1px solid var(--border-muted);
+        border-radius: 8px;
+        padding: 16px 24px;
+        margin-bottom: 24px;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 180px;
+    }
+
+    .filter-group label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-main);
+    }
+
+    .form-control {
+        height: 42px;
+        padding: 0 12px;
+        border: 1px solid var(--border-muted);
+        border-radius: 6px;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 14px;
+        color: var(--text-main);
+        background-color: #FFFFFF;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--cta-red);
+    }
+
+    .kpi-card {
+        grid-column: span 3;
+        background: #FFFFFF;
+        border: 1px solid var(--border-muted);
+        border-radius: 8px;
+        padding: 20px 24px;
+    }
+
+    .kpi-card.highlight {
+        border-color: var(--cta-red);
+    }
+
+    .kpi-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--accent-wood);
+        margin-bottom: 8px;
+    }
+
+    .kpi-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-main);
+    }
+
+    .kpi-sub {
+        font-size: 12px;
+        font-style: italic;
+        color: #666666;
+        margin-top: 6px;
+    }
+
+    .chart-section { grid-column: span 8; }
+    .service-section { grid-column: span 4; }
+    .full-section { grid-column: span 12; }
+
+    .section-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    table.data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    table.data-table th {
+        text-align: left;
+        padding: 12px 16px;
+        background-color: var(--bg-main);
+        border-bottom: 1px solid var(--border-muted);
+        font-weight: 600;
+        color: var(--text-main);
+        font-size: 13px;
+    }
+
+    table.data-table td {
+        padding: 12px 16px;
+        border-bottom: 1px solid #EAECEF;
+        color: var(--text-main);
+    }
+
+    .text-right { text-align: right !important; }
+    .font-semibold { font-weight: 600; }
+
+    @media (max-width: 1024px) {
+        .kpi-card { grid-column: span 6; }
+        .chart-section, .service-section { grid-column: span 12; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Tổng quan Doanh thu & Đối soát</h1>
+        <p class="page-subtitle">Dữ liệu cập nhật trực tiếp (Real-time) theo giao dịch hệ thống Bang Onsen</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <a href="?date={{ selected_date }}&channel={{ selected_channel }}&staff_id={{ selected_staff_id }}&export=csv" class="btn-secondary">
+            Xuất báo cáo Excel (.CSV)
+        </a>
+    </div>
+</div>
+
+<!-- THANH LỌC DỮ LIỆU -->
+<form method="get" class="filter-bar">
+    <div class="filter-group">
+        <label for="date">Ngày đối soát</label>
+        <input type="date" id="date" name="date" value="{{ selected_date }}" class="form-control">
+    </div>
+
+    <div class="filter-group">
+        <label for="channel">Kênh bán vé</label>
+        <select id="channel" name="channel" class="form-control">
+            <option value="">Tất cả kênh (POS & Online)</option>
+            <option value="COUNTER" {% if selected_channel == 'COUNTER' %}selected{% endif %}>Tại quầy (POS)</option>
+            <option value="ONLINE" {% if selected_channel == 'ONLINE' %}selected{% endif %}>Đặt trực tuyến (Website)</option>
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label for="staff_id">Nhân viên lễ tân</label>
+        <select id="staff_id" name="staff_id" class="form-control">
+            <option value="">Tất cả nhân viên</option>
+            {% for nv in receptionists %}
+                <option value="{{ nv.id }}" {% if selected_staff_id == nv.id|stringformat:"s" %}selected{% endif %}>
+                    {{ nv.full_name }} ({{ nv.account_id }})
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <button type="submit" class="btn-primary">Lọc dữ liệu</button>
+</form>
+
+<!-- 4 THẺ KPI TỔNG QUAN -->
+<div class="grid-12" style="margin-bottom: 24px;">
+    <div class="kpi-card highlight">
+        <div class="kpi-label">TỔNG DOANH THU THỰC THU</div>
+        <div class="kpi-value">{{ summary.total_revenue|floatformat:0|intcomma }} đ</div>
+        <div class="kpi-sub">{{ summary.total_orders }} hóa đơn đã thanh toán</div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-label">TỔNG LƯỢT VÉ BÁN RA</div>
+        <div class="kpi-value">{{ summary.total_tickets|intcomma }} vé</div>
+        <div class="kpi-sub">Bao gồm vé người lớn, trẻ em & ưu đãi</div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-label">DOANH THU TẠI QUẦY (POS)</div>
+        <div class="kpi-value">{{ summary.pos_revenue|floatformat:0|intcomma }} đ</div>
+        <div class="kpi-sub">Tiền mặt: {{ summary.cash_revenue|floatformat:0|intcomma }} đ</div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-label">DOANH THU TRỰC TUYẾN (ONLINE)</div>
+        <div class="kpi-value">{{ summary.online_revenue|floatformat:0|intcomma }} đ</div>
+        <div class="kpi-sub">Không tiền mặt: {{ summary.non_cash_revenue|floatformat:0|intcomma }} đ</div>
+    </div>
+
+    <!-- BIỂU ĐỒ DOANH THU REAL-TIME THEO GIỜ -->
+    <div class="card chart-section">
+        <div class="section-title">
+            <span>Biểu đồ doanh thu theo khung giờ trong ngày</span>
+            <span class="badge badge-success">Real-time</span>
+        </div>
+        <canvas id="revenueChart" height="120"></canvas>
+    </div>
+
+    <!-- TỶ TRỌNG THEO GÓI ONSEN -->
+    <div class="card service-section">
+        <div class="section-title">
+            <span>Doanh thu theo gói Onsen</span>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Gói dịch vụ</th>
+                    <th class="text-right">Số vé</th>
+                    <th class="text-right">Doanh thu</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in service_breakdown %}
+                <tr>
+                    <td class="font-semibold">{{ item.service__service_name }}</td>
+                    <td class="text-right">{{ item.tickets_sold }}</td>
+                    <td class="text-right font-semibold">{{ item.revenue|floatformat:0|intcomma }} đ</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" style="text-align: center; color: #777;">Chưa có dữ liệu giao dịch trong ngày này.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- BẢNG ĐỐI SOÁT DOANH THU THEO NHÂN VIÊN POS -->
+    <div class="card full-section">
+        <div class="section-title">
+            <span>Đối soát doanh thu theo Nhân viên lễ tân (Quầy POS)</span>
+            <span style="font-size: 12px; font-weight: 400; color: var(--accent-wood);">KPI BR-03: Khớp 100% số liệu cuối ngày</span>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Mã NV</th>
+                    <th>Nhân viên lễ tân</th>
+                    <th class="text-right">Số đơn</th>
+                    <th class="text-right">Số vé</th>
+                    <th class="text-right">Tiền mặt</th>
+                    <th class="text-right">Chuyển khoản</th>
+                    <th class="text-right">Thẻ / Ví ĐT</th>
+                    <th class="text-right">Tổng thực thu</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in staff_reconciliation %}
+                <tr>
+                    <td>{{ row.created_by__account_id|default:"-" }}</td>
+                    <td class="font-semibold">{{ row.created_by__full_name|default:row.created_by__username }}</td>
+                    <td class="text-right">{{ row.order_count }}</td>
+                    <td class="text-right">{{ row.ticket_count|default:0 }}</td>
+                    <td class="text-right">{{ row.cash_total|default:0|floatformat:0|intcomma }} đ</td>
+                    <td class="text-right">{{ row.transfer_total|default:0|floatformat:0|intcomma }} đ</td>
+                    <td class="text-right">{{ row.card_ewallet_total|default:0|floatformat:0|intcomma }} đ</td>
+                    <td class="text-right font-semibold" style="color: var(--cta-red);">{{ row.total_collected|default:0|floatformat:0|intcomma }} đ</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; color: #777;">Chưa phát sinh giao dịch tại quầy POS trong ngày.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- BẢNG KIỂM TRA PHIẾU CHỐT CA CUỐI NGÀY -->
+    <div class="card full-section">
+        <div class="section-title">
+            <span>Trạng thái Phiếu đối soát chốt ca (Shift Reconciliation)</span>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Mã ca</th>
+                    <th>Nhân viên</th>
+                    <th>Ca làm việc</th>
+                    <th class="text-right">Tiền mặt hệ thống</th>
+                    <th class="text-right">Tiền mặt thực nhận</th>
+                    <th class="text-right">Chênh lệch</th>
+                    <th>Trạng thái đối soát</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for shf in shift_reports %}
+                <tr>
+                    <td class="font-semibold">{{ shf.shift_id }}</td>
+                    <td>{{ shf.receptionist.full_name }}</td>
+                    <td>{{ shf.get_shift_type_display }}</td>
+                    <td class="text-right">{{ shf.cash_revenue|floatformat:0|intcomma }} đ</td>
+                    <td class="text-right">{{ shf.actual_cash|floatformat:0|intcomma }} đ</td>
+                    <td class="text-right font-semibold">{{ shf.cash_variance|floatformat:0|intcomma }} đ</td>
+                    <td>
+                        {% if shf.cash_variance == 0 %}
+                            <span class="badge badge-success">Khớp doanh thu 100%</span>
+                        {% else %}
+                            <span class="badge badge-danger">Cảnh báo chênh lệch</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; color: #777;">Chưa có phiếu chốt ca nào được gửi trong ngày này.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{{ hourly_labels|json_script:"hourly-labels" }}
+{{ hourly_pos|json_script:"hourly-pos" }}
+{{ hourly_online|json_script:"hourly-online" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const labels = JSON.parse(document.getElementById('hourly-labels').textContent);
+    const posData = JSON.parse(document.getElementById('hourly-pos').textContent);
+    const onlineData = JSON.parse(document.getElementById('hourly-online').textContent);
+
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Tại quầy (POS)',
+                    data: posData,
+                    backgroundColor: '#BC202F',
+                    borderRadius: 4
+                },
+                {
+                    label: 'Đặt trực tuyến (Online)',
+                    data: onlineData,
+                    backgroundColor: '#8B4D3E',
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                x: { stacked: true },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString('vi-VN') + ' đ';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

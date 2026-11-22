@@ -1,5 +1,17 @@
 const posCart = {};
 let posCurrentTotal = 0;
+let _lastAnimatedTotal = -1;
+let _lastVietQrUrl = '';
+let _posQrScanner = null;
+let _posQrScanning = false;
+
+// Cấu hình tài khoản nhận tiền VietQR động (thay bằng STK thật để quét test trên app ngân hàng)
+const POS_VIETQR_CONFIG = {
+    bankId: 'MB',
+    accountNo: '0123456789',
+    accountName: 'BANG ONSEN SPA RESORT',
+    template: 'compact2'
+};
 
 function posFormatVND(amount) {
     return Math.round(amount).toLocaleString('vi-VN') + ' VNĐ';
@@ -46,6 +58,16 @@ function posSyncSelectOptions(selectEl, opts) {
     } else if (opts.length > 0) {
         selectEl.value = opts[0].value;
     }
+}
+
+// Chỉ cho chọn tối đa 1 voucher; bấm lại vào voucher đang chọn sẽ tự bỏ chọn
+function posSelectVoucher(checkboxEl) {
+    if (checkboxEl.checked) {
+        document.querySelectorAll('input[name="voucher_code"]').forEach(el => {
+            if (el !== checkboxEl) el.checked = false;
+        });
+    }
+    posRenderSummary();
 }
 
 function posAddExtraCccd() {
@@ -98,13 +120,43 @@ function posUpdateQty(serviceId, ticketType, delta) {
     posRenderSummary();
 }
 
+function posUpdateVietQR() {
+    const emptyEl = document.getElementById('vietQrEmpty');
+    const wrapEl = document.getElementById('vietQrWrapper');
+    const imgEl = document.getElementById('vietQrImg');
+    const infoEl = document.getElementById('qrAddInfoText');
+    if (!emptyEl || !wrapEl || !imgEl) return;
+
+    const amount = Math.round(posCurrentTotal || 0);
+    if (amount <= 0) {
+        emptyEl.style.display = 'block';
+        wrapEl.style.display = 'none';
+        _lastVietQrUrl = '';
+        return;
+    }
+
+    const phoneVal = (document.getElementById('id_phone')?.value || '').trim();
+    const addInfo = phoneVal ? `BANG ONSEN ${phoneVal}` : 'BANG ONSEN VE TAI QUAY';
+    const url = `https://img.vietqr.io/image/${POS_VIETQR_CONFIG.bankId}-${POS_VIETQR_CONFIG.accountNo}-${POS_VIETQR_CONFIG.template}.png` +
+                `?amount=${amount}&addInfo=${encodeURIComponent(addInfo)}&accountName=${encodeURIComponent(POS_VIETQR_CONFIG.accountName)}`;
+
+    emptyEl.style.display = 'none';
+    wrapEl.style.display = 'block';
+    if (infoEl) infoEl.textContent = addInfo;
+
+    if (url !== _lastVietQrUrl) {
+        _lastVietQrUrl = url;
+        imgEl.src = url;
+    }
+}
+
 function posRenderSummary() {
     if (!window.POS_PRICES) return;
 
     const totalPaid = posGetTotalPaidTickets();
     const paidOpts = posGetPaidOptions();
 
-    // Cập nhật giá công bố trên thẻ dịch vụ
+    // Cập nhật giá công bố trên thẻ dịch vụ + highlight thẻ đang được chọn
     for (const svcId in window.POS_PRICES) {
         const svc = window.POS_PRICES[svcId];
         ['ADULT', 'CHILD'].forEach(t => {
@@ -113,7 +165,14 @@ function posRenderSummary() {
         });
     }
 
-    // Đồng bộ dropdown chọn gói cho CCCD chính & các CCCD phụ
+    document.querySelectorAll('.pos-service-card').forEach(card => {
+        const svcId = card.getAttribute('data-service-id');
+        const q = posCart[svcId];
+        const hasQty = q && ((q.ADULT || 0) + (q.CHILD || 0) + (q.INFANT || 0) > 0);
+        card.classList.toggle('is-selected', Boolean(hasQty));
+    });
+
+    // Đồng bộ dropdown chọn gói cho CCCD chính & phụ
     const mainInput = document.getElementById('id_cccd_number');
     const mainWrap = document.getElementById('mainQtTargetWrap');
     const mainSelect = document.getElementById('mainQtTargetSelect');
@@ -138,9 +197,9 @@ function posRenderSummary() {
         addBtn.disabled = currentExtra >= Math.max(0, totalPaid - 1);
     }
 
-    // Gom danh sách phân bổ CCCD Quảng Trị theo đúng (service_id, ticket_type) đã chọn
+    // Phân bổ CCCD Quảng Trị theo đúng (service_id, ticket_type) đã chọn
     const seenCccds = new Set();
-    const qtAllocated = {}; // key: "svcId|type" -> count
+    const qtAllocated = {};
     const qtAllocationsPayload = [];
     const warnings = [];
 
@@ -284,7 +343,15 @@ function posRenderSummary() {
         discRow.style.display = discount > 0 ? 'flex' : 'none';
         discEl.textContent = '-' + posFormatVND(discount);
     }
-    if (totEl) totEl.textContent = posFormatVND(posCurrentTotal);
+    if (totEl) {
+        totEl.textContent = posFormatVND(posCurrentTotal);
+        if (posCurrentTotal !== _lastAnimatedTotal) {
+            _lastAnimatedTotal = posCurrentTotal;
+            totEl.classList.remove('pos-price-pulse');
+            void totEl.offsetWidth;
+            totEl.classList.add('pos-price-pulse');
+        }
+    }
     if (qrEl) qrEl.textContent = posFormatVND(posCurrentTotal);
 
     const cartInput = document.getElementById('cartDataInput');
@@ -293,6 +360,7 @@ function posRenderSummary() {
     const qtInput = document.getElementById('qtAllocationsInput');
     if (qtInput) qtInput.value = JSON.stringify(qtAllocationsPayload);
 
+    posUpdateVietQR();
     posCalcChange();
 }
 
@@ -302,6 +370,7 @@ function posTogglePayment() {
     const qrSec = document.getElementById('qrSection');
     if (cashSec) cashSec.style.display = pm === 'CASH' ? 'block' : 'none';
     if (qrSec) qrSec.style.display = pm === 'BANK_TRANSFER' ? 'block' : 'none';
+    posUpdateVietQR();
     posCalcChange();
 }
 
@@ -334,25 +403,10 @@ function posCalcChange() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const toggleBtn = document.getElementById('togglePasswordBtn');
-    const passwordInput = document.getElementById('id_password');
-    if (toggleBtn && passwordInput) {
-        toggleBtn.addEventListener('click', () => {
-            const isHidden = passwordInput.type === 'password';
-            passwordInput.type = isHidden ? 'text' : 'password';
-            toggleBtn.textContent = isHidden ? 'Ẩn' : 'Hiện';
-        });
-    }
-
-    const cccdInput = document.getElementById('id_cccd_number');
-    if (cccdInput) {
-        cccdInput.addEventListener('input', posRenderSummary);
-    }
-
-    posRenderSummary();
-});
+// ================= CHUYỂN TAB & MÁY QUÉT QR CHECK-IN =================
 function posSwitchTab(tabName) {
+    if (tabName !== 'checkin') posStopQrScanner();
+
     const salePanel = document.getElementById('tabSalePanel');
     const checkinPanel = document.getElementById('tabCheckinPanel');
     const saleBtn = document.getElementById('tabBtnSale');
@@ -365,57 +419,120 @@ function posSwitchTab(tabName) {
     if (saleBtn) saleBtn.classList.toggle('active', !isCheckin);
     if (checkinBtn) checkinBtn.classList.toggle('active', isCheckin);
 
+    const activePanel = isCheckin ? checkinPanel : salePanel;
+    activePanel.classList.remove('pos-panel-anim');
+    void activePanel.offsetWidth;
+    activePanel.classList.add('pos-panel-anim');
+
     if (isCheckin) {
         const qrInput = document.getElementById('qrCodeInput');
         if (qrInput) qrInput.focus();
     }
 }
-// Ghi đè posSwitchTab để thêm hiệu ứng trượt mượt khi chuyển tab
-const _origPosSwitchTab = posSwitchTab;
-posSwitchTab = function(tabName) {
-    _origPosSwitchTab(tabName);
-    const activePanel = document.getElementById(tabName === 'checkin' ? 'tabCheckinPanel' : 'tabSalePanel');
-    if (activePanel) {
-        activePanel.classList.remove('pos-panel-anim');
-        void activePanel.offsetWidth;
-        activePanel.classList.add('pos-panel-anim');
-    }
-};
 
-// Tự động highlight thẻ gói Onsen đang có vé chọn + pulse nhẹ khi tổng tiền thay đổi
-let _lastAnimatedTotal = -1;
-const _origPosRenderSummary = posRenderSummary;
-posRenderSummary = function() {
-    _origPosRenderSummary();
-
-    document.querySelectorAll('.pos-service-card').forEach(card => {
-        const svcId = card.getAttribute('data-service-id');
-        const q = posCart[svcId];
-        const hasQty = q && ((q.ADULT || 0) + (q.CHILD || 0) + (q.INFANT || 0) > 0);
-        card.classList.toggle('is-selected', Boolean(hasQty));
+function _posHandleDecodedQr(decodedText) {
+    const code = (decodedText || '').trim();
+    if (!code) return;
+    const input = document.getElementById('qrCodeInput');
+    const form = document.getElementById('qrLookupForm');
+    if (input) input.value = code;
+    posStopQrScanner().finally(() => {
+        if (form) form.submit();
     });
+}
 
-    const totEl = document.getElementById('summaryTotal');
-    if (totEl && posCurrentTotal !== _lastAnimatedTotal) {
-        _lastAnimatedTotal = posCurrentTotal;
-        totEl.classList.remove('pos-price-pulse');
-        void totEl.offsetWidth;
-        totEl.classList.add('pos-price-pulse');
+async function posStopQrScanner() {
+    const wrap = document.getElementById('qrScannerContainer');
+    const btn = document.getElementById('toggleScanBtn');
+    if (_posQrScanner && _posQrScanning) {
+        try {
+            await _posQrScanner.stop();
+            await _posQrScanner.clear();
+        } catch (e) { /* ignore */ }
     }
-};
+    _posQrScanning = false;
+    if (wrap) wrap.style.display = 'none';
+    if (btn) btn.textContent = 'Bật Camera quét QR';
+}
 
-// Mini spinner trên nút bấm khi submit form (chống double-click tạo trùng đơn)
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('#posSaleForm, .pos-checkin-form').forEach(form => {
-        form.addEventListener('submit', () => {
-            const btn = form.querySelector('button[type="submit"]');
-            if (btn && !btn.disabled) {
-                btn.classList.add('pos-btn-loading');
-            }
-        });
-    });
-});
-// Tính chênh lệch tiền mặt real-time ở Trang Kết ca & Đối soát
+async function posToggleQrScanner() {
+    if (_posQrScanning) {
+        await posStopQrScanner();
+        return;
+    }
+
+    if (typeof Html5Qrcode === 'undefined') {
+        alert('Chưa tải được thư viện quét QR. Vui lòng kiểm tra kết nối mạng và tải lại trang.');
+        return;
+    }
+
+    const wrap = document.getElementById('qrScannerContainer');
+    const btn = document.getElementById('toggleScanBtn');
+    const statusEl = document.getElementById('qrScanStatus');
+
+    if (wrap) wrap.style.display = 'block';
+    if (btn) btn.textContent = 'Tắt Camera';
+    if (statusEl) statusEl.textContent = 'Đang khởi động camera...';
+
+    _posQrScanner = new Html5Qrcode('qrReaderBox');
+    const config = { fps: 10, qrbox: { width: 230, height: 230 } };
+
+    try {
+        await _posQrScanner.start(
+            { facingMode: 'environment' },
+            config,
+            (decodedText) => _posHandleDecodedQr(decodedText),
+            () => {}
+        );
+        _posQrScanning = true;
+        if (statusEl) statusEl.textContent = 'Đưa mã QR trên vé điện tử của khách vào giữa khung hình...';
+    } catch (err) {
+        try {
+            const cameras = await Html5Qrcode.getCameras();
+            if (!cameras || cameras.length === 0) throw new Error('Không tìm thấy camera trên thiết bị.');
+            await _posQrScanner.start(
+                cameras[0].id,
+                config,
+                (decodedText) => _posHandleDecodedQr(decodedText),
+                () => {}
+            );
+            _posQrScanning = true;
+            if (statusEl) statusEl.textContent = 'Đưa mã QR trên vé điện tử của khách vào giữa khung hình...';
+        } catch (err2) {
+            if (statusEl) statusEl.innerHTML = `<span class="pos-text-red">Không thể mở camera (${err2.message || 'Vui lòng cấp quyền camera hoặc dùng nút Quét từ ảnh QR'}).</span>`;
+            _posQrScanning = false;
+            if (btn) btn.textContent = 'Bật Camera quét QR';
+        }
+    }
+}
+
+async function posScanQrFile(fileInput) {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    if (typeof Html5Qrcode === 'undefined') {
+        alert('Chưa tải được thư viện quét QR.');
+        return;
+    }
+
+    await posStopQrScanner();
+    const wrap = document.getElementById('qrScannerContainer');
+    const statusEl = document.getElementById('qrScanStatus');
+    if (wrap) wrap.style.display = 'block';
+    if (statusEl) statusEl.textContent = 'Đang đọc mã QR từ ảnh...';
+
+    try {
+        const fileScanner = new Html5Qrcode('qrReaderBox');
+        const decodedText = await fileScanner.scanFile(file, true);
+        fileScanner.clear();
+        _posHandleDecodedQr(decodedText);
+    } catch (err) {
+        if (statusEl) statusEl.innerHTML = '<span class="pos-text-red">Không nhận diện được mã QR trong ảnh này. Vui lòng chọn ảnh rõ nét hơn.</span>';
+    } finally {
+        fileInput.value = '';
+    }
+}
+
+// ================= ĐỐI SOÁT TIỀN MẶT CUỐI CA =================
 function posCalcShiftVariance() {
     const input = document.getElementById('actualCashInput');
     const box = document.getElementById('shiftVarianceBox');
@@ -449,12 +566,30 @@ function posCalcShiftVariance() {
     }
 }
 
+// ================= KHỞI TẠO SỰ KIỆN =================
 document.addEventListener('DOMContentLoaded', () => {
-    const shiftForm = document.getElementById('shiftReconcileForm');
-    if (shiftForm) {
-        shiftForm.addEventListener('submit', () => {
-            const btn = shiftForm.querySelector('button[type="submit"]');
-            if (btn && !btn.disabled) btn.classList.add('pos-btn-loading');
+    const toggleBtn = document.getElementById('togglePasswordBtn');
+    const passwordInput = document.getElementById('id_password');
+    if (toggleBtn && passwordInput) {
+        toggleBtn.addEventListener('click', () => {
+            const isHidden = passwordInput.type === 'password';
+            passwordInput.type = isHidden ? 'text' : 'password';
+            toggleBtn.textContent = isHidden ? 'Ẩn' : 'Hiện';
         });
     }
+
+    const cccdInput = document.getElementById('id_cccd_number');
+    if (cccdInput) cccdInput.addEventListener('input', posRenderSummary);
+
+    const phoneInput = document.getElementById('id_phone');
+    if (phoneInput) phoneInput.addEventListener('input', posUpdateVietQR);
+
+    document.querySelectorAll('#posSaleForm, #qrLookupForm, #shiftReconcileForm').forEach(form => {
+        form.addEventListener('submit', () => {
+            const btn = form.querySelector('button[type="submit"]');
+            if (btn && !btn.disabled) btn.classList.add('pos-btn-loading');
+        });
+    });
+
+    posRenderSummary();
 });

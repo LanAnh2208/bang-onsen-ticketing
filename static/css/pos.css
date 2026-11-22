@@ -1127,3 +1127,120 @@ body {
         display: none !important;
     }
 }
+/* ================= VOUCHER ĐIỀU KIỆN, VIETQR ĐỘNG & CAMERA QUÉT QR ================= */
+.pos-main-qt-wrap {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #F4FBF5;
+    border: 1px solid #C8E6C9;
+    border-radius: 8px;
+}
+
+.pos-qt-select {
+    font-size: 13.5px;
+    cursor: pointer;
+}
+
+.pos-voucher-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.pos-voucher-card {
+    align-items: flex-start;
+    padding: 11px 13px;
+    width: 100%;
+}
+
+.pos-voucher-card input {
+    margin-top: 3px;
+}
+
+.pos-voucher-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.pos-voucher-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+}
+
+.pos-voucher-val {
+    background: var(--pos-err-bg);
+    color: var(--pos-red);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+.pos-voucher-cond {
+    font-size: 12px;
+    color: #5C6B77;
+    margin-top: 4px;
+    line-height: 1.45;
+}
+
+.pos-qr-box {
+    overflow: hidden;
+}
+
+.pos-vietqr-img {
+    width: 210px;
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px;
+    border: 1px solid #E3E8EC;
+    background: #FFFFFF;
+    padding: 6px;
+    display: block;
+    margin: 0 auto 10px;
+    box-sizing: border-box;
+}
+
+.pos-vietqr-info {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--pos-text);
+}
+
+.pos-scan-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.pos-qr-scanner-wrap {
+    margin-bottom: 14px;
+    padding: 12px;
+    background: #F8F9FA;
+    border: 1px dashed var(--pos-brown);
+    border-radius: 10px;
+    animation: posSlideFade 0.2s ease-out;
+}
+
+#qrReaderBox {
+    max-width: 360px;
+    margin: 0 auto;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+@media (max-width: 640px) {
+    .pos-voucher-grid {
+        grid-template-columns: 1fr;
+    }
+    .pos-extra-cccd-row {
+        flex-wrap: wrap;
+    }
+    .pos-extra-cccd-row .extra-cccd-input,
+    .pos-extra-cccd-row .extra-cccd-target {
+        flex: 1 1 100%;
+    }
+}

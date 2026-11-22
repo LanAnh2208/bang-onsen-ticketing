@@ -125,7 +125,11 @@ def counter_sale_view(request):
             'prices': svc_prices,
         }
 
-    active_vouchers = [v for v in Voucher.objects.filter(voucher_status='Active') if v.is_valid_today()]
+    active_vouchers = []
+    for v in Voucher.objects.filter(voucher_status='Active'):
+        if v.is_valid_today():
+            v.remaining_uses = max(0, v.usage_limit - v.used_count)
+            active_vouchers.append(v)
     vouchers_map = {
         v.voucher_code: {
             'type': v.discount_type,

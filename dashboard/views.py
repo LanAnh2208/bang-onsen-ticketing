@@ -1,6 +1,9 @@
 from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.db import IntegrityError
+from django.db.models import Q
 from django.utils import timezone
 from core.models import Service, ServicePrice, PriceAuditLog, Voucher
 from .decorators import admin_required
@@ -160,35 +163,111 @@ def voucher_list(request):
     return render(request, 'dashboard/voucher_list.html', context)
 
 
-from django.contrib.auth import get_user_model
-from django.db.models import Q
-
-
 @admin_required
 def staff_list(request):
     UserModel = get_user_model()
     has_role_field = any(f.name == 'role' for f in UserModel._meta.fields)
     has_full_name_field = any(f.name == 'full_name' for f in UserModel._meta.fields)
+    has_account_status_field = any(f.name == 'account_status' for f in UserModel._meta.fields)
+
+    form_data = {
+        'username': '',
+        'full_name': '',
+        'email': '',
+        'role': 'RECEPTIONIST',
+    }
 
     if request.method == 'POST':
         action = request.POST.get('action')
+
+        if action == 'create_staff':
+            username = (request.POST.get('username') or '').strip()
+            full_name = (request.POST.get('full_name') or '').strip()
+            email = (request.POST.get('email') or '').strip()
+            password = request.POST.get('password') or ''
+            role = (request.POST.get('role') or 'RECEPTIONIST').strip().upper()
+
+            form_data = {
+                'username': username,
+                'full_name': full_name,
+                'email': email,
+                'role': role,
+            }
+
+            if not username or not password or (has_full_name_field and not full_name):
+                messages.error(request, "Vui lòng nhập đầy đủ tên đăng nhập, họ tên và mật khẩu.")
+                return redirect('dashboard:staff_list')
+
+            if len(password) < 6:
+                messages.error(request, "Mật khẩu khởi tạo phải có ít nhất 6 ký tự.")
+                return redirect('dashboard:staff_list')
+
+            if UserModel.objects.filter(username__iexact=username).exists():
+                messages.error(request, f"Tên đăng nhập '{username}' đã tồn tại trong hệ thống.")
+                return redirect('dashboard:staff_list')
+
+            create_kwargs = {
+                'username': username,
+                'email': email,
+                'is_active': True,
+                'is_staff': True,
+                'is_superuser': (role == 'ADMIN'),
+            }
+            if has_full_name_field:
+                create_kwargs['full_name'] = full_name
+            if has_role_field:
+                valid_roles = {
+                    code for code, _ in (
+                        UserModel._meta.get_field('role').choices
+                        or [('ADMIN', 'Quản trị viên'), ('RECEPTIONIST', 'Nhân viên lễ tân')]
+                    )
+                }
+                create_kwargs['role'] = role if role in valid_roles else 'RECEPTIONIST'
+            if has_account_status_field:
+                create_kwargs['account_status'] = 'Active'
+
+            try:
+                new_user = UserModel(**create_kwargs)
+                new_user.set_password(password)
+                new_user.save()
+            except IntegrityError:
+                messages.error(request, "Không thể tạo tài khoản do trùng dữ liệu duy nhất trong hệ thống.")
+                return redirect('dashboard:staff_list')
+
+            acc_label = f" ({new_user.account_id})" if getattr(new_user, 'account_id', None) else ""
+            messages.success(request, f"Đã tạo tài khoản '{new_user.username}'{acc_label} thành công.")
+            return redirect('dashboard:staff_list')
+
         target_user = get_object_or_404(UserModel, pk=request.POST.get('user_pk'))
 
         if action == 'toggle_active':
             if target_user == request.user:
                 messages.error(request, "Không thể tự vô hiệu hóa tài khoản đang đăng nhập.")
             else:
-                target_user.is_active = not target_user.is_active
-                target_user.save(update_fields=['is_active'])
-                state_text = "kích hoạt" if target_user.is_active else "tạm khóa"
+                next_active = not target_user.is_active
+                target_user.is_active = next_active
+                if has_account_status_field:
+                    setattr(target_user, 'account_status', 'Active' if next_active else 'Inactive')
+                target_user.save()
+                state_text = "kích hoạt" if next_active else "tạm khóa"
                 messages.success(request, f"Đã {state_text} tài khoản {target_user.username}.")
             return redirect('dashboard:staff_list')
 
         elif action == 'update_permission':
             selected_role = request.POST.get('role', '').strip()
             if has_role_field and selected_role:
-                setattr(target_user, 'role', selected_role)
-                target_user.is_staff = selected_role.upper() in ('ADMIN', 'MANAGER', 'STAFF', 'RECEPTIONIST')
+                role_upper = selected_role.upper()
+                if role_upper == 'ADMIN':
+                    target_user.is_superuser = True
+                    target_user.is_staff = True
+                    setattr(target_user, 'role', 'ADMIN')
+                else:
+                    if target_user == request.user and target_user.is_superuser:
+                        messages.error(request, "Không thể tự hạ quyền Quản trị viên của tài khoản đang đăng nhập.")
+                        return redirect('dashboard:staff_list')
+                    target_user.is_superuser = False
+                    target_user.is_staff = role_upper in ('ADMIN', 'MANAGER', 'STAFF', 'RECEPTIONIST')
+                    setattr(target_user, 'role', selected_role)
                 target_user.save()
                 messages.success(request, f"Đã cập nhật vai trò của {target_user.username} thành {selected_role}.")
             else:
@@ -202,12 +281,22 @@ def staff_list(request):
                 else:
                     target_user.is_staff = False
                     target_user.is_superuser = False
-                target_user.save(update_fields=['is_staff', 'is_superuser'])
+                target_user.save()
                 messages.success(request, f"Đã cập nhật quyền cho {target_user.username}.")
             return redirect('dashboard:staff_list')
 
     search_query = request.GET.get('q', '').strip()
     status_filter = request.GET.get('status', '')
+
+    all_users = list(UserModel.objects.all())
+    stats = {
+        'total_users': len(all_users),
+        'active_users': sum(1 for u in all_users if u.is_active),
+        'admin_users': sum(
+            1 for u in all_users
+            if u.is_superuser or (has_role_field and str(getattr(u, 'role', '')).upper() == 'ADMIN')
+        ),
+    }
 
     users_qs = UserModel.objects.all()
     if search_query:
@@ -230,15 +319,6 @@ def staff_list(request):
         if role_field_obj.choices:
             role_choices = list(role_field_obj.choices)
 
-    stats = {
-        'total_users': len(users),
-        'active_users': sum(1 for u in users if u.is_active),
-        'admin_users': sum(
-            1 for u in users
-            if u.is_superuser or (has_role_field and str(getattr(u, 'role', '')).upper() == 'ADMIN')
-        ),
-    }
-
     context = {
         'users': users,
         'stats': stats,
@@ -247,5 +327,6 @@ def staff_list(request):
         'has_role_field': has_role_field,
         'has_full_name_field': has_full_name_field,
         'role_choices': role_choices,
+        'form_data': form_data,
     }
     return render(request, 'dashboard/staff_list.html', context)

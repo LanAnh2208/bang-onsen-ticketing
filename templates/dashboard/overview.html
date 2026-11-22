@@ -5,6 +5,21 @@
 
 {% block extra_css %}
 <style>
+    @keyframes onsenFadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .onsen-enter {
+        animation: onsenFadeUp 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
     .filter-bar {
         display: flex;
         flex-wrap: wrap;
@@ -12,9 +27,17 @@
         align-items: flex-end;
         background: #FFFFFF;
         border: 1px solid var(--border-muted);
+        border-left: 3px solid var(--accent-wood);
         border-radius: 8px;
         padding: 16px 24px;
         margin-bottom: 24px;
+        transition: border-color 0.2s ease,
+                    box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .filter-bar:hover {
+        border-color: var(--accent-wood);
+        box-shadow: 0 8px 20px rgba(51, 51, 51, 0.05);
     }
 
     .filter-group {
@@ -39,23 +62,77 @@
         font-size: 14px;
         color: var(--text-main);
         background-color: #FFFFFF;
+        transition: border-color 0.18s ease,
+                    box-shadow 0.18s ease,
+                    transform 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .form-control:hover {
+        border-color: var(--accent-wood);
     }
 
     .form-control:focus {
         outline: none;
         border-color: var(--cta-red);
+        box-shadow: 0 0 0 3px rgba(188, 32, 47, 0.09);
+    }
+
+    .page-header .btn-secondary,
+    .filter-bar .btn-primary {
+        transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1),
+                    box-shadow 0.18s ease,
+                    background-color 0.18s ease,
+                    border-color 0.18s ease,
+                    opacity 0.18s ease;
+    }
+
+    .page-header .btn-secondary:hover,
+    .filter-bar .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 14px rgba(51, 51, 51, 0.1);
+    }
+
+    .page-header .btn-secondary:active,
+    .filter-bar .btn-primary:active {
+        transform: translateY(0);
+        box-shadow: none;
+    }
+
+    .btn-loading {
+        opacity: 0.72;
+        pointer-events: none;
     }
 
     .kpi-card {
         grid-column: span 3;
         background: #FFFFFF;
         border: 1px solid var(--border-muted);
+        border-top: 3px solid var(--accent-wood);
         border-radius: 8px;
         padding: 20px 24px;
+        transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+                    border-color 0.2s ease,
+                    box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-3px);
+        border-color: var(--accent-wood);
+        box-shadow: 0 10px 22px rgba(51, 51, 51, 0.08);
+    }
+
+    .kpi-card:active {
+        transform: translateY(-1px);
     }
 
     .kpi-card.highlight {
         border-color: var(--cta-red);
+        border-top-color: var(--cta-red);
+    }
+
+    .kpi-card.highlight:hover {
+        border-color: var(--cta-red);
+        box-shadow: 0 10px 24px rgba(188, 32, 47, 0.12);
     }
 
     .kpi-label {
@@ -82,14 +159,48 @@
     .service-section { grid-column: span 4; }
     .full-section { grid-column: span 12; }
 
+    .grid-12 > .card {
+        transition: border-color 0.2s ease,
+                    box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .grid-12 > .card:hover {
+        border-color: var(--accent-wood);
+        box-shadow: 0 8px 20px rgba(51, 51, 51, 0.06);
+    }
+
     .section-title {
         font-size: 16px;
         font-weight: 700;
         color: var(--text-main);
         margin-bottom: 16px;
         display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
         justify-content: space-between;
         align-items: center;
+    }
+
+    .reconcile-summary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .reconcile-pill-ok {
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: rgba(25, 135, 84, 0.1);
+        color: #198754;
+    }
+
+    .reconcile-pill-warn {
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: rgba(188, 32, 47, 0.1);
+        color: var(--cta-red);
     }
 
     table.data-table {
@@ -112,6 +223,57 @@
         padding: 12px 16px;
         border-bottom: 1px solid #EAECEF;
         color: var(--text-main);
+        transition: background-color 0.16s ease,
+                    color 0.16s ease,
+                    transform 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    table.data-table tbody tr {
+        transition: background-color 0.16s ease;
+    }
+
+    table.data-table tbody tr:hover {
+        background-color: rgba(139, 77, 62, 0.055);
+    }
+
+    table.data-table tbody tr:hover td:first-child {
+        transform: translateX(2px);
+        color: var(--accent-wood);
+    }
+
+    table.data-table tbody tr.row-discrepancy {
+        background-color: rgba(188, 32, 47, 0.035);
+    }
+
+    table.data-table tbody tr.row-discrepancy td:first-child {
+        box-shadow: inset 3px 0 0 var(--cta-red);
+    }
+
+    table.data-table tbody tr.row-discrepancy:hover {
+        background-color: rgba(188, 32, 47, 0.075);
+    }
+
+    .full-section table.data-table tbody tr:hover td:last-child {
+        font-weight: 700;
+    }
+
+    .full-section table.data-table tbody tr:hover td.reconcile-highlight {
+        font-weight: 700;
+    }
+
+    .variance-plus {
+        color: #198754;
+        font-weight: 700;
+    }
+
+    .variance-minus {
+        color: var(--cta-red);
+        font-weight: 700;
+    }
+
+    .variance-zero {
+        color: var(--text-main);
+        font-weight: 600;
     }
 
     .text-right { text-align: right !important; }
@@ -121,24 +283,40 @@
         .kpi-card { grid-column: span 6; }
         .chart-section, .service-section { grid-column: span 12; }
     }
+
+    @media (prefers-reduced-motion: reduce) {
+        .onsen-enter,
+        .filter-bar,
+        .form-control,
+        .page-header .btn-secondary,
+        .filter-bar .btn-primary,
+        .kpi-card,
+        .grid-12 > .card,
+        table.data-table td,
+        table.data-table tbody tr {
+            animation: none !important;
+            transition: none !important;
+            transform: none !important;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
+<div class="page-header onsen-enter">
     <div>
         <h1 class="page-title">Tổng quan Doanh thu & Đối soát</h1>
         <p class="page-subtitle">Dữ liệu cập nhật trực tiếp (Real-time) theo giao dịch hệ thống Bang Onsen</p>
     </div>
     <div style="display: flex; gap: 12px;">
-        <a href="?date={{ selected_date }}&channel={{ selected_channel }}&staff_id={{ selected_staff_id }}&export=csv" class="btn-secondary">
+        <a id="exportCsvBtn" href="?date={{ selected_date }}&channel={{ selected_channel }}&staff_id={{ selected_staff_id }}&export=csv" class="btn-secondary">
             Xuất báo cáo Excel (.CSV)
         </a>
     </div>
 </div>
 
 <!-- THANH LỌC DỮ LIỆU -->
-<form method="get" class="filter-bar">
+<form method="get" id="overviewFilterForm" class="filter-bar onsen-enter">
     <div class="filter-group">
         <label for="date">Ngày đối soát</label>
         <input type="date" id="date" name="date" value="{{ selected_date }}" class="form-control">
@@ -165,33 +343,33 @@
         </select>
     </div>
 
-    <button type="submit" class="btn-primary">Lọc dữ liệu</button>
+    <button type="submit" id="filterSubmitBtn" class="btn-primary">Lọc dữ liệu</button>
 </form>
 
 <!-- 4 THẺ KPI TỔNG QUAN -->
-<div class="grid-12" style="margin-bottom: 24px;">
-    <div class="kpi-card highlight">
+<div class="grid-12 onsen-enter" style="margin-bottom: 24px;">
+    <div class="kpi-card">
         <div class="kpi-label">TỔNG DOANH THU THỰC THU</div>
-        <div class="kpi-value">{{ summary.total_revenue|floatformat:0|intcomma }} đ</div>
-        <div class="kpi-sub">{{ summary.total_orders }} hóa đơn đã thanh toán</div>
+        <div class="kpi-value vnd-amount" data-amount="{{ summary.total_revenue|default:0 }}">{{ summary.total_revenue|default:0 }}</div>
+        <div class="kpi-sub">{{ summary.total_orders|default:0 }} hóa đơn đã thanh toán</div>
     </div>
 
     <div class="kpi-card">
         <div class="kpi-label">TỔNG LƯỢT VÉ BÁN RA</div>
-        <div class="kpi-value">{{ summary.total_tickets|intcomma }} vé</div>
+        <div class="kpi-value">{{ summary.total_tickets|default:0|intcomma }} vé</div>
         <div class="kpi-sub">Bao gồm vé người lớn, trẻ em & ưu đãi</div>
     </div>
 
     <div class="kpi-card">
         <div class="kpi-label">DOANH THU TẠI QUẦY (POS)</div>
-        <div class="kpi-value">{{ summary.pos_revenue|floatformat:0|intcomma }} đ</div>
-        <div class="kpi-sub">Tiền mặt: {{ summary.cash_revenue|floatformat:0|intcomma }} đ</div>
+        <div class="kpi-value vnd-amount" data-amount="{{ summary.pos_revenue|default:0 }}">{{ summary.pos_revenue|default:0 }}</div>
+        <div class="kpi-sub">Tiền mặt: <span class="vnd-amount" data-amount="{{ summary.cash_revenue|default:0 }}">{{ summary.cash_revenue|default:0 }}</span></div>
     </div>
 
     <div class="kpi-card">
         <div class="kpi-label">DOANH THU TRỰC TUYẾN (ONLINE)</div>
-        <div class="kpi-value">{{ summary.online_revenue|floatformat:0|intcomma }} đ</div>
-        <div class="kpi-sub">Không tiền mặt: {{ summary.non_cash_revenue|floatformat:0|intcomma }} đ</div>
+        <div class="kpi-value vnd-amount" data-amount="{{ summary.online_revenue|default:0 }}">{{ summary.online_revenue|default:0 }}</div>
+        <div class="kpi-sub">Không tiền mặt: <span class="vnd-amount" data-amount="{{ summary.non_cash_revenue|default:0 }}">{{ summary.non_cash_revenue|default:0 }}</span></div>
     </div>
 
     <!-- BIỂU ĐỒ DOANH THU REAL-TIME THEO GIỜ -->
@@ -220,8 +398,8 @@
                 {% for item in service_breakdown %}
                 <tr>
                     <td class="font-semibold">{{ item.service__service_name }}</td>
-                    <td class="text-right">{{ item.tickets_sold }}</td>
-                    <td class="text-right font-semibold">{{ item.revenue|floatformat:0|intcomma }} đ</td>
+                    <td class="text-right">{{ item.tickets_sold|default:0 }}</td>
+                    <td class="text-right font-semibold vnd-amount" data-amount="{{ item.revenue|default:0 }}">{{ item.revenue|default:0 }}</td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -235,7 +413,7 @@
     <!-- BẢNG ĐỐI SOÁT DOANH THU THEO NHÂN VIÊN POS -->
     <div class="card full-section">
         <div class="section-title">
-            <span>Đối soát doanh thu theo Nhân viên lễ tân (Quầy POS)</span>
+            <span>Đối soát doanh thu theo Nhân viên lễ tân</span>
             <span style="font-size: 12px; font-weight: 400; color: var(--accent-wood);">KPI BR-03: Khớp 100% số liệu cuối ngày</span>
         </div>
         <table class="data-table">
@@ -256,12 +434,12 @@
                 <tr>
                     <td>{{ row.created_by__account_id|default:"-" }}</td>
                     <td class="font-semibold">{{ row.created_by__full_name|default:row.created_by__username }}</td>
-                    <td class="text-right">{{ row.order_count }}</td>
+                    <td class="text-right">{{ row.order_count|default:0 }}</td>
                     <td class="text-right">{{ row.ticket_count|default:0 }}</td>
-                    <td class="text-right">{{ row.cash_total|default:0|floatformat:0|intcomma }} đ</td>
-                    <td class="text-right">{{ row.transfer_total|default:0|floatformat:0|intcomma }} đ</td>
-                    <td class="text-right">{{ row.card_ewallet_total|default:0|floatformat:0|intcomma }} đ</td>
-                    <td class="text-right font-semibold" style="color: var(--cta-red);">{{ row.total_collected|default:0|floatformat:0|intcomma }} đ</td>
+                    <td class="text-right vnd-amount" data-amount="{{ row.cash_total|default:0 }}">{{ row.cash_total|default:0 }}</td>
+                    <td class="text-right vnd-amount" data-amount="{{ row.transfer_total|default:0 }}">{{ row.transfer_total|default:0 }}</td>
+                    <td class="text-right vnd-amount" data-amount="{{ row.card_ewallet_total|default:0 }}">{{ row.card_ewallet_total|default:0 }}</td>
+                    <td class="text-right font-semibold vnd-amount reconcile-highlight" data-amount="{{ row.total_collected|default:0 }}" style="color: var(--cta-red);">{{ row.total_collected|default:0 }}</td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -275,7 +453,8 @@
     <!-- BẢNG KIỂM TRA PHIẾU CHỐT CA CUỐI NGÀY -->
     <div class="card full-section">
         <div class="section-title">
-            <span>Trạng thái Phiếu đối soát chốt ca (Shift Reconciliation)</span>
+            <span>Trạng thái Phiếu đối soát chốt ca</span>
+            <div class="reconcile-summary" id="shiftReconcileSummary"></div>
         </div>
         <table class="data-table">
             <thead>
@@ -291,13 +470,13 @@
             </thead>
             <tbody>
                 {% for shf in shift_reports %}
-                <tr>
+                <tr class="{% if shf.cash_variance != 0 %}row-discrepancy{% endif %}" data-shift-variance="{{ shf.cash_variance|default:0 }}">
                     <td class="font-semibold">{{ shf.shift_id }}</td>
                     <td>{{ shf.receptionist.full_name }}</td>
                     <td>{{ shf.get_shift_type_display }}</td>
-                    <td class="text-right">{{ shf.cash_revenue|floatformat:0|intcomma }} đ</td>
-                    <td class="text-right">{{ shf.actual_cash|floatformat:0|intcomma }} đ</td>
-                    <td class="text-right font-semibold">{{ shf.cash_variance|floatformat:0|intcomma }} đ</td>
+                    <td class="text-right vnd-amount" data-amount="{{ shf.cash_revenue|default:0 }}">{{ shf.cash_revenue|default:0 }}</td>
+                    <td class="text-right vnd-amount" data-amount="{{ shf.actual_cash|default:0 }}">{{ shf.actual_cash|default:0 }}</td>
+                    <td class="text-right vnd-amount reconcile-highlight variance-amount" data-amount="{{ shf.cash_variance|default:0 }}">{{ shf.cash_variance|default:0 }}</td>
                     <td>
                         {% if shf.cash_variance == 0 %}
                             <span class="badge badge-success">Khớp doanh thu 100%</span>
@@ -324,12 +503,88 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    function formatVND(amount) {
+        const number = Number(amount) || 0;
+        return `${Math.round(number).toLocaleString('vi-VN')} VNĐ`;
+    }
+
+    function formatVarianceVND(amount) {
+        const number = Math.round(Number(amount) || 0);
+        if (number > 0) return `+${number.toLocaleString('vi-VN')} VNĐ`;
+        if (number < 0) return `-${Math.abs(number).toLocaleString('vi-VN')} VNĐ`;
+        return '0 VNĐ';
+    }
+
+    function applyVNDFormat() {
+        document.querySelectorAll('.vnd-amount').forEach((el) => {
+            const rawAmount = el.getAttribute('data-amount');
+            const sourceValue = (rawAmount !== null && rawAmount !== '')
+                ? rawAmount
+                : el.textContent.replace(/[^\d.-]/g, '');
+
+            if (el.classList.contains('variance-amount')) {
+                const num = Number(sourceValue) || 0;
+                el.textContent = formatVarianceVND(num);
+                el.classList.remove('variance-plus', 'variance-minus', 'variance-zero');
+                if (num > 0) el.classList.add('variance-plus');
+                else if (num < 0) el.classList.add('variance-minus');
+                else el.classList.add('variance-zero');
+            } else {
+                el.textContent = formatVND(sourceValue);
+            }
+        });
+
+        const shiftRows = document.querySelectorAll('tr[data-shift-variance]');
+        const summaryEl = document.getElementById('shiftReconcileSummary');
+        if (summaryEl && shiftRows.length > 0) {
+            let matched = 0;
+            let mismatched = 0;
+            shiftRows.forEach((row) => {
+                const v = Number(row.getAttribute('data-shift-variance')) || 0;
+                if (v === 0) matched += 1;
+                else mismatched += 1;
+            });
+            summaryEl.innerHTML =
+                `<span class="reconcile-pill-ok">Khớp: ${matched} ca</span>` +
+                `<span class="reconcile-pill-warn">Chênh lệch: ${mismatched} ca</span>`;
+        }
+    }
+
+    applyVNDFormat();
+    document.addEventListener('DOMContentLoaded', applyVNDFormat);
+
+    const filterForm = document.getElementById('overviewFilterForm');
+    const filterBtn = document.getElementById('filterSubmitBtn');
+    const exportBtn = document.getElementById('exportCsvBtn');
+
+    if (filterForm && filterBtn) {
+        filterForm.addEventListener('submit', () => {
+            filterBtn.classList.add('btn-loading');
+            filterBtn.textContent = 'Đang lọc...';
+        });
+    }
+
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            exportBtn.classList.add('btn-loading');
+            const originalText = exportBtn.textContent;
+            exportBtn.textContent = 'Đang xuất CSV...';
+            setTimeout(() => {
+                exportBtn.classList.remove('btn-loading');
+                exportBtn.textContent = originalText;
+            }, 1500);
+        });
+    }
+
     const labels = JSON.parse(document.getElementById('hourly-labels').textContent);
     const posData = JSON.parse(document.getElementById('hourly-pos').textContent);
     const onlineData = JSON.parse(document.getElementById('hourly-online').textContent);
 
     const ctx = document.getElementById('revenueChart').getContext('2d');
-    new Chart(ctx, {
+    if (window.bangOnsenRevenueChart) {
+        window.bangOnsenRevenueChart.destroy();
+    }
+    window.bangOnsenRevenueChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
@@ -351,7 +606,16 @@
         options: {
             responsive: true,
             plugins: {
-                legend: { position: 'top' }
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.dataset.label || '';
+                            const val = context.parsed.y ?? 0;
+                            return `${label}: ${formatVND(val)}`;
+                        }
+                    }
+                }
             },
             scales: {
                 x: { stacked: true },
@@ -360,7 +624,7 @@
                     beginAtZero: true,
                     ticks: {
                         callback: function(value) {
-                            return value.toLocaleString('vi-VN') + ' đ';
+                            return formatVND(value);
                         }
                     }
                 }

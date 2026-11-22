@@ -6,11 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Quản trị hệ thống | Bang Onsen Spa & Resort{% endblock %}</title>
         
-    <!-- Google Fonts: Montserrat (dùng display=optional để tránh nhảy/tráo font khi chuyển trang) -->
+    <!-- Google Fonts: Montserrat -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,600;0,700;1,400&display=optional">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,600;0,700;1,400&display=optional" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 
     <style>
         :root {
@@ -181,6 +180,7 @@
             padding: 32px;
             flex: 1;
         }
+        
 
         .page-header {
             display: flex;
@@ -264,7 +264,6 @@
     <header class="admin-header">
         <a href="{% url 'dashboard:overview' %}" class="brand-logo">
             <img src="{% static 'images/logo/logo-bang-onsen.png' %}" alt="Logo Bang Onsen Spa & Resort">
-    
         </a>
 
         <nav class="header-nav">
@@ -312,5 +311,117 @@
     </footer>
 
     {% block extra_js %}{% endblock %}
+
+    <script>
+        (function () {
+            const navLinks = document.querySelectorAll('.header-nav .nav-link');
+            const mainContainer = document.querySelector('main.main-container');
+
+            if (!mainContainer) return;
+
+            function updateActiveNav(targetUrl) {
+                const targetPath = new URL(targetUrl, window.location.origin).pathname;
+                navLinks.forEach((link) => {
+                    const linkPath = new URL(link.href, window.location.origin).pathname;
+                    link.classList.toggle('active', linkPath === targetPath);
+                });
+            }
+
+            async function navigateSoft(url, addToHistory = true) {
+                try {
+                    mainContainer.style.opacity = '0.55';
+                    mainContainer.style.transition = 'opacity 0.14s ease';
+
+                    const response = await fetch(url, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin'
+                    });
+
+                    if (!response.ok) {
+                        window.location.href = url;
+                        return;
+                    }
+
+                    if (response.redirected) {
+                        window.location.href = response.url;
+                        return;
+                    }
+
+                    const htmlText = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlText, 'text/html');
+                    const nextMain = doc.querySelector('main.main-container');
+
+                    if (!nextMain) {
+                        window.location.href = url;
+                        return;
+                    }
+
+                    if (doc.title) {
+                        document.title = doc.title;
+                    }
+
+                    document.querySelectorAll('style[data-soft-nav="true"]').forEach((el) => el.remove());
+                    doc.querySelectorAll('style').forEach((styleTag) => {
+                        const isBaseStyle = styleTag.textContent.includes('--bg-main: #F8F9FA');
+                        if (!isBaseStyle) {
+                            const cloneStyle = document.createElement('style');
+                            cloneStyle.setAttribute('data-soft-nav', 'true');
+                            cloneStyle.textContent = styleTag.textContent;
+                            document.head.appendChild(cloneStyle);
+                        }
+                    });
+
+                    mainContainer.innerHTML = nextMain.innerHTML;
+
+                    mainContainer.querySelectorAll('script').forEach((oldScript) => {
+                        const newScript = document.createElement('script');
+                        Array.from(oldScript.attributes).forEach((attr) => {
+                            newScript.setAttribute(attr.name, attr.value);
+                        });
+                        newScript.textContent = oldScript.textContent;
+                        oldScript.parentNode.replaceChild(newScript, oldScript);
+                    });
+
+                    if (addToHistory) {
+                        window.history.pushState({ softUrl: url }, '', url);
+                    }
+
+                    updateActiveNav(url);
+                    window.scrollTo({ top: 0, behavior: 'instant' });
+                } catch (err) {
+                    window.location.href = url;
+                } finally {
+                    mainContainer.style.opacity = '1';
+                }
+            }
+
+            document.addEventListener('click', function (event) {
+                const link = event.target.closest('.header-nav .nav-link, .admin-header .brand-logo');
+                if (!link) return;
+
+                if (
+                    event.metaKey || event.ctrlKey || event.shiftKey || event.altKey ||
+                    link.target === '_blank' ||
+                    !link.href
+                ) {
+                    return;
+                }
+
+                const targetUrl = new URL(link.href, window.location.origin);
+                if (targetUrl.origin !== window.location.origin) return;
+
+                if (!targetUrl.pathname.includes('/dashboard')) return;
+
+                event.preventDefault();
+                if (targetUrl.href === window.location.href) return;
+                navigateSoft(targetUrl.href, true);
+            });
+
+            window.addEventListener('popstate', function () {
+                navigateSoft(window.location.href, false);
+            });
+        })();
+    </script>
 </body>
 </html>

@@ -5,9 +5,22 @@
 
 {% block extra_css %}
 <style>
-    .col-5 { grid-column: span 5; }
-    .col-7 { grid-column: span 7; }
-    .col-12 { grid-column: span 12; }
+    .module-layout > div {
+        min-width: 0;
+    }
+
+    .stack-sections {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    .stack-sections > .card {
+        min-width: 0;
+        width: 100%;
+        box-sizing: border-box;
+    }
 
     .section-title {
         font-size: 16px;
@@ -17,22 +30,31 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
     }
 
     .form-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 16px;
+    }
+
+    .form-grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
     }
 
     .form-group {
         display: flex;
         flex-direction: column;
         gap: 6px;
+        min-width: 0;
     }
 
     .form-group.full {
-        grid-column: span 2;
+        grid-column: 1 / -1;
     }
 
     .form-group label {
@@ -41,295 +63,691 @@
         color: var(--text-main);
     }
 
-    .form-control {
+    .form-control,
+    .form-grid select,
+    .form-grid input,
+    .form-grid textarea,
+    .form-grid-3 select,
+    .form-grid-3 input,
+    .form-grid-3 textarea {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
         min-height: 42px;
         padding: 8px 12px;
         border: 1px solid var(--border-muted);
         border-radius: 6px;
         font-family: 'Montserrat', sans-serif;
-        font-size: 14px;
+        font-size: 13.5px;
         color: var(--text-main);
         background-color: #FFFFFF;
+        box-sizing: border-box;
     }
 
-    .form-control:focus {
+    .form-control:focus,
+    .form-grid select:focus,
+    .form-grid input:focus,
+    .form-grid textarea:focus,
+    .form-grid-3 select:focus,
+    .form-grid-3 input:focus,
+    .form-grid-3 textarea:focus {
         outline: none;
         border-color: var(--cta-red);
     }
 
+    .price-subblock {
+        grid-column: 1 / -1;
+        min-width: 0;
+        margin-top: 6px;
+        padding-top: 16px;
+        border-top: 1px dashed var(--border-muted);
+    }
+
+    .price-subblock-title {
+        font-size: 13.5px;
+        font-weight: 700;
+        color: var(--accent-wood);
+        margin-bottom: 6px;
+    }
+
+    .field-hint {
+        font-size: 12px;
+        color: #666666;
+        line-height: 1.45;
+        margin-bottom: 12px;
+    }
+
+    .day-price-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .day-price-box {
+        background: var(--bg-main);
+        border: 1px solid var(--border-muted);
+        border-radius: 8px;
+        padding: 14px;
+        min-width: 0;
+    }
+
+    .day-price-heading {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+    }
+
     table.data-table {
         width: 100%;
+        max-width: 100%;
         border-collapse: collapse;
-        font-size: 14px;
+        font-size: 13.5px;
     }
 
     table.data-table th {
         text-align: left;
-        padding: 12px 14px;
+        padding: 12px 12px;
         background-color: var(--bg-main);
         border-bottom: 1px solid var(--border-muted);
         font-weight: 600;
-        font-size: 13px;
+        font-size: 12.5px;
+        color: var(--text-main);
     }
 
     table.data-table td {
-        padding: 12px 14px;
+        padding: 12px 12px;
         border-bottom: 1px solid #EAECEF;
         vertical-align: middle;
     }
 
+    .desc-text {
+        font-size: 12.5px;
+        color: #666666;
+        line-height: 1.45;
+        margin-top: 3px;
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .nowrap-col {
+        white-space: nowrap;
+    }
+
     .tag-wood {
+        display: inline-block;
         background-color: rgba(139, 77, 62, 0.12);
         color: var(--accent-wood);
         padding: 4px 8px;
         border-radius: 4px;
         font-size: 12px;
         font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .badge {
+        display: inline-block;
+        white-space: nowrap;
+    }
+
+    /* Căn thẳng cột nút Sửa và Tạm ngưng / Mở bán lại trên mọi hàng */
+    .action-btns {
+        display: grid;
+        grid-template-columns: 68px 104px;
+        align-items: center;
+        justify-content: end;
+        gap: 8px;
+    }
+
+    .action-btns form {
+        display: block;
+        margin: 0;
+        width: 100%;
     }
 
     .btn-sm {
-        padding: 6px 12px;
+        width: 100%;
+        height: 32px;
+        padding: 0 10px;
         font-size: 12px;
+        line-height: 1;
+        border-radius: 6px;
+        font-weight: 600;
+        font-family: 'Montserrat', sans-serif;
+        white-space: nowrap;
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .btn-edit-soft {
+        background-color: #FFFFFF;
+        color: var(--accent-wood);
+        border: 1px solid var(--accent-wood);
+    }
+
+    .btn-edit-soft:hover {
+        background-color: rgba(139, 77, 62, 0.08);
+    }
+
+    /* Modal chỉnh sửa gói & bảng giá */
+    .service-modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 1200;
+        padding: 20px;
+        overflow-y: auto;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .service-modal-backdrop.is-open {
+        display: flex;
+    }
+
+    .service-modal-card {
+        width: 100%;
+        max-width: 780px;
+        background: #FFFFFF;
+        border-radius: 10px;
+        border: 1px solid var(--border-muted);
+        padding: 24px;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+        box-sizing: border-box;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #EAECEF;
+    }
+
+    .modal-close-btn {
+        background: transparent;
+        border: 1px solid var(--border-muted);
+        border-radius: 6px;
+        padding: 5px 10px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--text-main);
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 18px;
+        padding-top: 14px;
+        border-top: 1px solid #EAECEF;
     }
 
     .text-right { text-align: right !important; }
     .font-semibold { font-weight: 600; }
 
-    @media (max-width: 1024px) {
-        .col-5, .col-7 { grid-column: span 12; }
+    @media (max-width: 960px) {
+        .day-price-grid,
+        .form-grid,
+        .form-grid-3 {
+            grid-template-columns: 1fr;
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div>
-        <h1 class="page-title">Quản lý Dịch vụ & Ma trận Giá</h1>
-        <p class="page-subtitle">Cấu hình gói Onsen, giá đầu tuần / cuối tuần và chính sách ưu đãi CCCD Quảng Trị (044, 045)</p>
+<div class="module-layout">
+    <aside class="module-sidebar" aria-label="Điều hướng nhanh Dịch vụ & Bảng giá">
+        <div class="module-sidebar-title">Mục trên trang</div>
+        <ul class="module-anchor-list">
+            <li><a href="#sec-service-list" class="module-anchor-link is-active">Danh mục gói</a></li>
+            <li><a href="#sec-create-service-price" class="module-anchor-link">Thêm gói & bảng giá</a></li>
+            <li><a href="#sec-price-matrix" class="module-anchor-link">Ma trận giá vé</a></li>
+            <li><a href="#sec-price-audit" class="module-anchor-link">Lịch sử điều chỉnh giá</a></li>
+        </ul>
+    </aside>
+
+    <div style="min-width: 0;">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Quản lý Dịch vụ & Ma trận Giá</h1>
+                <p class="page-subtitle">Theo dõi danh mục gói Onsen, thêm gói & thiết lập giá theo đối tượng, quản lý ma trận giá và nhật ký thay đổi</p>
+            </div>
+        </div>
+
+        <div class="stack-sections">
+            <!-- 1. DANH MỤC GÓI DỊCH VỤ (HIỂN THỊ TRƯỚC) -->
+            <div id="sec-service-list" class="card">
+                <div class="section-title">
+                    <span>Danh mục gói dịch vụ Onsen ({{ services.count }})</span>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="nowrap-col">Mã gói</th>
+                            <th>Tên gói dịch vụ & tiện ích</th>
+                            <th class="text-right nowrap-col">Sức chứa/ngày</th>
+                            <th class="nowrap-col">Trạng thái</th>
+                            <th class="text-right nowrap-col">Chỉnh sửa & Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for srv in services %}
+                        <tr>
+                            <td class="nowrap-col"><span class="tag-wood">{{ srv.service_id }}</span></td>
+                            <td>
+                                <div class="font-semibold">{{ srv.service_name }}</div>
+                                <div class="desc-text">{{ srv.description|truncatechars:110 }}</div>
+                            </td>
+                            <td class="text-right nowrap-col">{{ srv.daily_capacity }} vé</td>
+                            <td class="nowrap-col">
+                                {% if srv.service_status == 'Active' %}
+                                    <span class="badge badge-success">Đang kinh doanh</span>
+                                {% else %}
+                                    <span class="badge badge-danger">Tạm ngưng</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right nowrap-col">
+                                <div class="action-btns">
+                                    <button
+                                        type="button"
+                                        class="btn-sm btn-edit-soft open-edit-service-btn"
+                                        data-pk="{{ srv.id }}"
+                                        data-service-id="{{ srv.service_id }}"
+                                        data-service-name="{{ srv.service_name }}"
+                                        data-daily-capacity="{{ srv.daily_capacity }}"
+                                        data-description="{{ srv.description }}"
+                                        data-status="{{ srv.service_status }}"
+                                    >
+                                        Sửa
+                                    </button>
+
+                                    <form method="post" action="{{ request.path }}" class="toggle-service-form" data-service-pk="{{ srv.id }}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="toggle_service">
+                                        <input type="hidden" name="service_pk" value="{{ srv.id }}">
+                                        <input type="hidden" name="service_id" value="{{ srv.id }}">
+                                        <button type="submit" class="btn-secondary btn-sm">
+                                            {% if srv.service_status == 'Active' %}Tạm ngưng{% else %}Mở bán lại{% endif %}
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #777; padding: 20px;">
+                                Chưa có gói dịch vụ nào. Hãy thêm gói Onsen ở mục bên dưới.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 2. THÊM GÓI DỊCH VỤ & CẤU HÌNH GIÁ ĐA ĐỐI TƯỢNG (HIỂN THỊ TIẾP THEO) -->
+            <div id="sec-create-service-price" class="card">
+                <div class="section-title">
+                    <span>Thêm gói dịch vụ & Cấu hình giá</span>
+                </div>
+                <form method="post" action="{{ request.path }}" class="form-grid">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_service">
+
+                    <div class="form-group">
+                        <label for="{{ service_form.service_id.id_for_label }}">Mã gói dịch vụ</label>
+                        {{ service_form.service_id }}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ service_form.daily_capacity.id_for_label }}">Sức chứa vé / ngày</label>
+                        {{ service_form.daily_capacity }}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ service_form.service_name.id_for_label }}">Tên gói dịch vụ</label>
+                        {{ service_form.service_name }}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ service_form.service_status.id_for_label }}">Trạng thái kinh doanh</label>
+                        {{ service_form.service_status }}
+                    </div>
+
+                    <div class="form-group full">
+                        <label for="{{ service_form.description.id_for_label }}">Mô tả tiện ích bể khoáng</label>
+                        {{ service_form.description }}
+                    </div>
+
+                    <div class="price-subblock">
+                        <div class="price-subblock-title">Thiết lập giá Người lớn & Trẻ em cùng lúc (tùy chọn)</div>
+                        <div class="field-hint">
+                            Nhập sẵn mức giá cho Người lớn và Trẻ em theo từng khung ngày trong cùng một lần lưu; ô để trống sẽ bỏ qua và không tạo trùng gói dịch vụ.
+                        </div>
+
+                        <div class="day-price-grid">
+                            <!-- ĐẦU TUẦN T2 - T6 -->
+                            <div class="day-price-box">
+                                <div class="day-price-heading">
+                                    <span>Đầu tuần (T2 - T6)</span>
+                                    <span class="tag-wood">WEEKDAY</span>
+                                </div>
+                                <div class="form-grid-3">
+                                    <div class="form-group">
+                                        <label for="id_weekday_adult_price">Người lớn (>1.4m)</label>
+                                        <input type="number" step="1000" min="0" id="id_weekday_adult_price" name="weekday_adult_price" class="form-control" placeholder="VD: 250000">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="id_weekday_child_price">Trẻ em (1m–1.4m)</label>
+                                        <input type="number" step="1000" min="0" id="id_weekday_child_price" name="weekday_child_price" class="form-control" placeholder="VD: 150000">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="id_weekday_qt_price">Ưu đãi Quảng Trị</label>
+                                        <input type="number" step="1000" min="0" id="id_weekday_qt_price" name="weekday_quang_tri_price" class="form-control" placeholder="Tùy chọn">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- CUỐI TUẦN T7 - CN -->
+                            <div class="day-price-box">
+                                <div class="day-price-heading">
+                                    <span>Cuối tuần (T7 - CN)</span>
+                                    <span class="badge badge-warning">WEEKEND</span>
+                                </div>
+                                <div class="form-grid-3">
+                                    <div class="form-group">
+                                        <label for="id_weekend_adult_price">Người lớn (>1.4m)</label>
+                                        <input type="number" step="1000" min="0" id="id_weekend_adult_price" name="weekend_adult_price" class="form-control" placeholder="VD: 300000">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="id_weekend_child_price">Trẻ em (1m–1.4m)</label>
+                                        <input type="number" step="1000" min="0" id="id_weekend_child_price" name="weekend_child_price" class="form-control" placeholder="VD: 180000">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="id_weekend_qt_price">Ưu đãi Quảng Trị</label>
+                                        <input type="number" step="1000" min="0" id="id_weekend_qt_price" name="weekend_quang_tri_price" class="form-control" placeholder="Tùy chọn">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group full" style="margin-top: 8px;">
+                        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+                            + Lưu gói dịch vụ & bảng giá
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 3. MA TRẬN GIÁ VÉ ĐANG ÁP DỤNG -->
+            <div id="sec-price-matrix" class="card">
+                <div class="section-title">
+                    <span>Ma trận giá vé đang áp dụng</span>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Gói dịch vụ</th>
+                            <th>Loại vé</th>
+                            <th class="nowrap-col">Khung ngày</th>
+                            <th class="text-right nowrap-col">Giá niêm yết</th>
+                            <th class="text-right nowrap-col">Ưu đãi Quảng Trị</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in prices %}
+                        <tr>
+                            <td class="font-semibold">{{ p.service.service_name }}</td>
+                            <td>{{ p.get_ticket_type_display }}</td>
+                            <td class="nowrap-col">
+                                {% if p.day_type == 'WEEKEND' %}
+                                    <span class="badge badge-warning">T7 - CN</span>
+                                {% else %}
+                                    <span class="tag-wood">T2 - T6</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right font-semibold nowrap-col vnd-amount" data-amount="{{ p.price|floatformat:0 }}">{{ p.price|floatformat:0 }}</td>
+                            <td class="text-right nowrap-col">
+                                {% if p.quang_tri_price is not None %}
+                                    <span class="badge badge-success vnd-amount" data-amount="{{ p.quang_tri_price|floatformat:0 }}">{{ p.quang_tri_price|floatformat:0 }}</span>
+                                {% else %}
+                                    <span style="color: #999;">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #777; padding: 20px;">
+                                Chưa có cấu hình giá nào trong ma trận.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 4. LỊCH SỬ ĐIỀU CHỈNH BẢNG GIÁ -->
+            <div id="sec-price-audit" class="card">
+                <div class="section-title">
+                    <span>Lịch sử điều chỉnh bảng giá</span>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="nowrap-col">Thời gian</th>
+                            <th>Gói dịch vụ & Loại vé</th>
+                            <th class="text-right nowrap-col">Giá niêm yết (Cũ → Mới)</th>
+                            <th class="text-right nowrap-col">Ưu đãi Quảng Trị (Cũ → Mới)</th>
+                            <th>Người cập nhật</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in audit_logs %}
+                        <tr>
+                            <td class="nowrap-col">{{ log.changed_at|date:"d/m/Y H:i" }}</td>
+                            <td class="font-semibold">
+                                {{ log.service_price.service.service_name }} — {{ log.service_price.get_ticket_type_display }} ({{ log.service_price.get_day_type_display }})
+                            </td>
+                            <td class="text-right nowrap-col">
+                                <span class="vnd-amount" data-amount="{{ log.old_price|default:0|floatformat:0 }}">{{ log.old_price|default:0|floatformat:0 }}</span>
+                                →
+                                <strong class="vnd-amount" data-amount="{{ log.new_price|default:0|floatformat:0 }}" style="color: var(--cta-red);">{{ log.new_price|default:0|floatformat:0 }}</strong>
+                            </td>
+                            <td class="text-right nowrap-col">
+                                {% if log.old_quang_tri_price is not None or log.new_quang_tri_price is not None %}
+                                    <span class="vnd-amount" data-amount="{{ log.old_quang_tri_price|default:0|floatformat:0 }}">{{ log.old_quang_tri_price|default:0|floatformat:0 }}</span>
+                                    →
+                                    <strong class="vnd-amount" data-amount="{{ log.new_quang_tri_price|default:0|floatformat:0 }}" style="color: var(--success-text);">{{ log.new_quang_tri_price|default:0|floatformat:0 }}</strong>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ log.changed_by.full_name|default:log.changed_by.username }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #777; padding: 20px;">
+                                Chưa ghi nhận lịch sử thay đổi giá nào.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="grid-12" style="margin-bottom: 24px;">
-    <!-- KHỐI 1: THÊM GÓI DỊCH VỤ ONSEN -->
-    <div class="card col-5">
-        <div class="section-title">
-            <span>Thêm gói dịch vụ Onsen mới</span>
+<!-- MODAL CHỈNH SỬA GÓI DỊCH VỤ & CẬP NHẬT GIÁ -->
+<div id="editServiceModal" class="service-modal-backdrop" aria-hidden="true">
+    <div class="service-modal-card" role="dialog" aria-modal="true" aria-labelledby="editServiceModalTitle">
+        <div class="modal-header">
+            <h2 id="editServiceModalTitle" style="font-size: 17px; font-weight: 700; margin: 0;">Chỉnh sửa gói dịch vụ & bảng giá</h2>
+            <button type="button" id="closeEditServiceModal" class="modal-close-btn">Đóng ✕</button>
         </div>
-        <form method="post" class="form-grid">
+
+        <form method="post" action="{{ request.path }}">
             {% csrf_token %}
-            <input type="hidden" name="action" value="add_service">
+            <input type="hidden" name="action" value="edit_service">
+            <input type="hidden" name="service_pk" id="edit_service_pk">
+            <input type="hidden" name="service_id_pk" id="edit_service_id_pk">
 
-            <div class="form-group">
-                <label>Mã gói dịch vụ</label>
-                {{ service_form.service_id }}
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="edit_service_id">Mã gói dịch vụ</label>
+                    <input type="text" id="edit_service_id" name="service_id" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit_daily_capacity">Sức chứa vé / ngày</label>
+                    <input type="number" min="1" id="edit_daily_capacity" name="daily_capacity" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit_service_name">Tên gói dịch vụ</label>
+                    <input type="text" id="edit_service_name" name="service_name" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit_service_status">Trạng thái kinh doanh</label>
+                    <select id="edit_service_status" name="service_status" class="form-control">
+                        <option value="Active">Đang kinh doanh</option>
+                        <option value="Inactive">Tạm ngưng</option>
+                    </select>
+                </div>
+
+                <div class="form-group full">
+                    <label for="edit_description">Mô tả tiện ích bể khoáng</label>
+                    <textarea id="edit_description" name="description" rows="2" class="form-control"></textarea>
+                </div>
+
+                <div class="price-subblock">
+                    <div class="price-subblock-title">Cập nhật nhanh bảng giá cho gói này (tùy chọn)</div>
+                    <div class="form-grid-3">
+                        <div class="form-group">
+                            <label for="edit_ticket_type">Đối tượng / Loại vé</label>
+                            <select id="edit_ticket_type" name="ticket_type" class="form-control">
+                                <option value="ADULT">Người lớn và trẻ em trên 1.4m</option>
+                                <option value="CHILD">Trẻ em từ 1m – 1.4m</option>
+                                <option value="INFANT">Trẻ em dưới 1m (Miễn phí vé)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_day_type">Khung ngày áp dụng</label>
+                            <select id="edit_day_type" name="day_type" class="form-control">
+                                <option value="WEEKDAY">Đầu tuần (T2 - T6)</option>
+                                <option value="WEEKEND">Cuối tuần (T7 - CN)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_price">Giá công bố mới (VNĐ)</label>
+                            <input type="number" step="1000" min="0" id="edit_price" name="price" class="form-control" placeholder="Để trống nếu không đổi">
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label>Sức chứa vé / ngày</label>
-                {{ service_form.daily_capacity }}
-            </div>
-
-            <div class="form-group full">
-                <label>Tên gói dịch vụ</label>
-                {{ service_form.service_name }}
-            </div>
-
-            <div class="form-group full">
-                <label>Mô tả tiện ích bể khoáng</label>
-                {{ service_form.description }}
-            </div>
-
-            <div class="form-group">
-                <label>Trạng thái kinh doanh</label>
-                {{ service_form.service_status }}
-            </div>
-
-            <div class="form-group" style="justify-content: flex-end;">
-                <button type="submit" class="btn-primary" style="justify-content: center;">+ Thêm gói dịch vụ</button>
+            <div class="modal-footer">
+                <button type="button" id="cancelEditServiceModal" class="btn-secondary btn-sm">Hủy</button>
+                <button type="submit" class="btn-primary btn-sm">Lưu thay đổi</button>
             </div>
         </form>
-    </div>
-
-    <!-- KHỐI 2: DANH SÁCH CÁC GÓI DỊCH VỤ HIỆN CÓ -->
-    <div class="card col-7">
-        <div class="section-title">
-            <span>Danh mục gói dịch vụ Onsen ({{ services.count }})</span>
-        </div>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Mã gói</th>
-                    <th>Tên gói dịch vụ</th>
-                    <th class="text-right">Sức chứa/ngày</th>
-                    <th>Trạng thái</th>
-                    <th class="text-right">Thao tác</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for srv in services %}
-                <tr>
-                    <td><span class="tag-wood">{{ srv.service_id }}</span></td>
-                    <td>
-                        <div class="font-semibold">{{ srv.service_name }}</div>
-                        <div style="font-size: 12px; color: #666;">{{ srv.description|truncatechars:60 }}</div>
-                    </td>
-                    <td class="text-right">{{ srv.daily_capacity }} vé</td>
-                    <td>
-                        {% if srv.service_status == 'Active' %}
-                            <span class="badge badge-success">Đang kinh doanh</span>
-                        {% else %}
-                            <span class="badge badge-danger">Tạm ngưng</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-right">
-                        <form method="post" style="display: inline;">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="toggle_service">
-                            <input type="hidden" name="service_pk" value="{{ srv.id }}">
-                            <button type="submit" class="btn-secondary btn-sm">
-                                {% if srv.service_status == 'Active' %}Tạm ngưng{% else %}Mở bán lại{% endif %}
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" style="text-align: center; color: #777;">Chưa có gói dịch vụ nào. Hãy thêm gói Onsen ở khung bên trái.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- KHỐI 3: THIẾT LẬP & CẬP NHẬT MA TRẬN GIÁ -->
-    <div class="card col-5">
-        <div class="section-title">
-            <span>Cấu hình / Cập nhật Bảng giá</span>
-        </div>
-        <p style="font-size: 12px; font-style: italic; color: var(--accent-wood); margin-bottom: 16px;">
-            * Chọn trùng Gói + Loại vé + Khung ngày sẽ tự động cập nhật mức giá hiện tại và ghi nhật ký kiểm toán.
-        </p>
-        <form method="post" class="form-grid">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="save_price">
-
-            <div class="form-group full">
-                <label>Chọn gói dịch vụ</label>
-                {{ price_form.service }}
-            </div>
-
-            <div class="form-group">
-                <label>Đối tượng / Loại vé</label>
-                {{ price_form.ticket_type }}
-            </div>
-
-            <div class="form-group">
-                <label>Khung ngày áp dụng</label>
-                {{ price_form.day_type }}
-            </div>
-
-            <div class="form-group">
-                <label>Giá công bố (VNĐ)</label>
-                {{ price_form.price }}
-            </div>
-
-            <div class="form-group">
-                <label>Giá ưu đãi Quảng Trị (VNĐ)</label>
-                {{ price_form.quang_tri_price }}
-            </div>
-
-            <div class="form-group full" style="margin-top: 8px;">
-                <button type="submit" class="btn-primary" style="justify-content: center;">Lưu cấu hình bảng giá</button>
-            </div>
-        </form>
-    </div>
-
-    <!-- KHỐI 4: BẢNG MA TRẬN GIÁ ĐANG ÁP DỤNG -->
-    <div class="card col-7">
-        <div class="section-title">
-            <span>Ma trận giá vé đang áp dụng</span>
-        </div>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Gói dịch vụ</th>
-                    <th>Loại vé</th>
-                    <th>Khung ngày</th>
-                    <th class="text-right">Giá niêm yết</th>
-                    <th class="text-right">Ưu đãi Quảng Trị</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for p in prices %}
-                <tr>
-                    <td class="font-semibold">{{ p.service.service_name }}</td>
-                    <td>{{ p.get_ticket_type_display }}</td>
-                    <td>
-                        {% if p.day_type == 'WEEKEND' %}
-                            <span class="badge badge-warning">Cuối tuần</span>
-                        {% else %}
-                            <span class="tag-wood">Đầu tuần</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-right font-semibold">{{ p.price|floatformat:0|intcomma }} đ</td>
-                    <td class="text-right">
-                        {% if p.quang_tri_price is not None %}
-                            <span class="badge badge-success">{{ p.quang_tri_price|floatformat:0|intcomma }} đ</span>
-                        {% else %}
-                            <span style="color: #999;">-</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" style="text-align: center; color: #777;">Chưa có cấu hình giá nào trong ma trận.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- KHỐI 5: NHẬT KÝ THAY ĐỔI GIÁ (PRICE AUDIT LOG) -->
-    <div class="card col-12">
-        <div class="section-title">
-            <span>Lịch sử điều chỉnh bảng giá (Audit Log)</span>
-        </div>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Thời gian</th>
-                    <th>Gói dịch vụ & Loại vé</th>
-                    <th class="text-right">Giá niêm yết (Cũ → Mới)</th>
-                    <th class="text-right">Ưu đãi Quảng Trị (Cũ → Mới)</th>
-                    <th>Người cập nhật</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for log in audit_logs %}
-                <tr>
-                    <td>{{ log.changed_at|date:"d/m/Y H:i" }}</td>
-                    <td class="font-semibold">
-                        {{ log.service_price.service.service_name }} — {{ log.service_price.get_ticket_type_display }} ({{ log.service_price.get_day_type_display }})
-                    </td>
-                    <td class="text-right">
-                        {{ log.old_price|floatformat:0|intcomma }}đ → <strong style="color: var(--cta-red);">{{ log.new_price|floatformat:0|intcomma }}đ</strong>
-                    </td>
-                    <td class="text-right">
-                        {% if log.old_quang_tri_price or log.new_quang_tri_price %}
-                            {{ log.old_quang_tri_price|default:0|floatformat:0|intcomma }}đ → <strong style="color: var(--success-text);">{{ log.new_quang_tri_price|default:0|floatformat:0|intcomma }}đ</strong>
-                        {% else %}
-                            -
-                        {% endif %}
-                    </td>
-                    <td>{{ log.changed_by.full_name|default:log.changed_by.username }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" style="text-align: center; color: #777;">Chưa ghi nhận lịch sử thay đổi giá nào.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
+        function getModalElements() {
+            return {
+                modal: document.getElementById('editServiceModal'),
+                closeBtn: document.getElementById('closeEditServiceModal'),
+                cancelBtn: document.getElementById('cancelEditServiceModal'),
+                pkInput: document.getElementById('edit_service_pk'),
+                idPkInput: document.getElementById('edit_service_id_pk'),
+                idInput: document.getElementById('edit_service_id'),
+                capacityInput: document.getElementById('edit_daily_capacity'),
+                nameInput: document.getElementById('edit_service_name'),
+                statusSelect: document.getElementById('edit_service_status'),
+                descInput: document.getElementById('edit_description'),
+                priceInput: document.getElementById('edit_price')
+            };
+        }
+
+        function openEditModal(btn) {
+            const el = getModalElements();
+            if (!el.modal) return;
+
+            const pkVal = btn.getAttribute('data-pk') || '';
+            if (el.pkInput) el.pkInput.value = pkVal;
+            if (el.idPkInput) el.idPkInput.value = pkVal;
+            if (el.idInput) el.idInput.value = btn.getAttribute('data-service-id') || '';
+            if (el.capacityInput) el.capacityInput.value = btn.getAttribute('data-daily-capacity') || '';
+            if (el.nameInput) el.nameInput.value = btn.getAttribute('data-service-name') || '';
+            if (el.statusSelect) el.statusSelect.value = btn.getAttribute('data-status') || 'Active';
+            if (el.descInput) el.descInput.value = btn.getAttribute('data-description') || '';
+            if (el.priceInput) el.priceInput.value = '';
+
+            el.modal.classList.add('is-open');
+            el.modal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeEditModal() {
+            const el = getModalElements();
+            if (!el.modal) return;
+            el.modal.classList.remove('is-open');
+            el.modal.setAttribute('aria-hidden', 'true');
+        }
+
+        if (!window.__bangOnsenEditModalBound) {
+            window.__bangOnsenEditModalBound = true;
+
+            document.addEventListener('click', function (e) {
+                const editBtn = e.target.closest('.open-edit-service-btn');
+                if (editBtn) {
+                    e.preventDefault();
+                    openEditModal(editBtn);
+                    return;
+                }
+
+                if (e.target.closest('#closeEditServiceModal') || e.target.closest('#cancelEditServiceModal')) {
+                    e.preventDefault();
+                    closeEditModal();
+                    return;
+                }
+
+                const el = getModalElements();
+                if (el.modal && e.target === el.modal) {
+                    closeEditModal();
+                }
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    const el = getModalElements();
+                    if (el.modal && el.modal.classList.contains('is-open')) {
+                        closeEditModal();
+                    }
+                }
+            });
+        }
+    })();
+</script>
 {% endblock %}

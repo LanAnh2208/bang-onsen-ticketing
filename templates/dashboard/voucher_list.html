@@ -4,22 +4,32 @@
 
 {% block extra_css %}
 <style>
+    .module-layout > div {
+        min-width: 0;
+    }
+
     .kpi-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 24px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 20px;
         margin-bottom: 24px;
     }
 
     .kpi-box {
+        min-width: 0;
         background: #FFFFFF;
         border: 1px solid var(--border-muted);
         border-radius: 8px;
-        padding: 20px 24px;
+        padding: 18px 20px;
+        transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+                    border-color 0.2s ease,
+                    box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    .kpi-box.highlight {
-        border-color: var(--cta-red);
+    .kpi-box:hover {
+        transform: translateY(-3px);
+        border-color: var(--accent-wood);
+        box-shadow: 0 10px 22px rgba(51, 51, 51, 0.08);
     }
 
     .kpi-label {
@@ -30,20 +40,38 @@
     }
 
     .kpi-num {
-        font-size: 22px;
+        font-size: 20px;
         font-weight: 700;
         color: var(--text-main);
     }
 
     .layout-split {
         display: grid;
-        grid-template-columns: repeat(12, 1fr);
-        gap: 24px;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 20px;
         align-items: start;
     }
 
-    .col-form { grid-column: span 4; }
-    .col-table { grid-column: span 8; }
+    .col-form {
+        grid-column: span 4;
+        min-width: 0;
+    }
+
+    .col-table {
+        grid-column: span 8;
+        min-width: 0;
+    }
+
+    .layout-split .card {
+        min-width: 0;
+        transition: border-color 0.2s ease,
+                    box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .layout-split .card:hover {
+        border-color: var(--accent-wood);
+        box-shadow: 0 8px 20px rgba(51, 51, 51, 0.06);
+    }
 
     .section-title {
         font-size: 16px;
@@ -54,6 +82,7 @@
 
     .field-group {
         margin-bottom: 14px;
+        min-width: 0;
     }
 
     .field-group label {
@@ -66,6 +95,8 @@
 
     .form-control {
         width: 100%;
+        max-width: 100%;
+        min-width: 0;
         height: 40px;
         padding: 0 12px;
         border: 1px solid var(--border-muted);
@@ -74,16 +105,19 @@
         font-size: 13px;
         color: var(--text-main);
         background-color: #FFFFFF;
+        box-sizing: border-box;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease;
     }
 
     .form-control:focus {
         outline: none;
         border-color: var(--cta-red);
+        box-shadow: 0 0 0 3px rgba(188, 32, 47, 0.08);
     }
 
     .form-row-2 {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
     }
 
@@ -96,45 +130,69 @@
     .filter-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 12px;
+        gap: 10px;
         margin-bottom: 16px;
         align-items: center;
     }
 
     .filter-row .form-control {
         width: auto;
-        min-width: 190px;
+        flex: 1 1 170px;
+        min-width: 150px;
     }
 
     table.data-table {
         width: 100%;
+        max-width: 100%;
         border-collapse: collapse;
-        font-size: 13px;
+        font-size: 12.5px;
     }
 
     table.data-table th {
         text-align: left;
-        padding: 12px 14px;
+        padding: 10px 10px;
         background-color: var(--bg-main);
         border-bottom: 1px solid var(--border-muted);
         font-weight: 600;
         color: var(--text-main);
+        font-size: 12px;
     }
 
     table.data-table td {
-        padding: 12px 14px;
+        padding: 10px 10px;
         border-bottom: 1px solid #EAECEF;
         vertical-align: middle;
+        overflow-wrap: anywhere;
+    }
+
+    table.data-table td.nowrap-col,
+    table.data-table th.nowrap-col {
+        white-space: nowrap;
+        overflow-wrap: normal;
+    }
+
+    table.data-table tbody tr {
+        transition: background-color 0.16s ease;
+    }
+
+    table.data-table tbody tr:hover {
+        background-color: rgba(139, 77, 62, 0.05);
     }
 
     .voucher-code {
         font-weight: 700;
         color: var(--accent-wood);
-        letter-spacing: 0.4px;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+    }
+
+    .badge {
+        display: inline-block;
+        white-space: nowrap;
     }
 
     .btn-sm {
-        padding: 6px 12px;
+        padding: 6px 10px;
         font-size: 12px;
         border-radius: 6px;
         font-weight: 600;
@@ -143,177 +201,212 @@
         background: #FFFFFF;
         color: var(--text-main);
         font-family: 'Montserrat', sans-serif;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1),
+                    border-color 0.16s ease,
+                    color 0.16s ease,
+                    background-color 0.16s ease;
     }
 
     .btn-sm:hover {
+        transform: translateY(-1px);
         border-color: var(--accent-wood);
         color: var(--accent-wood);
+        background-color: rgba(139, 77, 62, 0.06);
     }
 
     .text-right { text-align: right; }
 
+    @media (max-width: 1200px) {
+        .col-form, .col-table { grid-column: span 12; }
+    }
+
     @media (max-width: 1024px) {
         .kpi-grid { grid-template-columns: 1fr; }
-        .col-form, .col-table { grid-column: span 12; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .kpi-box,
+        .layout-split .card,
+        .form-control,
+        table.data-table tbody tr,
+        .btn-sm {
+            transition: none !important;
+            transform: none !important;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div>
-        <h1 class="page-title">Quản lý Khuyến mãi & Voucher</h1>
-        <p class="page-subtitle">Quản lý mã ưu đãi, mức giảm giá, thời hạn áp dụng và lượt sử dụng</p>
-    </div>
-</div>
+<div class="module-layout">
+    <aside class="module-sidebar" aria-label="Điều hướng nhanh Khuyến mãi & Voucher">
+        <div class="module-sidebar-title">Mục trên trang</div>
+        <ul class="module-anchor-list">
+            <li><a href="#sec-voucher-kpi" class="module-anchor-link is-active">Thống kê voucher</a></li>
+            <li><a href="#sec-voucher-create" class="module-anchor-link">Tạo voucher mới</a></li>
+            <li><a href="#sec-voucher-list" class="module-anchor-link">Danh sách voucher</a></li>
+        </ul>
+    </aside>
 
-<div class="kpi-grid">
-    <div class="kpi-box highlight">
-        <div class="kpi-label">TỔNG SỐ MÃ VOUCHER</div>
-        <div class="kpi-num">{{ stats.total_count }} mã</div>
-    </div>
-    <div class="kpi-box">
-        <div class="kpi-label">ĐANG HIỆU LỰC HÔM NAY</div>
-        <div class="kpi-num">{{ stats.active_count }} mã</div>
-    </div>
-    <div class="kpi-box">
-        <div class="kpi-label">TỔNG LƯỢT ĐÃ SỬ DỤNG</div>
-        <div class="kpi-num">{{ stats.total_used }} lượt</div>
-    </div>
-</div>
+    <div style="min-width: 0;">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Quản lý Khuyến mãi & Voucher</h1>
+                <p class="page-subtitle">Quản lý mã ưu đãi, mức giảm giá, thời hạn áp dụng và lượt sử dụng</p>
+            </div>
+        </div>
 
-<div class="layout-split">
-    <div class="card col-form">
-        <div class="section-title">Tạo mã Voucher mới</div>
-        <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="create_voucher">
+        <div id="sec-voucher-kpi" class="kpi-grid">
+            <div class="kpi-box">
+                <div class="kpi-label">TỔNG SỐ MÃ VOUCHER</div>
+                <div class="kpi-num">{{ stats.total_count }} mã</div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-label">ĐANG HIỆU LỰC HÔM NAY</div>
+                <div class="kpi-num">{{ stats.active_count }} mã</div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-label">TỔNG LƯỢT ĐÃ SỬ DỤNG</div>
+                <div class="kpi-num">{{ stats.total_used }} lượt</div>
+            </div>
+        </div>
 
-            <div class="field-group">
-                <label for="{{ form.voucher_code.id_for_label }}">{{ form.voucher_code.label }}</label>
-                {{ form.voucher_code }}
-                {% for err in form.voucher_code.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+        <div class="layout-split">
+            <div id="sec-voucher-create" class="card col-form">
+                <div class="section-title">Tạo mã Voucher mới</div>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="create_voucher">
+
+                    <div class="field-group">
+                        <label for="{{ form.voucher_code.id_for_label }}">{{ form.voucher_code.label }}</label>
+                        {{ form.voucher_code }}
+                        {% for err in form.voucher_code.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="field-group">
+                            <label for="{{ form.discount_type.id_for_label }}">{{ form.discount_type.label }}</label>
+                            {{ form.discount_type }}
+                            {% for err in form.discount_type.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+                        </div>
+                        <div class="field-group">
+                            <label for="{{ form.discount_value.id_for_label }}">{{ form.discount_value.label }}</label>
+                            {{ form.discount_value }}
+                            {% for err in form.discount_value.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="field-group">
+                            <label for="{{ form.valid_from.id_for_label }}">{{ form.valid_from.label }}</label>
+                            {{ form.valid_from }}
+                            {% for err in form.valid_from.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+                        </div>
+                        <div class="field-group">
+                            <label for="{{ form.valid_to.id_for_label }}">{{ form.valid_to.label }}</label>
+                            {{ form.valid_to }}
+                            {% for err in form.valid_to.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="field-group">
+                            <label for="{{ form.usage_limit.id_for_label }}">{{ form.usage_limit.label }}</label>
+                            {{ form.usage_limit }}
+                            {% for err in form.usage_limit.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+                        </div>
+                        <div class="field-group">
+                            <label for="{{ form.voucher_status.id_for_label }}">{{ form.voucher_status.label }}</label>
+                            {{ form.voucher_status }}
+                            {% for err in form.voucher_status.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+                        Lưu mã Voucher
+                    </button>
+                </form>
             </div>
 
-            <div class="form-row-2">
-                <div class="field-group">
-                    <label for="{{ form.discount_type.id_for_label }}">{{ form.discount_type.label }}</label>
-                    {{ form.discount_type }}
-                    {% for err in form.discount_type.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
-                </div>
-                <div class="field-group">
-                    <label for="{{ form.discount_value.id_for_label }}">{{ form.discount_value.label }}</label>
-                    {{ form.discount_value }}
-                    {% for err in form.discount_value.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
-                </div>
+            <div id="sec-voucher-list" class="card col-table">
+                <div class="section-title">Danh sách mã Voucher</div>
+
+                <form method="get" class="filter-row">
+                    <input type="text" name="q" value="{{ search_query }}" placeholder="Tìm theo mã voucher..." class="form-control">
+                    <select name="status" class="form-control">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="Active" {% if status_filter == 'Active' %}selected{% endif %}>Đang hiệu lực</option>
+                        <option value="Inactive" {% if status_filter == 'Inactive' %}selected{% endif %}>Vô hiệu hóa</option>
+                    </select>
+                    <button type="submit" class="btn-secondary" style="height: 40px; padding: 0 16px; font-size: 13px; white-space: nowrap;">Lọc</button>
+                </form>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="nowrap-col">Mã Voucher</th>
+                            <th>Hình thức</th>
+                            <th class="text-right nowrap-col">Mức giảm</th>
+                            <th>Thời hạn</th>
+                            <th class="text-right nowrap-col">Đã dùng</th>
+                            <th class="nowrap-col">Trạng thái</th>
+                            <th class="text-right nowrap-col">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in vouchers %}
+                        <tr>
+                            <td class="voucher-code">{{ v.voucher_code }}</td>
+                            <td>{{ v.get_discount_type_display }}</td>
+                            <td class="text-right nowrap-col" style="font-weight: 600; color: var(--cta-red);">
+                                {% if v.discount_type == 'Percent' %}
+                                    -{{ v.discount_value|floatformat:0 }}%
+                                {% else %}
+                                    -<span class="vnd-amount" data-amount="{{ v.discount_value|default:0 }}">{{ v.discount_value|default:0 }}</span>
+                                {% endif %}
+                            </td>
+                            <td style="font-size: 12px;">
+                                {{ v.valid_from|date:"d/m/Y" }} - {{ v.valid_to|date:"d/m/Y" }}
+                            </td>
+                            <td class="text-right nowrap-col">{{ v.used_count }} / {{ v.usage_limit }}</td>
+                            <td class="nowrap-col">
+                                {% if v.voucher_status == 'Inactive' %}
+                                    <span class="badge badge-danger">Vô hiệu hóa</span>
+                                {% elif v.valid_to < today %}
+                                    <span class="badge badge-warning">Hết hạn</span>
+                                {% elif v.valid_from > today %}
+                                    <span class="badge badge-warning">Chưa hiệu lực</span>
+                                {% elif v.used_count >= v.usage_limit %}
+                                    <span class="badge badge-warning">Hết lượt</span>
+                                {% else %}
+                                    <span class="badge badge-success">Đang hiệu lực</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right nowrap-col">
+                                <form method="post" style="display: inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="toggle_voucher">
+                                    <input type="hidden" name="voucher_id" value="{{ v.id }}">
+                                    <button type="submit" class="btn-sm">
+                                        {% if v.voucher_status == 'Active' %}Vô hiệu hóa{% else %}Kích hoạt{% endif %}
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: #777; padding: 24px;">
+                                Chưa có mã voucher nào trong hệ thống.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-
-            <div class="form-row-2">
-                <div class="field-group">
-                    <label for="{{ form.valid_from.id_for_label }}">{{ form.valid_from.label }}</label>
-                    {{ form.valid_from }}
-                    {% for err in form.valid_from.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
-                </div>
-                <div class="field-group">
-                    <label for="{{ form.valid_to.id_for_label }}">{{ form.valid_to.label }}</label>
-                    {{ form.valid_to }}
-                    {% for err in form.valid_to.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
-                </div>
-            </div>
-
-            <div class="form-row-2">
-                <div class="field-group">
-                    <label for="{{ form.usage_limit.id_for_label }}">{{ form.usage_limit.label }}</label>
-                    {{ form.usage_limit }}
-                    {% for err in form.usage_limit.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
-                </div>
-                <div class="field-group">
-                    <label for="{{ form.voucher_status.id_for_label }}">{{ form.voucher_status.label }}</label>
-                    {{ form.voucher_status }}
-                    {% for err in form.voucher_status.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
-                </div>
-            </div>
-
-            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
-                Lưu mã Voucher
-            </button>
-        </form>
-    </div>
-
-    <div class="card col-table">
-        <div class="section-title">Danh sách mã Voucher</div>
-
-        <form method="get" class="filter-row">
-            <input type="text" name="q" value="{{ search_query }}" placeholder="Tìm theo mã voucher..." class="form-control">
-            <select name="status" class="form-control">
-                <option value="">Tất cả trạng thái</option>
-                <option value="Active" {% if status_filter == 'Active' %}selected{% endif %}>Đang hiệu lực</option>
-                <option value="Inactive" {% if status_filter == 'Inactive' %}selected{% endif %}>Vô hiệu hóa</option>
-            </select>
-            <button type="submit" class="btn-secondary" style="height: 40px; padding: 0 16px; font-size: 13px;">Lọc</button>
-        </form>
-
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Mã Voucher</th>
-                    <th>Hình thức</th>
-                    <th class="text-right">Mức giảm</th>
-                    <th>Thời hạn</th>
-                    <th class="text-right">Đã dùng</th>
-                    <th>Trạng thái</th>
-                    <th class="text-right">Thao tác</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for v in vouchers %}
-                <tr>
-                    <td class="voucher-code">{{ v.voucher_code }}</td>
-                    <td>{{ v.get_discount_type_display }}</td>
-                    <td class="text-right" style="font-weight: 600; color: var(--cta-red);">
-                        {% if v.discount_type == 'Percent' %}
-                            -{{ v.discount_value|floatformat:0 }}%
-                        {% else %}
-                            -{{ v.discount_value|floatformat:0 }}đ
-                        {% endif %}
-                    </td>
-                    <td style="font-size: 12px;">
-                        {{ v.valid_from|date:"d/m/Y" }} - {{ v.valid_to|date:"d/m/Y" }}
-                    </td>
-                    <td class="text-right">{{ v.used_count }} / {{ v.usage_limit }}</td>
-                    <td>
-                        {% if v.voucher_status == 'Inactive' %}
-                            <span class="badge badge-danger">Vô hiệu hóa</span>
-                        {% elif v.valid_to < today %}
-                            <span class="badge badge-warning">Hết hạn</span>
-                        {% elif v.valid_from > today %}
-                            <span class="badge badge-warning">Chưa hiệu lực</span>
-                        {% elif v.used_count >= v.usage_limit %}
-                            <span class="badge badge-warning">Hết lượt</span>
-                        {% else %}
-                            <span class="badge badge-success">Đang hiệu lực</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-right">
-                        <form method="post" style="display: inline;">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="toggle_voucher">
-                            <input type="hidden" name="voucher_id" value="{{ v.id }}">
-                            <button type="submit" class="btn-sm">
-                                {% if v.voucher_status == 'Active' %}Vô hiệu hóa{% else %}Kích hoạt{% endif %}
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" style="text-align: center; color: #777; padding: 24px;">
-                        Chưa có mã voucher nào trong hệ thống.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        </div>
     </div>
 </div>
 {% endblock %}

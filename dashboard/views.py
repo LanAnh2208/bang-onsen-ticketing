@@ -24,6 +24,66 @@ def _parse_filter_params(request):
     return target_date, channel_filter, staff_id
 
 
+def _parse_decimal_or_none(raw_value):
+    cleaned = (raw_value or '').strip().replace(',', '')
+    if cleaned == '':
+        return None
+    try:
+        from decimal import Decimal
+        val = Decimal(cleaned)
+        return val if val >= 0 else None
+    except Exception:
+        return None
+
+
+def _upsert_service_price(request, service, ticket_type, day_type, price_val, qt_price_val=None):
+    if price_val is None and qt_price_val is None:
+        return
+
+    existing = ServicePrice.objects.filter(
+        service=service,
+        ticket_type=ticket_type,
+        day_type=day_type,
+    ).first()
+
+    if existing:
+        old_price = existing.price
+        old_qt = existing.quang_tri_price
+        next_price = price_val if price_val is not None else old_price
+        next_qt = qt_price_val if qt_price_val is not None else old_qt
+
+        if next_price != old_price or next_qt != old_qt:
+            existing.price = next_price
+            existing.quang_tri_price = next_qt
+            existing.save()
+            if getattr(request.user, 'is_authenticated', False):
+                PriceAuditLog.objects.create(
+                    service_price=existing,
+                    old_price=old_price,
+                    new_price=next_price,
+                    old_quang_tri_price=old_qt,
+                    new_quang_tri_price=next_qt,
+                    changed_by=request.user,
+                )
+    else:
+        created_price = ServicePrice.objects.create(
+            service=service,
+            ticket_type=ticket_type,
+            day_type=day_type,
+            price=price_val if price_val is not None else 0,
+            quang_tri_price=qt_price_val,
+        )
+        if getattr(request.user, 'is_authenticated', False):
+            PriceAuditLog.objects.create(
+                service_price=created_price,
+                old_price=0,
+                new_price=created_price.price,
+                old_quang_tri_price=None,
+                new_quang_tri_price=created_price.quang_tri_price,
+                changed_by=request.user,
+            )
+
+
 @admin_required
 def overview(request):
     target_date, channel_filter, staff_id = _parse_filter_params(request)
@@ -44,60 +104,123 @@ def pricing_matrix(request):
     price_form = ServicePriceForm()
 
     if request.method == 'POST':
-        action = request.POST.get('action')
+        action = (request.POST.get('action') or '').strip()
 
         if action == 'add_service':
             service_form = ServiceForm(request.POST)
             if service_form.is_valid():
-                service_form.save()
-                messages.success(request, "Đã thêm gói dịch vụ Onsen mới thành công.")
+                created_service = service_form.save()
+
+                # Lưu đa đối tượng & đa khung ngày (nếu có nhập)
+                price_entries = [
+                    (
+                        'ADULT',
+                        'WEEKDAY',
+                        _parse_decimal_or_none(request.POST.get('weekday_adult_price')),
+                        _parse_decimal_or_none(request.POST.get('weekday_quang_tri_price')),
+                    ),
+                    (
+                        'CHILD',
+                        'WEEKDAY',
+                        _parse_decimal_or_none(request.POST.get('weekday_child_price')),
+                        None,
+                    ),
+                    (
+                        'ADULT',
+                        'WEEKEND',
+                        _parse_decimal_or_none(request.POST.get('weekend_adult_price')),
+                        _parse_decimal_or_none(request.POST.get('weekend_quang_tri_price')),
+                    ),
+                    (
+                        'CHILD',
+                        'WEEKEND',
+                        _parse_decimal_or_none(request.POST.get('weekend_child_price')),
+                        None,
+                    ),
+                ]
+
+                has_any_price = False
+                for t_type, d_type, p_val, qt_val in price_entries:
+                    if p_val is not None or qt_val is not None:
+                        _upsert_service_price(request, created_service, t_type, d_type, p_val, qt_val)
+                        has_any_price = True
+
+                # Tương thích ngược nếu có gửi field cũ
+                legacy_price = _parse_decimal_or_none(request.POST.get('initial_price'))
+                legacy_qt = _parse_decimal_or_none(request.POST.get('initial_quang_tri_price'))
+                if legacy_price is not None or legacy_qt is not None:
+                    legacy_ticket = request.POST.get('initial_ticket_type') or 'ADULT'
+                    legacy_day = request.POST.get('initial_day_type') or 'WEEKDAY'
+                    _upsert_service_price(request, created_service, legacy_ticket, legacy_day, legacy_price, legacy_qt)
+                    has_any_price = True
+
+                if has_any_price:
+                    messages.success(
+                        request,
+                        f"Đã lưu gói dịch vụ '{created_service.service_name}' và cập nhật bảng giá thành công."
+                    )
+                else:
+                    messages.success(
+                        request,
+                        f"Đã lưu gói dịch vụ '{created_service.service_name}' thành công."
+                    )
                 return redirect('dashboard:pricing_matrix')
             else:
                 messages.error(request, "Lỗi nhập liệu gói dịch vụ. Vui lòng kiểm tra lại mã gói hoặc thông tin.")
 
         elif action == 'toggle_service':
-            srv = get_object_or_404(Service, id=request.POST.get('service_pk'))
-            srv.service_status = 'Inactive' if srv.service_status == 'Active' else 'Active'
+            target_id = request.POST.get('service_pk') or request.POST.get('service_id')
+            srv = get_object_or_404(Service, pk=target_id)
+            current_status = (srv.service_status or '').strip().lower()
+            is_currently_active = current_status in ('active', 'đang kinh doanh', '1', 'true')
+            srv.service_status = 'Inactive' if is_currently_active else 'Active'
             srv.save()
-            messages.success(request, f"Đã cập nhật trạng thái gói {srv.service_name} thành {srv.get_service_status_display()}.")
+
+            status_label = "tạm ngưng" if srv.service_status == 'Inactive' else "mở bán lại"
+            messages.success(request, f"Đã {status_label} gói dịch vụ '{srv.service_name}'.")
             return redirect('dashboard:pricing_matrix')
 
-        elif action == 'save_price':
-            service_id = request.POST.get('service')
-            ticket_type = request.POST.get('ticket_type')
-            day_type = request.POST.get('day_type')
+        elif action == 'edit_service':
+            target_id = request.POST.get('service_pk') or request.POST.get('service_id_pk')
+            srv = get_object_or_404(Service, pk=target_id)
 
-            existing_price = ServicePrice.objects.filter(
-                service_id=service_id,
-                ticket_type=ticket_type,
-                day_type=day_type
-            ).first()
+            new_service_id = (request.POST.get('service_id') or '').strip()
+            new_service_name = (request.POST.get('service_name') or '').strip()
+            new_description = (request.POST.get('description') or '').strip()
+            new_status = (request.POST.get('service_status') or srv.service_status or 'Active').strip()
+            raw_capacity = (request.POST.get('daily_capacity') or '').strip()
 
-            if existing_price:
-                old_price = existing_price.price
-                old_qt_price = existing_price.quang_tri_price
-                price_form = ServicePriceForm(request.POST, instance=existing_price)
-                if price_form.is_valid():
-                    updated_obj = price_form.save()
-                    if old_price != updated_obj.price or old_qt_price != updated_obj.quang_tri_price:
-                        PriceAuditLog.objects.create(
-                            service_price=updated_obj,
-                            changed_by=request.user,
-                            old_price=old_price,
-                            new_price=updated_obj.price,
-                            old_quang_tri_price=old_qt_price,
-                            new_quang_tri_price=updated_obj.quang_tri_price,
-                        )
-                    messages.success(request, "Đã cập nhật cấu hình bảng giá và lưu lịch sử thay đổi.")
-                    return redirect('dashboard:pricing_matrix')
-            else:
-                price_form = ServicePriceForm(request.POST)
-                if price_form.is_valid():
-                    price_form.save()
-                    messages.success(request, "Đã thiết lập mức giá mới vào ma trận.")
-                    return redirect('dashboard:pricing_matrix')
+            try:
+                new_capacity = int(raw_capacity)
+                if new_capacity < 1:
+                    raise ValueError()
+            except ValueError:
+                messages.error(request, "Sức chứa vé / ngày phải là số nguyên lớn hơn 0.")
+                return redirect('dashboard:pricing_matrix')
 
-            messages.error(request, "Dữ liệu bảng giá không hợp lệ. Vui lòng kiểm tra lại số tiền.")
+            if not new_service_id or not new_service_name:
+                messages.error(request, "Mã gói dịch vụ và tên gói dịch vụ không được để trống.")
+                return redirect('dashboard:pricing_matrix')
+
+            if Service.objects.exclude(pk=srv.pk).filter(service_id__iexact=new_service_id).exists():
+                messages.error(request, f"Mã gói '{new_service_id}' đã được sử dụng bởi gói dịch vụ khác.")
+                return redirect('dashboard:pricing_matrix')
+
+            srv.service_id = new_service_id
+            srv.service_name = new_service_name
+            srv.daily_capacity = new_capacity
+            srv.description = new_description
+            srv.service_status = new_status
+            srv.save()
+
+            updated_price_val = _parse_decimal_or_none(request.POST.get('price'))
+            if updated_price_val is not None:
+                edit_ticket_type = request.POST.get('ticket_type') or 'ADULT'
+                edit_day_type = request.POST.get('day_type') or 'WEEKDAY'
+                _upsert_service_price(request, srv, edit_ticket_type, edit_day_type, updated_price_val)
+
+            messages.success(request, f"Đã cập nhật gói dịch vụ '{srv.service_name}' thành công.")
+            return redirect('dashboard:pricing_matrix')
 
     services = Service.objects.all().order_by('service_id')
     prices = ServicePrice.objects.select_related('service').order_by('service__service_id', 'day_type', 'ticket_type')

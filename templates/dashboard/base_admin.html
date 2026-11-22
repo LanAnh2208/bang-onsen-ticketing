@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Quản trị hệ thống | Bang Onsen Spa & Resort{% endblock %}</title>
-        
+
     <!-- Google Fonts: Montserrat -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,6 +37,10 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
         }
 
         body {
@@ -80,17 +84,6 @@
             display: block;
         }
 
-        .brand-badge {
-            background-color: var(--accent-wood);
-            color: #FFFFFF;
-            font-weight: 700;
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 4px;
-            letter-spacing: 0.5px;
-        }
-
-        /* Menu điều hướng chức năng trên Header */
         .header-nav {
             display: flex;
             align-items: center;
@@ -118,7 +111,6 @@
             border-radius: 6px 6px 0 0;
         }
 
-        /* Khu vực User & Nút CTA bên phải */
         .header-actions {
             display: flex;
             align-items: center;
@@ -172,15 +164,73 @@
             background-color: rgba(139, 77, 62, 0.08);
         }
 
-        /* ================= MAIN CONTAINER ================= */
+        /* ================= MAIN CONTAINER & SIDEBAR MỤC ================= */
         .main-container {
-            max-width: 1360px;
+            max-width: 1440px;
             width: 100%;
             margin: 0 auto;
             padding: 32px;
             flex: 1;
         }
-        
+
+        .module-layout {
+            display: grid;
+            grid-template-columns: 236px minmax(0, 1fr);
+            gap: 24px;
+            align-items: start;
+        }
+
+        .module-sidebar {
+            position: sticky;
+            top: 92px;
+            background: #FFFFFF;
+            border: 1px solid var(--border-muted);
+            border-left: 3px solid var(--accent-wood);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .module-sidebar-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--accent-wood);
+            margin-bottom: 10px;
+        }
+
+        .module-anchor-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .module-anchor-link {
+            display: block;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
+            text-decoration: none;
+            transition: background-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+        }
+
+        .module-anchor-link:hover {
+            background-color: rgba(139, 77, 62, 0.08);
+            color: var(--accent-wood);
+            transform: translateX(2px);
+        }
+
+        .module-anchor-link.is-active {
+            background-color: rgba(188, 32, 47, 0.09);
+            color: var(--cta-red);
+        }
+
+        [id^="sec-"] {
+            scroll-margin-top: 92px;
+        }
 
         .page-header {
             display: flex;
@@ -205,14 +255,12 @@
             margin-top: 4px;
         }
 
-        /* Hệ thống lưới 12 cột */
         .grid-12 {
             display: grid;
             grid-template-columns: repeat(12, 1fr);
             gap: 24px;
         }
 
-        /* Thẻ Card chuẩn quy chuẩn */
         .card {
             background-color: #FFFFFF;
             border: 1px solid var(--border-muted);
@@ -220,7 +268,6 @@
             padding: 24px;
         }
 
-        /* Badge trạng thái hệ thống */
         .badge {
             display: inline-block;
             padding: 4px 10px;
@@ -232,7 +279,6 @@
         .badge-warning { background-color: var(--warning-bg); color: var(--warning-text); }
         .badge-danger  { background-color: var(--danger-bg); color: var(--danger-text); }
 
-        /* Thông báo Django Messages */
         .alert {
             padding: 12px 16px;
             border-radius: 6px;
@@ -244,7 +290,6 @@
         .alert-warning { background-color: var(--warning-bg); color: var(--warning-text); border: 1px solid var(--warning-text); }
         .alert-error   { background-color: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger-text); }
 
-        /* ================= FOOTER ================= */
         .admin-footer {
             background-color: var(--text-main);
             color: var(--bg-main);
@@ -255,31 +300,119 @@
             justify-content: space-between;
             align-items: center;
         }
+
+        /* ================= MODAL XÁC NHẬN THAO TÁC TOÀN ADMIN ================= */
+        .admin-confirm-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.48);
+            z-index: 2000;
+            padding: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .admin-confirm-backdrop.is-open {
+            display: flex;
+        }
+
+        .admin-confirm-box {
+            width: 100%;
+            max-width: 440px;
+            background: #FFFFFF;
+            border: 1px solid var(--border-muted);
+            border-radius: 10px;
+            padding: 22px 24px;
+            box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
+            box-sizing: border-box;
+            font-family: var(--font-admin);
+        }
+
+        .admin-confirm-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .admin-confirm-desc {
+            font-size: 13.5px;
+            color: #555555;
+            line-height: 1.5;
+            margin-bottom: 18px;
+        }
+
+        .admin-confirm-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .admin-confirm-btn {
+            height: 36px;
+            padding: 0 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: var(--font-admin);
+            cursor: pointer;
+            border: 1px solid var(--border-muted);
+        }
+
+        .admin-confirm-cancel {
+            background: #FFFFFF;
+            color: var(--text-main);
+        }
+
+        .admin-confirm-ok {
+            background: var(--cta-red);
+            border-color: var(--cta-red);
+            color: #FFFFFF;
+        }
+
+        .admin-confirm-ok:hover {
+            background: var(--cta-red-hover);
+            border-color: var(--cta-red-hover);
+        }
+
+        @media (max-width: 1024px) {
+            .module-layout {
+                grid-template-columns: 1fr;
+            }
+            .module-sidebar {
+                position: static;
+            }
+            .module-anchor-list {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
 
-    <!-- HEADER CHỨC NĂNG ADMIN -->
     <header class="admin-header">
         <a href="{% url 'dashboard:overview' %}" class="brand-logo">
             <img src="{% static 'images/logo/logo-bang-onsen.png' %}" alt="Logo Bang Onsen Spa & Resort">
         </a>
 
         <nav class="header-nav">
-            <a href="{% url 'dashboard:overview' %}" 
+            <a href="{% url 'dashboard:overview' %}"
                class="nav-link {% if request.resolver_match.url_name == 'overview' %}active{% endif %}">
                 Tổng quan & Báo cáo
             </a>
-            <a href="{% url 'dashboard:pricing_matrix' %}" 
+            <a href="{% url 'dashboard:pricing_matrix' %}"
                class="nav-link {% if request.resolver_match.url_name == 'pricing_matrix' %}active{% endif %}">
                 Dịch vụ & Bảng giá
             </a>
-            <a href="{% url 'dashboard:voucher_list' %}" 
+            <a href="{% url 'dashboard:voucher_list' %}"
                class="nav-link {% if request.resolver_match.url_name == 'voucher_list' %}active{% endif %}">
                 Khuyến mãi & Voucher
             </a>
-            <a href="{% url 'dashboard:staff_list' %}" 
+            <a href="{% url 'dashboard:staff_list' %}"
                class="nav-link {% if request.resolver_match.url_name == 'staff_list' %}active{% endif %}">
                 Nhân sự & Phân quyền
             </a>
@@ -293,7 +426,6 @@
         </div>
     </header>
 
-    <!-- NỘI DUNG CHÍNH -->
     <main class="main-container">
         {% if messages %}
             {% for message in messages %}
@@ -304,7 +436,6 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- FOOTER CHUẨN QUY CHUẨN -->
     <footer class="admin-footer">
         <div>Bang Onsen Spa & Resort — Hệ thống Quản trị Bán vé Điện tử</div>
         <div>Phân hệ Quản lý Lễ tân (Admin)</div>
@@ -318,6 +449,50 @@
             const mainContainer = document.querySelector('main.main-container');
 
             if (!mainContainer) return;
+
+            function bindSidebarAnchors() {
+                const anchorLinks = mainContainer.querySelectorAll('.module-anchor-link');
+                if (!anchorLinks.length) return;
+                if (typeof window.applyBangOnsenCurrency === 'function') {
+                    window.applyBangOnsenCurrency(mainContainer);
+                }
+
+                const sectionEls = Array.from(anchorLinks)
+                    .map((a) => document.querySelector(a.getAttribute('href')))
+                    .filter(Boolean);
+
+                anchorLinks.forEach((link) => {
+                    link.addEventListener('click', function (e) {
+                        const targetSelector = link.getAttribute('href');
+                        const targetEl = document.querySelector(targetSelector);
+                        if (!targetEl) return;
+                        e.preventDefault();
+                        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        anchorLinks.forEach((item) => item.classList.remove('is-active'));
+                        link.classList.add('is-active');
+                    });
+                });
+
+                function syncActiveOnScroll() {
+                    const offset = window.scrollY + 130;
+                    let currentId = sectionEls[0] ? `#${sectionEls[0].id}` : null;
+                    sectionEls.forEach((sec) => {
+                        if (sec.offsetTop <= offset) {
+                            currentId = `#${sec.id}`;
+                        }
+                    });
+                    if (currentId) {
+                        anchorLinks.forEach((link) => {
+                            link.classList.toggle('is-active', link.getAttribute('href') === currentId);
+                        });
+                    }
+                }
+
+                window.addEventListener('scroll', syncActiveOnScroll, { passive: true });
+                syncActiveOnScroll();
+            }
+
+            bindSidebarAnchors();
 
             function updateActiveNav(targetUrl) {
                 const targetPath = new URL(targetUrl, window.location.origin).pathname;
@@ -388,6 +563,7 @@
                     }
 
                     updateActiveNav(url);
+                    bindSidebarAnchors();
                     window.scrollTo({ top: 0, behavior: 'instant' });
                 } catch (err) {
                     window.location.href = url;
@@ -420,6 +596,179 @@
 
             window.addEventListener('popstate', function () {
                 navigateSoft(window.location.href, false);
+            });
+        })();
+    </script>
+
+    <script>
+        window.formatBangOnsenVND = function (amount) {
+            const num = Math.round(Number(amount) || 0);
+            return `${num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')} VND`;
+        };
+
+        window.formatBangOnsenVarianceVND = function (amount) {
+            const num = Math.round(Number(amount) || 0);
+            const formatted = Math.abs(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            if (num > 0) return `+${formatted} VND`;
+            if (num < 0) return `-${formatted} VND`;
+            return '0 VND';
+        };
+
+        window.applyBangOnsenCurrency = function (root = document) {
+            root.querySelectorAll('.vnd-amount').forEach((el) => {
+                const rawAttr = el.getAttribute('data-amount');
+                const rawVal = (rawAttr !== null && rawAttr !== '')
+                    ? rawAttr
+                    : el.textContent.replace(/[^\d.-]/g, '');
+
+                if (el.classList.contains('vnd-variance') || el.classList.contains('variance-amount')) {
+                    const num = Number(rawVal) || 0;
+                    el.textContent = window.formatBangOnsenVarianceVND(num);
+                    el.classList.remove('variance-plus', 'variance-minus', 'variance-zero');
+                    if (num > 0) el.classList.add('variance-plus');
+                    else if (num < 0) el.classList.add('variance-minus');
+                    else el.classList.add('variance-zero');
+                } else {
+                    el.textContent = window.formatBangOnsenVND(rawVal);
+                }
+            });
+        };
+    </script>
+
+    <!-- MODAL XÁC NHẬN MỌI THAO TÁC TRONG ADMIN -->
+    <div id="adminGlobalConfirmModal" class="admin-confirm-backdrop" aria-hidden="true">
+        <div class="admin-confirm-box" role="dialog" aria-modal="true" aria-labelledby="adminConfirmTitle">
+            <h3 id="adminConfirmTitle" class="admin-confirm-title">Xác nhận thao tác</h3>
+            <p id="adminConfirmDesc" class="admin-confirm-desc">Bạn có chắc chắn muốn thực hiện thao tác này không?</p>
+            <div class="admin-confirm-actions">
+                <button type="button" id="adminConfirmCancelBtn" class="admin-confirm-btn admin-confirm-cancel">Hủy</button>
+                <button type="button" id="adminConfirmOkBtn" class="admin-confirm-btn admin-confirm-ok">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const modal = document.getElementById('adminGlobalConfirmModal');
+            const titleEl = document.getElementById('adminConfirmTitle');
+            const descEl = document.getElementById('adminConfirmDesc');
+            const cancelBtn = document.getElementById('adminConfirmCancelBtn');
+            const okBtn = document.getElementById('adminConfirmOkBtn');
+
+            let pendingAction = null;
+
+            function buildFormConfirmMessage(form, submitter) {
+                const actionInput = form.querySelector('input[name="action"]');
+                const actionVal = actionInput ? actionInput.value : '';
+                const btnText = submitter ? (submitter.textContent || '').trim() : '';
+
+                if (actionVal === 'toggle_service') {
+                    return `Xác nhận "${btnText || 'đổi trạng thái'}" gói dịch vụ này?`;
+                }
+                if (actionVal === 'edit_service') {
+                    return 'Xác nhận lưu các thay đổi cho gói dịch vụ và bảng giá này?';
+                }
+                if (actionVal === 'add_service') {
+                    return 'Xác nhận thêm gói dịch vụ mới và lưu cấu hình bảng giá?';
+                }
+                if (actionVal === 'toggle_voucher') {
+                    return `Xác nhận "${btnText || 'đổi trạng thái'}" mã voucher này?`;
+                }
+                if (actionVal === 'create_voucher') {
+                    return 'Xác nhận tạo mã voucher mới với thông tin đã nhập?';
+                }
+                if (actionVal === 'toggle_active') {
+                    return `Xác nhận "${btnText || 'đổi trạng thái'}" tài khoản nhân sự này?`;
+                }
+                if (actionVal === 'update_permission') {
+                    return 'Xác nhận cập nhật phân quyền cho tài khoản nhân sự này?';
+                }
+                if (actionVal === 'create_staff') {
+                    return 'Xác nhận tạo tài khoản nhân sự mới này?';
+                }
+                return btnText
+                    ? `Bạn có chắc chắn muốn thực hiện thao tác "${btnText}" không?`
+                    : 'Bạn có chắc chắn muốn thực hiện thao tác quản trị này không?';
+            }
+
+            function openConfirm(message, onConfirm, titleText = 'Xác nhận thao tác') {
+                if (!modal) {
+                    if (typeof onConfirm === 'function') onConfirm();
+                    return;
+                }
+                pendingAction = onConfirm;
+                if (titleEl) titleEl.textContent = titleText;
+                if (descEl) descEl.textContent = message;
+                modal.classList.add('is-open');
+                modal.setAttribute('aria-hidden', 'false');
+                if (okBtn) okBtn.focus();
+            }
+
+            function closeConfirm() {
+                if (!modal) return;
+                modal.classList.remove('is-open');
+                modal.setAttribute('aria-hidden', 'true');
+                pendingAction = null;
+            }
+
+            window.confirmAdminAction = function (message, onConfirm, titleText = 'Xác nhận thao tác') {
+                openConfirm(message, onConfirm, titleText);
+            };
+
+            document.addEventListener('submit', function (e) {
+                const form = e.target;
+                if (!(form instanceof HTMLFormElement)) return;
+
+                const method = (form.getAttribute('method') || 'get').toLowerCase();
+                if (method !== 'post') return;
+
+                if (form.dataset.confirmed === '1') {
+                    form.dataset.confirmed = '';
+                    return;
+                }
+
+                if (typeof form.checkValidity === 'function' && !form.checkValidity()) {
+                    return;
+                }
+
+                const submitter = e.submitter || null;
+                const message = buildFormConfirmMessage(form, submitter);
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                openConfirm(message, function () {
+                    form.dataset.confirmed = '1';
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit(submitter || undefined);
+                    } else {
+                        form.submit();
+                    }
+                });
+            }, true);
+
+            if (okBtn) {
+                okBtn.addEventListener('click', function () {
+                    const actionToRun = pendingAction;
+                    closeConfirm();
+                    if (typeof actionToRun === 'function') {
+                        actionToRun();
+                    }
+                });
+            }
+
+            if (cancelBtn) cancelBtn.addEventListener('click', closeConfirm);
+
+            if (modal) {
+                modal.addEventListener('click', function (e) {
+                    if (e.target === modal) closeConfirm();
+                });
+            }
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && modal && modal.classList.contains('is-open')) {
+                    closeConfirm();
+                }
             });
         })();
     </script>

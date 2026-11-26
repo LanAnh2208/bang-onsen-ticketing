@@ -4,6 +4,24 @@
 
 {% block extra_css %}
 <style>
+    .staff-page,
+    .staff-page * {
+        font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        box-sizing: border-box;
+    }
+
+    .staff-page,
+    .staff-page > div,
+    .kpi-grid,
+    .kpi-box,
+    .layout-split,
+    .col-form,
+    .col-table,
+    .card {
+        max-width: 100%;
+        min-width: 0;
+    }
+
     .kpi-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -12,7 +30,6 @@
     }
 
     .kpi-box {
-        min-width: 0;
         background: #FFFFFF;
         border: 1px solid var(--border-muted);
         border-radius: 8px;
@@ -37,33 +54,31 @@
         font-weight: 600;
         color: var(--accent-wood);
         margin-bottom: 6px;
+        line-height: 1.4;
     }
 
     .kpi-num {
         font-size: 20px;
         font-weight: 700;
         color: var(--text-main);
+        line-height: 1.3;
     }
 
     .layout-split {
         display: grid;
-        grid-template-columns: repeat(12, minmax(0, 1fr));
+        grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
         gap: 20px;
         align-items: start;
     }
 
-    .col-form {
-        grid-column: span 4;
-        min-width: 0;
-    }
-
+    .col-form,
     .col-table {
-        grid-column: span 8;
-        min-width: 0;
+        width: 100%;
     }
 
     .layout-split .card {
-        min-width: 0;
+        width: 100%;
+        overflow: hidden;
         transition: border-color 0.2s ease,
                     box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
     }
@@ -78,6 +93,7 @@
         font-weight: 700;
         color: var(--text-main);
         margin-bottom: 16px;
+        line-height: 1.4;
     }
 
     .field-group {
@@ -90,6 +106,7 @@
         font-weight: 600;
         margin-bottom: 6px;
         color: var(--text-main);
+        line-height: 1.4;
     }
 
     .filter-row {
@@ -102,13 +119,14 @@
 
     .form-control {
         width: 100%;
+        max-width: 100%;
         min-width: 0;
         height: 40px;
         padding: 0 12px;
         border: 1px solid var(--border-muted);
         border-radius: 6px;
-        font-family: 'Montserrat', sans-serif;
         font-size: 13px;
+        line-height: 1.4;
         color: var(--text-main);
         background-color: #FFFFFF;
         transition: border-color 0.18s ease, box-shadow 0.18s ease;
@@ -122,37 +140,43 @@
 
     .filter-row .form-control {
         width: auto;
-        flex: 1 1 180px;
-        min-width: 160px;
+        flex: 1 1 160px;
+        min-width: 140px;
     }
 
-    .table-responsive {
+    .table-fit {
         width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
+        overflow-x: hidden;
     }
 
     table.data-table {
         width: 100%;
-        min-width: 680px;
+        max-width: 100%;
+        table-layout: fixed;
         border-collapse: collapse;
-        font-size: 13px;
+        font-size: 12.5px;
+        line-height: 1.4;
     }
 
     table.data-table th {
         text-align: left;
-        padding: 11px 12px;
+        padding: 10px 8px;
         background-color: var(--bg-main);
         border-bottom: 1px solid var(--border-muted);
         font-weight: 600;
+        font-size: 12px;
         color: var(--text-main);
-        white-space: nowrap;
+        overflow-wrap: break-word;
+        word-break: normal;
     }
 
     table.data-table td {
-        padding: 11px 12px;
+        padding: 10px 8px;
         border-bottom: 1px solid #EAECEF;
         vertical-align: middle;
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     table.data-table tbody tr {
@@ -165,19 +189,23 @@
 
     .inline-form {
         display: flex;
+        flex-direction: column;
         gap: 6px;
-        align-items: center;
-        flex-wrap: nowrap;
+        align-items: stretch;
+        width: 100%;
     }
 
     .inline-select {
-        height: 34px;
-        max-width: 195px;
-        padding: 0 8px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        height: 32px;
+        padding: 0 6px;
         border: 1px solid var(--border-muted);
         border-radius: 6px;
-        font-family: 'Montserrat', sans-serif;
-        font-size: 12px;
+        font-size: 11.5px;
+        line-height: 1.3;
+        color: var(--text-main);
         background: #FFFFFF;
         transition: border-color 0.18s ease, box-shadow 0.18s ease;
     }
@@ -189,22 +217,26 @@
     }
 
     .btn-sm {
-        height: 34px;
-        padding: 0 11px;
-        font-size: 12px;
+        height: 32px;
+        padding: 0 8px;
+        font-size: 11.5px;
+        line-height: 1.2;
         border-radius: 6px;
         font-weight: 600;
         cursor: pointer;
         border: 1px solid var(--border-muted);
         background: #FFFFFF;
         color: var(--text-main);
-        font-family: 'Montserrat', sans-serif;
         white-space: nowrap;
-        flex-shrink: 0;
+        max-width: 100%;
         transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1),
                     border-color 0.16s ease,
                     color 0.16s ease,
                     background-color 0.16s ease;
+    }
+
+    .inline-form .btn-sm {
+        width: 100%;
     }
 
     .btn-sm:hover {
@@ -226,10 +258,34 @@
         color: #FFFFFF;
     }
 
+    .badge {
+        display: inline-block;
+        max-width: 100%;
+        white-space: normal;
+        text-align: center;
+        line-height: 1.3;
+    }
+
     .text-right { text-align: right; }
 
     @media (max-width: 1200px) {
-        .col-form, .col-table { grid-column: span 12; }
+        .layout-split {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .inline-form {
+            flex-direction: row;
+            align-items: center;
+        }
+
+        .inline-form .inline-select {
+            flex: 1 1 auto;
+        }
+
+        .inline-form .btn-sm {
+            width: auto;
+            flex-shrink: 0;
+        }
     }
 
     @media (max-width: 1024px) {
@@ -251,178 +307,174 @@
 {% endblock %}
 
 {% block content %}
-<div class="module-layout">
-    <aside class="module-sidebar" aria-label="Điều hướng nhanh Nhân sự & Phân quyền">
-        <div class="module-sidebar-title">Mục trên trang</div>
-        <ul class="module-anchor-list">
-            <li><a href="#sec-staff-kpi" class="module-anchor-link is-active">Thống kê tài khoản</a></li>
-            <li><a href="#sec-staff-create" class="module-anchor-link">Tạo tài khoản nhân viên</a></li>
-            <li><a href="#sec-staff-list" class="module-anchor-link">Danh sách tài khoản</a></li>
-        </ul>
-    </aside>
-
-    <div style="min-width: 0;">
-        <div class="page-header">
-            <div>
-                <h1 class="page-title">Nhân sự & Phân quyền</h1>
-                <p class="page-subtitle">Quản lý tài khoản nhân viên, vai trò vận hành và trạng thái truy cập hệ thống</p>
-            </div>
+<div class="staff-page">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Nhân sự & Phân quyền</h1>
+            <p class="page-subtitle">Quản lý tài khoản nhân viên, vai trò vận hành và trạng thái truy cập hệ thống</p>
         </div>
+    </div>
 
-        <div id="sec-staff-kpi" class="kpi-grid">
-            <div class="kpi-box">
-                <div class="kpi-label">TỔNG TÀI KHOẢN</div>
-                <div class="kpi-num">{{ stats.total_users }} tài khoản</div>
-            </div>
-            <div class="kpi-box">
-                <div class="kpi-label">ĐANG HOẠT ĐỘNG</div>
-                <div class="kpi-num">{{ stats.active_users }} tài khoản</div>
-            </div>
-            <div class="kpi-box">
-                <div class="kpi-label">QUẢN TRỊ VIÊN / ADMIN</div>
-                <div class="kpi-num">{{ stats.admin_users }} tài khoản</div>
-            </div>
+    <div id="sec-staff-kpi" class="kpi-grid">
+        <div class="kpi-box">
+            <div class="kpi-label">TỔNG TÀI KHOẢN</div>
+            <div class="kpi-num">{{ stats.total_users }} tài khoản</div>
         </div>
+        <div class="kpi-box">
+            <div class="kpi-label">ĐANG HOẠT ĐỘNG</div>
+            <div class="kpi-num">{{ stats.active_users }} tài khoản</div>
+        </div>
+        <div class="kpi-box">
+            <div class="kpi-label">QUẢN TRỊ VIÊN / ADMIN</div>
+            <div class="kpi-num">{{ stats.admin_users }} tài khoản</div>
+        </div>
+    </div>
 
-        <div class="layout-split">
-            <div id="sec-staff-create" class="card col-form">
-                <div class="section-title">Thêm tài khoản nhân viên</div>
-                <form method="post">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="create_staff">
+    <div class="layout-split">
+        <div id="sec-staff-create" class="card col-form">
+            <div class="section-title">Thêm tài khoản nhân viên</div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_staff">
 
-                    <div class="field-group">
-                        <label for="id_username">Tên đăng nhập (Username) *</label>
-                        <input type="text" id="id_username" name="username" value="{{ form_data.username|default:'' }}" required placeholder="vd: letan_03" class="form-control">
-                    </div>
-
-                    {% if has_full_name_field %}
-                    <div class="field-group">
-                        <label for="id_full_name">Họ và tên *</label>
-                        <input type="text" id="id_full_name" name="full_name" value="{{ form_data.full_name|default:'' }}" required placeholder="vd: Nguyễn Thị Lan" class="form-control">
-                    </div>
-                    {% endif %}
-
-                    <div class="field-group">
-                        <label for="id_email">Email</label>
-                        <input type="email" id="id_email" name="email" value="{{ form_data.email|default:'' }}" placeholder="vd: lan.nt@bangonsen.vn" class="form-control">
-                    </div>
-
-                    <div class="field-group">
-                        <label for="id_password">Mật khẩu khởi tạo *</label>
-                        <input type="password" id="id_password" name="password" required minlength="6" placeholder="Tối thiểu 6 ký tự" class="form-control">
-                    </div>
-
-                    {% if has_role_field and role_choices %}
-                    <div class="field-group">
-                        <label for="id_role">Vai trò hệ thống *</label>
-                        <select id="id_role" name="role" class="form-control">
-                            {% for code, label in role_choices %}
-                                <option value="{{ code }}" {% if form_data.role == code %}selected{% endif %}>{{ label }} ({{ code }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    {% endif %}
-
-                    <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
-                        Tạo tài khoản nhân viên
-                    </button>
-                </form>
-            </div>
-
-            <div id="sec-staff-list" class="card col-table">
-                <div class="section-title">Danh sách tài khoản nhân sự</div>
-
-                <form method="get" class="filter-row">
-                    <input type="text" name="q" value="{{ search_query }}" placeholder="Tìm theo tên, username hoặc email..." class="form-control">
-                    <select name="status" class="form-control">
-                        <option value="">Tất cả trạng thái</option>
-                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Đang hoạt động</option>
-                        <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Tạm khóa</option>
-                    </select>
-                    <button type="submit" class="btn-secondary" style="height: 40px; padding: 0 16px; font-size: 13px; white-space: nowrap;">Lọc</button>
-                </form>
-
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Tài khoản</th>
-                                <th>Họ tên / Email</th>
-                                <th>Trạng thái</th>
-                                <th>Phân quyền</th>
-                                <th class="text-right">Trạng thái tài khoản</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for u in users %}
-                            <tr>
-                                <td>
-                                    <div style="font-weight: 700; color: var(--accent-wood);">{{ u.username }}</div>
-                                    {% if u.account_id %}
-                                        <div style="font-size: 11px; color: #888;">{{ u.account_id }}</div>
-                                    {% endif %}
-                                    {% if has_role_field %}
-                                        <div style="font-size: 11px; color: #666;">Vai trò hiện tại: {{ u.role }}</div>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if has_full_name_field and u.full_name %}
-                                        <div style="font-weight: 600;">{{ u.full_name }}</div>
-                                    {% endif %}
-                                    <div style="font-size: 12px; color: #666;">{{ u.email|default:"Chưa cập nhật email" }}</div>
-                                </td>
-                                <td>
-                                    {% if u.is_active %}
-                                        <span class="badge badge-success">Hoạt động</span>
-                                    {% else %}
-                                        <span class="badge badge-danger">Tạm khóa</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <form method="post" class="inline-form">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="action" value="update_permission">
-                                        <input type="hidden" name="user_pk" value="{{ u.pk }}">
-
-                                        {% if has_role_field and role_choices %}
-                                            <select name="role" class="inline-select">
-                                                {% for code, label in role_choices %}
-                                                    <option value="{{ code }}" {% if u.role == code %}selected{% endif %}>{{ label }} ({{ code }})</option>
-                                                {% endfor %}
-                                            </select>
-                                        {% else %}
-                                            <select name="perm_level" class="inline-select">
-                                                <option value="admin" {% if u.is_superuser %}selected{% endif %}>Admin (Superuser)</option>
-                                                <option value="staff" {% if not u.is_superuser and u.is_staff %}selected{% endif %}>Nhân viên (Staff)</option>
-                                                <option value="user" {% if not u.is_staff and not u.is_superuser %}selected{% endif %}>Tài khoản thường</option>
-                                            </select>
-                                        {% endif %}
-
-                                        <button type="submit" class="btn-sm btn-sm-cta">Lưu quyền</button>
-                                    </form>
-                                </td>
-                                <td class="text-right">
-                                    <form method="post" style="display: inline;">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="action" value="toggle_active">
-                                        <input type="hidden" name="user_pk" value="{{ u.pk }}">
-                                        <button type="submit" class="btn-sm">
-                                            {% if u.is_active %}Khóa tài khoản{% else %}Mở khóa{% endif %}
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="5" style="text-align: center; color: #777; padding: 24px;">
-                                    Không tìm thấy tài khoản nào phù hợp.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="field-group">
+                    <label for="id_username">Tên đăng nhập (Username) *</label>
+                    <input type="text" id="id_username" name="username" value="{{ form_data.username|default:'' }}" required placeholder="vd: letan_03" class="form-control">
                 </div>
+
+                {% if has_full_name_field %}
+                <div class="field-group">
+                    <label for="id_full_name">Họ và tên *</label>
+                    <input type="text" id="id_full_name" name="full_name" value="{{ form_data.full_name|default:'' }}" required placeholder="vd: Nguyễn Thị Lan" class="form-control">
+                </div>
+                {% endif %}
+
+                <div class="field-group">
+                    <label for="id_email">Email</label>
+                    <input type="email" id="id_email" name="email" value="{{ form_data.email|default:'' }}" placeholder="vd: lan.nt@bangonsen.vn" class="form-control">
+                </div>
+
+                <div class="field-group">
+                    <label for="id_password">Mật khẩu khởi tạo *</label>
+                    <input type="password" id="id_password" name="password" required minlength="6" placeholder="Tối thiểu 6 ký tự" class="form-control">
+                </div>
+
+                {% if has_role_field and role_choices %}
+                <div class="field-group">
+                    <label for="id_role">Vai trò hệ thống *</label>
+                    <select id="id_role" name="role" class="form-control">
+                        {% for code, label in role_choices %}
+                            <option value="{{ code }}" {% if form_data.role == code %}selected{% endif %}>{{ label }} ({{ code }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+                    Tạo tài khoản nhân viên
+                </button>
+            </form>
+        </div>
+
+        <div id="sec-staff-list" class="card col-table">
+            <div class="section-title">Danh sách tài khoản nhân sự</div>
+
+            <form method="get" class="filter-row">
+                <input type="text" name="q" value="{{ search_query }}" placeholder="Tìm theo tên, username hoặc email..." class="form-control">
+                <select name="status" class="form-control">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Đang hoạt động</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Tạm khóa</option>
+                </select>
+                <button type="submit" class="btn-secondary" style="height: 40px; padding: 0 16px; font-size: 13px; white-space: nowrap;">Lọc</button>
+            </form>
+
+            <div class="table-fit">
+                <table class="data-table">
+                    <colgroup>
+                        <col style="width: 17%;">
+                        <col style="width: 24%;">
+                        <col style="width: 13%;">
+                        <col style="width: 29%;">
+                        <col style="width: 17%;">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>Tài khoản</th>
+                            <th>Họ tên / Email</th>
+                            <th>Trạng thái</th>
+                            <th>Phân quyền</th>
+                            <th class="text-right">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr>
+                            <td>
+                                <div style="font-weight: 700; color: var(--accent-wood);">{{ u.username }}</div>
+                                {% if u.account_id %}
+                                    <div style="font-size: 11px; color: #888;">{{ u.account_id }}</div>
+                                {% endif %}
+                                {% if has_role_field %}
+                                    <div style="font-size: 11px; color: #666;">Vai trò: {{ u.role }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if has_full_name_field and u.full_name %}
+                                    <div style="font-weight: 600;">{{ u.full_name }}</div>
+                                {% endif %}
+                                <div style="font-size: 12px; color: #666;">{{ u.email|default:"Chưa cập nhật email" }}</div>
+                            </td>
+                            <td>
+                                {% if u.is_active %}
+                                    <span class="badge badge-success">Hoạt động</span>
+                                {% else %}
+                                    <span class="badge badge-danger">Tạm khóa</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form method="post" class="inline-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="update_permission">
+                                    <input type="hidden" name="user_pk" value="{{ u.pk }}">
+
+                                    {% if has_role_field and role_choices %}
+                                        <select name="role" class="inline-select">
+                                            {% for code, label in role_choices %}
+                                                <option value="{{ code }}" {% if u.role == code %}selected{% endif %}>{{ label }} ({{ code }})</option>
+                                            {% endfor %}
+                                        </select>
+                                    {% else %}
+                                        <select name="perm_level" class="inline-select">
+                                            <option value="admin" {% if u.is_superuser %}selected{% endif %}>Admin (Superuser)</option>
+                                            <option value="staff" {% if not u.is_superuser and u.is_staff %}selected{% endif %}>Nhân viên (Staff)</option>
+                                            <option value="user" {% if not u.is_staff and not u.is_superuser %}selected{% endif %}>Tài khoản thường</option>
+                                        </select>
+                                    {% endif %}
+
+                                    <button type="submit" class="btn-sm btn-sm-cta">Lưu quyền</button>
+                                </form>
+                            </td>
+                            <td class="text-right">
+                                <form method="post" style="display: inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="toggle_active">
+                                    <input type="hidden" name="user_pk" value="{{ u.pk }}">
+                                    <button type="submit" class="btn-sm">
+                                        {% if u.is_active %}Khóa{% else %}Mở khóa{% endif %}
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #777; padding: 24px;">
+                                Không tìm thấy tài khoản nào phù hợp.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

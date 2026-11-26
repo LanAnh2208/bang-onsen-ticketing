@@ -373,6 +373,7 @@
                                         data-daily-capacity="{{ srv.daily_capacity }}"
                                         data-description="{{ srv.description }}"
                                         data-status="{{ srv.service_status }}"
+                                        onclick="window.openOnsenEditModal && window.openOnsenEditModal(this)"
                                     >
                                         Sửa
                                     </button>
@@ -670,16 +671,12 @@
         </form>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
     (function () {
         function getModalElements() {
             return {
                 modal: document.getElementById('editServiceModal'),
-                closeBtn: document.getElementById('closeEditServiceModal'),
-                cancelBtn: document.getElementById('cancelEditServiceModal'),
                 pkInput: document.getElementById('edit_service_pk'),
                 idPkInput: document.getElementById('edit_service_id_pk'),
                 idInput: document.getElementById('edit_service_id'),
@@ -691,9 +688,9 @@
             };
         }
 
-        function openEditModal(btn) {
+        window.openOnsenEditModal = function (btn) {
             const el = getModalElements();
-            if (!el.modal) return;
+            if (!el.modal || !btn) return;
 
             const pkVal = btn.getAttribute('data-pk') || '';
             if (el.pkInput) el.pkInput.value = pkVal;
@@ -707,7 +704,7 @@
 
             el.modal.classList.add('is-open');
             el.modal.setAttribute('aria-hidden', 'false');
-        }
+        };
 
         function closeEditModal() {
             const el = getModalElements();
@@ -720,13 +717,6 @@
             window.__bangOnsenEditModalBound = true;
 
             document.addEventListener('click', function (e) {
-                const editBtn = e.target.closest('.open-edit-service-btn');
-                if (editBtn) {
-                    e.preventDefault();
-                    openEditModal(editBtn);
-                    return;
-                }
-
                 if (e.target.closest('#closeEditServiceModal') || e.target.closest('#cancelEditServiceModal')) {
                     e.preventDefault();
                     closeEditModal();

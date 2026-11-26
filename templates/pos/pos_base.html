@@ -9,32 +9,29 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/pos.css' %}?v=4">
+    <link rel="stylesheet" href="{% static 'css/pos.css' %}?v=5">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <header class="pos-header">
-        <div class="pos-container pos-header-inner">
-            <a href="{% url 'pos:counter_sale' %}" class="pos-brand">
-                <img src="{% static 'images/logo.png' %}" alt="Logo Bang Onsen Spa &amp; Resort" class="pos-header-logo">
-                <span class="pos-badge-brown">POS Lễ tân</span>
+        <a href="{% url 'pos:counter_sale' %}" class="pos-brand">
+            <img src="{% static 'images/logo/logo-bang-onsen.png' %}" alt="Logo Bang Onsen Spa &amp; Resort" class="pos-header-logo">
+        </a>
+
+        <nav class="pos-nav" aria-label="Điều hướng phân hệ nhân viên">
+            <a href="{% url 'pos:counter_sale' %}" class="pos-nav-link {% if request.resolver_match.url_name == 'counter_sale' %}active{% endif %}">
+                Bán vé tại quầy (POS)
             </a>
+            <a href="{% url 'pos:shift_reconciliation' %}" class="pos-nav-link {% if request.resolver_match.url_name == 'shift_reconciliation' %}active{% endif %}">
+                Kết ca &amp; Đối soát
+            </a>
+        </nav>
 
-            <nav class="pos-nav" aria-label="Điều hướng phân hệ nhân viên">
-                <a href="{% url 'pos:counter_sale' %}" class="pos-nav-link {% if request.resolver_match.url_name == 'counter_sale' %}active{% endif %}">
-                    Bán vé tại quầy (POS)
-                </a>
-                <a href="{% url 'pos:shift_reconciliation' %}" class="pos-nav-link {% if request.resolver_match.url_name == 'shift_reconciliation' %}active{% endif %}">
-                    Kết ca &amp; Đối soát
-                </a>
-            </nav>
-
-            <div class="pos-user-bar">
-                <span class="pos-staff-name">
-                    {{ request.user.full_name|default:request.user.username }}
-                </span>
-                <a href="{% url 'pos:logout' %}" class="pos-logout-btn">Đăng xuất</a>
-            </div>
+        <div class="pos-user-bar">
+            <span class="pos-staff-name">
+                Xin chào, <strong>{{ request.user.full_name|default:request.user.username }}</strong>
+            </span>
+            <a href="{% url 'pos:logout' %}" class="pos-logout-btn">Đăng xuất</a>
         </div>
     </header>
 
@@ -54,7 +51,7 @@
         </div>
     </main>
 
-    <script src="{% static 'js/pos.js' %}?v=3"></script>
+    <script src="{% static 'js/pos.js' %}?v=4"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -17,6 +17,10 @@
         <ul>
           {% for s in services %}
             <li><a href="{% url 'booking:onsen_detail' s.id %}">Gói dịch vụ {{ s.name }}</a></li>
+          {% empty %}
+            <li><a href="{% url 'booking:onsen_detail' 1 %}">Gói dịch vụ Onsen 1</a></li>
+            <li><a href="{% url 'booking:onsen_detail' 2 %}">Gói dịch vụ Onsen 2</a></li>
+            <li><a href="{% url 'booking:onsen_detail' 3 %}">Gói dịch vụ Onsen 3</a></li>
           {% endfor %}
           <li><a href="{% url 'booking:info_page' 'rooms' %}">Phòng nghỉ chuẩn Nhật</a></li>
           <li><a href="{% url 'booking:info_page' 'spa' %}">Spa & Trị liệu khoáng nóng</a></li>
@@ -27,8 +31,8 @@
       <div class="ft-col">
         <h4>Hỗ trợ khách hàng</h4>
         <ul>
-          <li><a href="#flt">Đặt vé Onsen trực tuyến</a></li>
-          <li><a href="{% url 'booking:lookup' %}">Tra cứu / Đổi / Hủy vé</a></li>
+          <li><a href="{% url 'booking:book_form' %}">Đặt vé Onsen trực tuyến</a></li>
+          <li><a href="{% url 'booking:lookup_ticket' %}">Tra cứu / Đổi / Hủy vé</a></li>
           <li><a href="{% url 'booking:info_page' 'about' %}">Giới thiệu Bang Onsen</a></li>
           <li><a href="{% url 'booking:info_page' 'contact' %}">Liên hệ & Bản đồ chỉ đường</a></li>
         </ul>
@@ -37,7 +41,7 @@
 
     <div class="ft-bot">
       <span>© 2026 Bang Onsen Spa & Resort – Tập đoàn Trường Thịnh. Hệ thống đặt vé trực tuyến.</span>
-      <a class="staff-link" href="/login/">Cổng nội bộ / Đăng nhập nhân viên</a>
+      <a class="staff-link" href="/pos/login/">Cổng nội bộ / Đăng nhập nhân viên</a>
     </div>
   </div>
 </footer>

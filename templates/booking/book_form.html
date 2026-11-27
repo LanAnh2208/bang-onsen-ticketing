@@ -1,0 +1,1607 @@
+{% extends 'booking/base_booking.html' %}
+{% load static %}
+
+{% block extra_css %}
+  {{ block.super }}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    body, button, input, select, textarea,
+    .ck-viewport, .ck-viewport * {
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    }
+
+    /* Thanh chuyển 2 tab đồng bộ trang đổi vé */
+    .bk-seg-tabs {
+      display: inline-flex;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      gap: 4px;
+    }
+    .bk-seg-btn {
+      border: none;
+      padding: 8px 16px;
+      border-radius: 9px;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .15s ease;
+      background: transparent;
+      color: #475569;
+    }
+    .bk-seg-btn.is-active {
+      background: #ffffff;
+      color: var(--red);
+      box-shadow: 0 1px 4px rgba(15, 23, 42, .08);
+    }
+
+    .bk-btn-cancel-red {
+      border: 1.5px solid var(--red) !important;
+      color: var(--red) !important;
+      background: #ffffff !important;
+      font-weight: 600;
+    }
+    .bk-btn-cancel-red:hover {
+      background: #fff5f5 !important;
+    }
+
+    /* Lưới nhập thông tin khách hàng gọn trong 1 màn hình */
+    .bk-info-grid-top {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .bk-info-grid-bot {
+      display: grid;
+      grid-template-columns: 1fr 1.25fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .ck-inp.cccd-qt-valid {
+      border-color: var(--primary) !important;
+      background: #f4f7ff !important;
+    }
+
+    /* Khung chọn loại vé áp ưu đãi cho người đại diện (đồng bộ trang đổi vé) */
+    .bk-rep-service-box {
+      background: #eefaf1;
+      border: 1px solid #bce3c6;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-top: 12px;
+    }
+    .bk-rep-service-box label {
+      display: block;
+      margin: 0;
+      font-size: 13px;
+      font-weight: 700;
+      color: #1f2937;
+    }
+    .bk-rep-service-box select {
+      margin-top: 6px;
+      width: 100%;
+      background: #ffffff;
+      font-weight: 500;
+      color: #0f172a;
+    }
+
+    /* Khu vực CCCD người đi cùng (đồng bộ trang đổi vé) */
+    .bk-companion-divider {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px dashed #cbd5e1;
+    }
+    .bk-companion-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .bk-companion-row {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr auto;
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .bk-del-cccd-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      border: 1px solid #fca5a5;
+      background: #fff5f5;
+      color: var(--red);
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: .15s;
+    }
+    .bk-del-cccd-btn:hover {
+      background: #fee2e2;
+    }
+
+    /* Voucher gọn trong thẻ hóa đơn bên phải */
+    .bk-voucher-row {
+      display: flex;
+      gap: 6px;
+      margin: 6px 0 4px;
+    }
+    .bk-voucher-row .ck-inp {
+      flex: 1;
+      padding: 7px 10px;
+      font-size: 12.5px;
+      text-transform: uppercase;
+    }
+    .bk-voucher-btn {
+      padding: 0 12px;
+      border-radius: 9px;
+      border: 1.5px solid #0f172a;
+      background: #0f172a;
+      color: #ffffff;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+    .bk-voucher-btn:hover {
+      background: #1e293b;
+    }
+    .bk-voucher-btn.is-applied {
+      border-color: var(--red);
+      background: #ffffff;
+      color: var(--red);
+    }
+    .bk-voucher-btn.is-applied:hover {
+      background: #fff5f5;
+    }
+    .bk-voucher-msg {
+      font-size: 11.5px;
+      min-height: 15px;
+      margin-bottom: 4px;
+    }
+    .bk-voucher-msg.ok { color: var(--ok); font-weight: 600; }
+    .bk-voucher-msg.er { color: var(--red); font-weight: 600; }
+
+    /* Định dạng chi tiết từng dòng vé bên hóa đơn phải */
+    .ck-inv-subrow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      color: #475569;
+      padding: 2px 0;
+    }
+    .ck-inv-subrow span:last-child {
+      font-weight: 600;
+      color: #1e293b;
+      white-space: nowrap;
+    }
+    .ck-inv-subrow.is-qt span:first-child {
+      color: var(--ok);
+    }
+    .ck-inv-subrow.is-qt span:last-child {
+      color: var(--ok);
+      font-weight: 700;
+    }
+
+    /* Màn hình trạng thái thanh toán VNPAY */
+    .bk-pay-status-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 28px 24px;
+      text-align: center;
+      box-shadow: 0 6px 24px rgba(15, 23, 42, .05);
+    }
+    .bk-spinner {
+      width: 52px;
+      height: 52px;
+      border: 4px solid #fee2e2;
+      border-top-color: var(--red);
+      border-radius: 50%;
+      margin: 0 auto 14px;
+      animation: bkSpin .85s linear infinite;
+    }
+    @keyframes bkSpin {
+      to { transform: rotate(360deg); }
+    }
+    .bk-status-icon-ok {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #dcfce7;
+      color: var(--ok);
+      font-size: 28px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 14px;
+    }
+    .bk-status-icon-er {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #fee2e2;
+      color: var(--red);
+      font-size: 28px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 14px;
+    }
+    .bk-pay-meta-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin: 16px auto;
+      max-width: 480px;
+      text-align: left;
+      font-size: 13.5px;
+    }
+    .bk-pay-meta-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      gap: 10px;
+    }
+
+    @media (max-width: 900px) {
+      .bk-info-grid-top,
+      .bk-info-grid-bot,
+      .bk-companion-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="ck-viewport">
+  <!-- THANH TIÊU ĐỀ TRÊN CÙNG -->
+  <div class="ck-top-bar">
+    <div class="w w-wide ck-top-inner">
+      <a href="{% url 'booking:home' %}" class="ck-back">← Quay lại trang chủ</a>
+
+      <div class="row" style="gap:8px;justify-content:center">
+        <span class="bd">Đặt vé trực tuyến</span>
+        <strong style="font-size:15px">Đặt vé tắm khoáng nóng Onsen</strong>
+      </div>
+
+      <div class="ck-hold-note">⏱ Giữ chỗ vé <b>15 phút</b> khi thanh toán</div>
+    </div>
+  </div>
+
+  <!-- KHUNG 2 CỘT CỐ ĐỊNH TRÊN 1 MÀN HÌNH -->
+  <form method="post" action="{% url 'booking:book_form' %}" id="bookingForm" class="w w-wide ck-workspace" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="visit_date" id="hiddenVisitDate" value="{{ visit_date_iso }}">
+    <input type="hidden" name="qt_cccd_list" id="qtCccdListInput" value="">
+
+    <div class="ck-grid-fixed">
+      <!-- ==================== CỘT TRÁI ==================== -->
+      <div class="ck-left-col">
+        <div id="ajaxErrorBanner" class="al er" role="alert"
+             style="{% if not error_msg %}display:none;{% endif %}margin:0 0 8px;padding:7px 12px;font-size:12.5px">
+          ⚠ {{ error_msg }}
+        </div>
+
+        <!-- THẺ NHẬP ĐẶT VÉ 2 TAB -->
+        <section class="ck-step-card is-active" id="bk-editor-card">
+          <!-- THANH CHUYỂN 2 TAB & CHỌN NGÀY -->
+          <div class="ck-pane-head" style="gap:10px;flex-wrap:wrap">
+            <div class="bk-seg-tabs">
+              <button type="button" id="bk-tab-btn-tickets" class="bk-seg-btn is-active"
+                      onclick="switchBookingTab('tickets')">
+                1. Chọn ngày & vé
+              </button>
+              <button type="button" id="bk-tab-btn-info" class="bk-seg-btn"
+                      onclick="switchBookingTab('info')">
+                2. Điền thông tin
+              </button>
+            </div>
+
+            <div class="ck-date-picker-box">
+              <label for="visitDateInput" style="margin:0;font-size:12.5px">Ngày đi:</label>
+              <input type="date" id="visitDateInput" min="{{ today_iso }}" value="{{ visit_date_iso }}" required>
+              <span class="bd" id="dayLabelText">{{ day_label }}</span>
+            </div>
+          </div>
+
+          <div class="ck-pane-body" style="display:flex;flex-direction:column;justify-content:space-between;gap:10px">
+            <!-- ==================== BƯỚC 1: CHỌN NGÀY & GÓI VÉ ==================== -->
+            <div id="bk-tab-pane-tickets">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;gap:8px;flex-wrap:wrap">
+                <div>
+                  <span class="sec-sub" style="margin-bottom:2px">BƯỚC 1 / 2</span>
+                  <h2 style="margin:0;font-size:19px">Chọn ngày sử dụng & gói dịch vụ Onsen</h2>
+                </div>
+                <span class="sm" style="font-style:normal">Ưu đãi CCCD Quảng Trị (044/045) sẽ tự động áp ở Bước 2</span>
+              </div>
+
+              <div class="ck-compact-grid" id="packagesContainer">
+                {% for pkg in service_packages %}
+                  <article class="ck-mini-card {% if pkg.init_qty > 0 %}is-picked{% endif %} {% if not pkg.is_active or pkg.available <= 0 %}is-disabled{% endif %}"
+                           data-sid="{{ pkg.id }}">
+                    <input type="hidden" name="adult_qty_{{ pkg.id }}" id="adult_qty_{{ pkg.id }}" value="{{ pkg.init_qty }}">
+                    <input type="hidden" name="child_qty_{{ pkg.id }}" id="child_qty_{{ pkg.id }}" value="0">
+                    <input type="hidden" name="infant_qty_{{ pkg.id }}" id="infant_qty_{{ pkg.id }}" value="0">
+                    <input type="hidden" name="qt_adult_qty_{{ pkg.id }}" id="qt_adult_qty_{{ pkg.id }}" value="0">
+
+                    <div class="ck-mini-head">
+                      <div class="row" style="gap:6px">
+                        <span class="bd">{{ pkg.name }}</span>
+                        {% if not pkg.is_active %}
+                          <span class="bd no" id="avail_badge_{{ pkg.id }}">Tạm ngừng</span>
+                        {% elif pkg.available <= 0 %}
+                          <span class="bd no" id="avail_badge_{{ pkg.id }}">Hết vé</span>
+                        {% else %}
+                          <span class="bd ok" id="avail_badge_{{ pkg.id }}">Còn {{ pkg.available }} vé</span>
+                        {% endif %}
+                      </div>
+                      <span class="ck-auto-total" id="pkg_total_badge_{{ pkg.id }}">
+                        Tổng: <b>{{ pkg.init_qty }}</b> vé
+                      </span>
+                    </div>
+
+                    {% if pkg.is_active and pkg.available > 0 %}
+                      <div class="ck-mini-rows">
+                        <div class="ck-mini-row">
+                          <div class="ck-mini-lbl">
+                            <strong>Trên 1,4m</strong>
+                            <span class="ck-mini-price" id="lbl_adult_{{ pkg.id }}">{{ pkg.price_adult_fmt }}</span>
+                            <small style="display:block;font-size:11px;color:var(--ok);font-style:normal">
+                              CCCD Quảng Trị: <span id="lbl_qt_{{ pkg.id }}">{{ pkg.price_qt_fmt }}</span>
+                            </small>
+                          </div>
+                          <div class="st">
+                            <button type="button" class="step-btn" data-action="dec" data-type="adult" data-sid="{{ pkg.id }}">−</button>
+                            <b id="disp_adult_{{ pkg.id }}">{{ pkg.init_qty }}</b>
+                            <button type="button" class="step-btn" data-action="inc" data-type="adult" data-sid="{{ pkg.id }}">+</button>
+                          </div>
+                        </div>
+
+                        <div class="ck-mini-row">
+                          <div class="ck-mini-lbl">
+                            <strong>Từ 1m – 1,4m</strong>
+                            <span class="ck-mini-price" id="lbl_child_{{ pkg.id }}">{{ pkg.price_child_fmt }}</span>
+                          </div>
+                          <div class="st">
+                            <button type="button" class="step-btn" data-action="dec" data-type="child" data-sid="{{ pkg.id }}">−</button>
+                            <b id="disp_child_{{ pkg.id }}">0</b>
+                            <button type="button" class="step-btn" data-action="inc" data-type="child" data-sid="{{ pkg.id }}">+</button>
+                          </div>
+                        </div>
+
+                        <div class="ck-mini-row">
+                          <div class="ck-mini-lbl">
+                            <strong>Dưới 1m</strong>
+                            <span class="ck-mini-free">Miễn phí vé vào</span>
+                          </div>
+                          <div class="st">
+                            <button type="button" class="step-btn" data-action="dec" data-type="infant" data-sid="{{ pkg.id }}">−</button>
+                            <b id="disp_infant_{{ pkg.id }}">0</b>
+                            <button type="button" class="step-btn" data-action="inc" data-type="infant" data-sid="{{ pkg.id }}">+</button>
+                          </div>
+                        </div>
+                      </div>
+                    {% else %}
+                      <div class="ck-mini-closed">
+                        Gói dịch vụ này hiện không khả dụng trong ngày đã chọn.
+                      </div>
+                    {% endif %}
+                  </article>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- ==================== BƯỚC 2: ĐIỀN THÔNG TIN KHÁCH HÀNG ==================== -->
+            <div id="bk-tab-pane-info" hidden style="display:none">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;gap:8px;flex-wrap:wrap">
+                <div>
+                  <span class="sec-sub" style="margin-bottom:2px">BƯỚC 2 / 2</span>
+                  <h2 style="margin:0;font-size:19px">Thông tin khách hàng & Ưu đãi CCCD Quảng Trị</h2>
+                </div>
+                <span class="sm" style="font-style:normal">Vé điện tử QR sẽ gửi qua Email ngay sau khi thanh toán</span>
+              </div>
+
+              <!-- HÀNG 1: HỌ TÊN | SỐ ĐIỆN THOẠI | SỐ CCCD (12 SỐ) -->
+              <div class="bk-info-grid-top">
+                <label style="margin:0;font-size:13px">Họ và tên người đặt <span style="color:var(--red)">*</span>
+                  <input type="text" class="ck-inp" id="fullNameInput" name="full_name"
+                         value="{{ form_data.full_name }}" placeholder="Nguyễn Văn An" required>
+                </label>
+
+                <label style="margin:0;font-size:13px">Số điện thoại (10 số) <span style="color:var(--red)">*</span>
+                  <input type="tel" class="ck-inp" id="phoneInput" name="phone" maxlength="10" inputmode="numeric"
+                         value="{{ form_data.phone }}" placeholder="0905123456"
+                         oninput="this.value=this.value.replace(/\D/g,'')" required>
+                </label>
+
+                <label style="margin:0;font-size:13px">Số CCCD (12 số)
+                  <input type="text" class="ck-inp" id="cccdInput" name="cccd" maxlength="12" inputmode="numeric"
+                         autocomplete="off" value="{{ form_data.cccd }}" placeholder="045305004283">
+                  <small id="repCccdHint" class="sm" style="font-style:normal;display:none;margin-top:3px;line-height:1.35"></small>
+                </label>
+              </div>
+
+              <!-- HÀNG 2: EMAIL NHẬN MÃ VÉ QR | GHI CHÚ -->
+              <div class="bk-info-grid-bot">
+                <label style="margin:0;font-size:13px">Email nhận mã vé QR <span style="color:var(--red)">*</span>
+                  <input type="email" class="ck-inp" id="emailInput" name="email"
+                         value="{{ form_data.email }}" placeholder="khachhang@gmail.com" required>
+                </label>
+
+                <label style="margin:0;font-size:13px">Ghi chú thêm (không bắt buộc)
+                  <input type="text" class="ck-inp" id="noteInput" name="note"
+                         value="{{ form_data.note }}" placeholder="Yêu cầu hỗ trợ xe điện, giờ đến dự kiến...">
+                </label>
+              </div>
+
+              <!-- KHUNG CHỌN LOẠI VÉ ÁP ƯU ĐÃI CHO NGƯỜI ĐẠI DIỆN (ĐỒNG BỘ TRANG ĐỔI VÉ) -->
+              <div id="bk-rep-service-box" class="bk-rep-service-box" style="display:none">
+                <label for="bk-rep-cccd-service">
+                  Áp ưu đãi CCCD người đại diện cho vé:
+                  <select class="ck-inp" name="rep_cccd_service_id" id="bk-rep-cccd-service"
+                          onchange="handleRepServiceChange(this.value)">
+                  </select>
+                </label>
+              </div>
+
+              <!-- KHU VỰC THÊM CCCD ĐI CÙNG KÈM LOẠI VÉ ÁP ƯU ĐÃI (ĐỒNG BỘ TRANG ĐỔI VÉ) -->
+              <div id="extraCccdSection" class="bk-companion-divider" style="display:none">
+                <div class="bk-companion-head">
+                  <span class="sm" style="color:#475569">
+                    Mỗi CCCD Quảng Trị (đầu số 044/045) chỉ áp dụng ưu đãi cho <b>01 vé</b>.
+                  </span>
+                  <button type="button" class="btn" id="btnAddCompanionCccd">
+                    + Thêm CCCD ưu đãi khác
+                  </button>
+                </div>
+                <div id="extraCccdList"></div>
+              </div>
+
+              <!-- CHECKBOX XÁC NHẬN CCCD -->
+              <div id="cccdConfirmBox" class="ck-cccd-confirm-box" style="margin-top:10px;padding:8px 12px;display:none">
+                <label class="ck-agree ck-agree-box" style="margin:0;font-size:12.5px">
+                  <input type="checkbox" id="cccdConfirmedCheckbox" name="cccd_confirmed" value="1">
+                  <span>
+                    Tôi xác nhận thông tin số CCCD đã nhập là hoàn toàn chính xác và sẵn sàng xuất trình bản gốc CCCD (hoặc định danh điện tử VNeID) để nhân viên Bang Onsen kiểm tra, đối chiếu khi check-in. <span style="color:var(--red)">*</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- CHÂN THẺ -->
+          <div class="ck-pane-foot">
+            <a href="{% url 'booking:home' %}" class="btn bk-btn-cancel-red">
+              Hủy bỏ & Quay lại
+            </a>
+            <button type="button" class="btn p" id="bk-foot-switch-btn" onclick="handleBookingFooterSwitch()">
+              Tiếp tục điền thông tin →
+            </button>
+          </div>
+        </section>
+
+        <!-- ==================== MÀN HÌNH TRẠNG THÁI THANH TOÁN VNPAY ==================== -->
+        <section id="paymentStatusSection" class="bk-pay-status-card" hidden style="display:none">
+          <!-- 1. CHỜ THANH TOÁN -->
+          <div id="statePendingCard" style="display:none">
+            <div class="bk-spinner"></div>
+            <span class="bd" style="background:#fef3c7;color:#92400e;border-color:#fde68a">CHỜ THANH TOÁN VNPAY</span>
+            <h2 style="margin:10px 0 6px;font-size:21px">Đang chờ hoàn tất thanh toán trên cổng VNPAY</h2>
+            <p class="sm" style="font-style:normal;max-width:520px;margin:0 auto;line-height:1.5">
+              Cổng thanh toán VNPAY đã được mở ở <b>tab trình duyệt mới</b>. Vui lòng hoàn tất giao dịch ở tab đó — trang này sẽ tự động cập nhật ngay khi có kết quả.
+            </p>
+
+            <div class="bk-pay-meta-box">
+              <div class="bk-pay-meta-row">
+                <span style="color:#64748b">Mã đơn hàng:</span>
+                <b id="pendOrderCode">#ORD-XXXXXX</b>
+              </div>
+              <div class="bk-pay-meta-row">
+                <span style="color:#64748b">Tổng tiền thanh toán:</span>
+                <b id="pendAmountFmt" style="color:var(--red)">0 VNĐ</b>
+              </div>
+              <div class="bk-pay-meta-row">
+                <span style="color:#64748b">Thời gian giữ giao dịch:</span>
+                <b id="pendCountdown" style="color:#0f172a">15:00</b>
+              </div>
+            </div>
+
+            <div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px">
+              <button type="button" id="btnReopenVnpay" class="btn p">
+                Mở lại trang thanh toán VNPAY ↗
+              </button>
+              <button type="button" id="btnCancelPending" class="btn bk-btn-cancel-red">
+                Hủy chờ & Chỉnh sửa lại
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. THANH TOÁN THÀNH CÔNG -->
+          <div id="stateSuccessCard" style="display:none">
+            <div class="bk-status-icon-ok">✓</div>
+            <span class="bd ok">THANH TOÁN THÀNH CÔNG</span>
+            <h2 style="margin:10px 0 6px;font-size:21px;color:#166534">Đặt vé & Thanh toán hoàn tất!</h2>
+            <p class="sm" id="succSubtitle" style="font-style:normal;max-width:520px;margin:0 auto;line-height:1.5">
+              Đơn đặt vé đã được xác nhận thanh toán. Vé điện tử kèm mã QR check-in đã được cấp và gửi tới email của quý khách.
+            </p>
+
+            <div class="bk-pay-meta-box">
+              <div class="bk-pay-meta-row">
+                <span style="color:#64748b">Mã vé điện tử / QR:</span>
+                <b id="succQrCode" style="color:var(--ok)">BOS-ORD-XXXXXX</b>
+              </div>
+              <div class="bk-pay-meta-row">
+                <span style="color:#64748b">Ngày sử dụng:</span>
+                <b id="succVisitDate">--/--/----</b>
+              </div>
+              <div class="bk-pay-meta-row">
+                <span style="color:#64748b">Tổng thanh toán:</span>
+                <b id="succTotalAmount">0 VNĐ</b>
+              </div>
+            </div>
+
+            <div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px">
+              <a href="{% url 'booking:lookup_ticket' %}" id="btnViewTicketQr" class="btn p">
+                Xem chi tiết vé & Mã QR →
+              </a>
+            </div>
+          </div>
+
+          <!-- 3. THANH TOÁN THẤT BẠI / HẾT HẠN -->
+          <div id="stateFailedCard" style="display:none">
+            <div class="bk-status-icon-er">✕</div>
+            <span class="bd no" id="failBadgeText">THANH TOÁN THẤT BẠI</span>
+            <h2 id="failHeadingText" style="margin:10px 0 6px;font-size:21px;color:#991b1b">Thanh toán qua VNPAY chưa hoàn tất</h2>
+            <p id="failSubtext" class="sm" style="font-style:normal;max-width:520px;margin:0 auto;line-height:1.5">
+              Giao dịch thanh toán chưa hoàn tất hoặc đã bị hủy trên cổng VNPAY. Quý khách có thể thử thanh toán lại hoặc quay về chỉnh sửa đơn đặt vé.
+            </p>
+
+            <div class="bk-pay-meta-box">
+              <div class="bk-pay-meta-row">
+                <span style="color:#64748b">Mã đơn hàng:</span>
+                <b id="failOrderCode">#ORD-XXXXXX</b>
+              </div>
+              <div class="bk-pay-meta-row">
+                <span style="color:#64748b">Tổng tiền thanh toán:</span>
+                <b id="failAmountFmt" style="color:var(--red)">0 VNĐ</b>
+              </div>
+              <div class="bk-pay-meta-row">
+                <span style="color:#64748b">Trạng thái đơn:</span>
+                <b id="failStatusLabel">Chưa thanh toán</b>
+              </div>
+            </div>
+
+            <div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap;margin-top:18px">
+              <button type="button" id="btnRetryVnpay" class="btn p">
+                Thử thanh toán lại VNPAY ↗
+              </button>
+              <button type="button" id="btnBackToEdit" class="btn bk-btn-cancel-red">
+                Quay lại chỉnh sửa đơn
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ==================== CỘT PHẢI: CHI TIẾT THANH TOÁN ==================== -->
+      <aside class="ck-right-col">
+        <div class="ck-invoice-card">
+          <div class="ck-inv-head">
+            <h3 style="margin:0;font-size:17px">Chi tiết thanh toán</h3>
+            <span class="bd" id="sumDayLabel">{{ day_label }}</span>
+          </div>
+
+          <div class="ck-inv-meta">
+            <div><span>Ngày sử dụng:</span> <b id="sumDateDisp">{{ visit_date_display }}</b></div>
+            <div><span>Tổng số khách:</span> <b id="sumTotalGuests">0 vé</b></div>
+          </div>
+
+          <div id="summaryItemsBox" class="ck-inv-lines"></div>
+
+          <div class="ck-inv-bottom">
+            <!-- Mã giảm giá: nút 'Áp dụng' <-> 'Bỏ áp mã' -->
+            <div class="bk-voucher-row">
+              <input
+                type="text"
+                id="voucherInput"
+                name="voucher_code"
+                class="ck-inp"
+                placeholder="Mã ưu đãi (VD: ONSEN10)"
+                value="{{ form_data.voucher_code }}"
+              />
+              <button type="button" id="btnApplyVoucher" class="bk-voucher-btn">Áp dụng</button>
+            </div>
+            <div id="voucherMsg" class="bk-voucher-msg"></div>
+
+            <div class="ck-sum-row">
+              <span>Tạm tính</span>
+              <b id="sumSubtotal">0 VNĐ</b>
+            </div>
+            <div class="ck-sum-row" id="discountRow" style="display:none">
+              <span style="color:var(--ok)">Giảm giá voucher</span>
+              <b style="color:var(--ok)" id="sumDiscount">-0 VNĐ</b>
+            </div>
+
+            <div class="ck-sum-total">
+              <span>Tổng thanh toán</span>
+              <strong id="sumGrandTotal">0 VNĐ</strong>
+            </div>
+
+            <button type="submit" id="btnSubmitBooking" class="btn p" style="width:100%;margin-top:8px">
+              Thanh toán qua VNPAY →
+            </button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script>
+    (function () {
+      const PACKAGES = {{ packages_json|safe }};
+      const URL_CHECK_AVAIL = "{% url 'booking:check_availability' %}";
+      const URL_APPLY_VOUCHER = "{% url 'booking:apply_voucher_api' %}";
+      const URL_BOOK_FORM = "{% url 'booking:book_form' %}";
+      const URL_CANCEL_TICKET = "{% url 'booking:cancel_ticket' %}";
+      const URL_ORDER_STATUS_TPL = "{% url 'booking:order_payment_status_api' 'ORDER_CODE_PH' %}";
+      const URL_RETRY_VNPAY_TPL = "{% url 'booking:retry_vnpay' 'ORDER_CODE_PH' %}";
+
+      const state = {
+        activeTab: 'tickets', // 'tickets' | 'info'
+        packages: PACKAGES.map(p => ({
+          ...p,
+          adult: p.init_qty || 0,
+          child: 0,
+          infant: 0,
+        })),
+        voucher: null,
+        repServiceId: 0,
+        companionRows: [], // [{ cccd: '', serviceId: 0 }]
+        activeOrder: null,
+        pollTimer: null,
+        countdownTimer: null,
+        vnpayPopup: null,
+      };
+
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+      function fmtVnd(amount) {
+        return Math.max(0, Math.round(amount)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' VNĐ';
+      }
+
+      function isQtPrefix(cccd) {
+        return /^\d{12}$/.test(cccd) && (cccd.startsWith('044') || cccd.startsWith('045'));
+      }
+
+      // =======================================================================
+      // CHUYỂN ĐỔI GIỮA 2 TAB: 1. CHỌN NGÀY & VÉ | 2. ĐIỀN THÔNG TIN
+      // =======================================================================
+      window.switchBookingTab = function (tabName) {
+        state.activeTab = tabName;
+        const isTickets = (tabName === 'tickets');
+
+        const paneTickets = document.getElementById('bk-tab-pane-tickets');
+        const paneInfo = document.getElementById('bk-tab-pane-info');
+        const btnTickets = document.getElementById('bk-tab-btn-tickets');
+        const btnInfo = document.getElementById('bk-tab-btn-info');
+        const footBtn = document.getElementById('bk-foot-switch-btn');
+
+        if (paneTickets) {
+          paneTickets.hidden = !isTickets;
+          paneTickets.style.display = isTickets ? 'block' : 'none';
+        }
+        if (paneInfo) {
+          paneInfo.hidden = isTickets;
+          paneInfo.style.display = isTickets ? 'none' : 'block';
+        }
+        if (btnTickets) btnTickets.classList.toggle('is-active', isTickets);
+        if (btnInfo) btnInfo.classList.toggle('is-active', !isTickets);
+
+        if (footBtn) {
+          if (isTickets) {
+            footBtn.className = 'btn p';
+            footBtn.textContent = 'Tiếp tục điền thông tin →';
+          } else {
+            footBtn.className = 'btn';
+            footBtn.textContent = '← Quay lại chọn ngày & vé';
+          }
+        }
+      };
+
+      window.handleBookingFooterSwitch = function () {
+        if (state.activeTab === 'tickets') {
+          const totalPaid = state.packages.reduce((s, p) => s + p.adult + p.child, 0);
+          if (totalPaid === 0) {
+            showBannerError('Vui lòng chọn ít nhất 1 vé có tính phí trước khi chuyển sang bước điền thông tin.');
+            return;
+          }
+          hideBannerError();
+          window.switchBookingTab('info');
+        } else {
+          window.switchBookingTab('tickets');
+        }
+      };
+
+      // =======================================================================
+      // THAO TÁC CCCD & CHỌN GÓI VÉ (ĐỒNG BỘ TRANG ĐỔI VÉ)
+      // =======================================================================
+      function getPickedAdultPackages() {
+        return state.packages.filter(p => p.adult > 0);
+      }
+
+      function countRemainingQtSlotsForRow(rowIndex) {
+        const usedByService = {};
+        const repInput = document.getElementById('cccdInput');
+        const repClean = (repInput ? repInput.value : '').replace(/\D/g, '');
+        if (isQtPrefix(repClean) && state.repServiceId) {
+          usedByService[state.repServiceId] = (usedByService[state.repServiceId] || 0) + 1;
+        }
+        state.companionRows.forEach((row, idx) => {
+          if (idx === rowIndex) return;
+          const clean = (row.cccd || '').replace(/\D/g, '');
+          if (isQtPrefix(clean) && row.serviceId) {
+            usedByService[row.serviceId] = (usedByService[row.serviceId] || 0) + 1;
+          }
+        });
+
+        return getPickedAdultPackages().map(pkg => ({
+          id: pkg.id,
+          name: pkg.name,
+          price_qt: pkg.price_qt,
+          remaining: Math.max(0, pkg.adult - (usedByService[pkg.id] || 0)),
+        }));
+      }
+
+      function renderRepServiceBox() {
+        const repInput = document.getElementById('cccdInput');
+        const hintEl = document.getElementById('repCccdHint');
+        const boxEl = document.getElementById('bk-rep-service-box');
+        const selEl = document.getElementById('bk-rep-cccd-service');
+        if (!repInput || !boxEl || !selEl) return;
+
+        const clean = repInput.value.replace(/\D/g, '').slice(0, 12);
+        repInput.value = clean;
+
+        if (clean.length === 0) {
+          repInput.classList.remove('cccd-qt-valid');
+          if (hintEl) hintEl.style.display = 'none';
+          boxEl.style.display = 'none';
+          state.repServiceId = 0;
+          return;
+        }
+
+        if (clean.length < 12) {
+          repInput.classList.remove('cccd-qt-valid');
+          if (hintEl) {
+            hintEl.style.display = 'block';
+            hintEl.style.color = '#64748b';
+            hintEl.style.fontWeight = '400';
+            hintEl.textContent = `Đã nhập ${clean.length}/12 chữ số CCCD...`;
+          }
+          boxEl.style.display = 'none';
+          state.repServiceId = 0;
+          return;
+        }
+
+        if (!isQtPrefix(clean)) {
+          repInput.classList.remove('cccd-qt-valid');
+          if (hintEl) {
+            hintEl.style.display = 'block';
+            hintEl.style.color = '#475569';
+            hintEl.style.fontWeight = '400';
+            hintEl.textContent = 'CCCD hợp lệ (không thuộc đầu số ưu đãi Quảng Trị 044/045).';
+          }
+          boxEl.style.display = 'none';
+          state.repServiceId = 0;
+          return;
+        }
+
+        repInput.classList.add('cccd-qt-valid');
+        if (hintEl) {
+          hintEl.style.display = 'block';
+          hintEl.style.color = 'var(--ok)';
+          hintEl.style.fontWeight = '600';
+          hintEl.textContent = '✓ CCCD Quảng Trị hợp lệ (đầu số 044/045).';
+        }
+
+        const adultPkgs = getPickedAdultPackages();
+        if (adultPkgs.length === 0) {
+          boxEl.style.display = 'none';
+          state.repServiceId = 0;
+          return;
+        }
+
+        if (!adultPkgs.some(p => p.id === state.repServiceId)) {
+          state.repServiceId = adultPkgs[0].id;
+        }
+
+        selEl.innerHTML = adultPkgs.map(pkg => `
+          <option value="${pkg.id}" ${pkg.id === state.repServiceId ? 'selected' : ''}>
+            ${pkg.name} – Trên 1,4m (${fmtVnd(pkg.price_qt)})
+          </option>
+        `).join('');
+        boxEl.style.display = 'block';
+      }
+
+      window.handleRepServiceChange = function (val) {
+        state.repServiceId = parseInt(val || '0', 10) || 0;
+        recalculateTotals();
+      };
+
+      function renderCompanionRows() {
+        const extraBox = document.getElementById('extraCccdSection');
+        const listEl = document.getElementById('extraCccdList');
+        const addBtn = document.getElementById('btnAddCompanionCccd');
+        const confirmBox = document.getElementById('cccdConfirmBox');
+        const repInput = document.getElementById('cccdInput');
+
+        const totalAdults = state.packages.reduce((sum, p) => sum + p.adult, 0);
+        const maxExtra = Math.max(0, totalAdults - 1);
+
+        if (state.companionRows.length > maxExtra) {
+          state.companionRows = state.companionRows.slice(0, maxExtra);
+        }
+
+        if (extraBox) {
+          extraBox.style.display = maxExtra > 0 ? 'block' : 'none';
+        }
+        if (addBtn) {
+          addBtn.disabled = state.companionRows.length >= maxExtra;
+        }
+
+        const repClean = (repInput ? repInput.value : '').replace(/\D/g, '');
+        const seen = new Set();
+        if (repClean.length === 12) seen.add(repClean);
+
+        if (listEl) {
+          listEl.innerHTML = '';
+          state.companionRows.forEach((row, idx) => {
+            const clean = (row.cccd || '').replace(/\D/g, '').slice(0, 12);
+            row.cccd = clean;
+
+            const isDup = clean.length === 12 && seen.has(clean);
+            if (clean.length === 12 && !isDup) seen.add(clean);
+
+            const isQt = isQtPrefix(clean) && !isDup;
+            const slotOpts = countRemainingQtSlotsForRow(idx);
+            const availOpts = slotOpts.filter(o => o.remaining > 0 || o.id === row.serviceId);
+
+            if (!availOpts.some(o => o.id === row.serviceId)) {
+              const firstOpen = availOpts.find(o => o.remaining > 0) || availOpts[0];
+              row.serviceId = firstOpen ? firstOpen.id : 0;
+            }
+
+            let hintHtml = '';
+            if (clean.length > 0 && clean.length < 12) {
+              hintHtml = `<small style="display:block;margin-top:4px;font-size:11.5px;color:#64748b">Đã nhập ${clean.length}/12 chữ số CCCD...</small>`;
+            } else if (isDup) {
+              hintHtml = `<small style="display:block;margin-top:4px;font-size:11.5px;color:var(--red);font-weight:600">⚠ Số CCCD này đã nhập ở trên, mỗi khách chỉ áp dụng 1 lần.</small>`;
+            } else if (isQt) {
+              hintHtml = `<small style="display:block;margin-top:4px;font-size:11.5px;color:var(--ok);font-weight:600">✓ CCCD Quảng Trị hợp lệ (đầu số 044/045).</small>`;
+            } else if (clean.length === 12) {
+              hintHtml = `<small style="display:block;margin-top:4px;font-size:11.5px;color:#475569">CCCD hợp lệ (không thuộc đầu số ưu đãi 044/045).</small>`;
+            }
+
+            const optionsHtml = availOpts.map(opt => `
+              <option value="${opt.id}" ${opt.id === row.serviceId ? 'selected' : ''} ${opt.remaining <= 0 && opt.id !== row.serviceId ? 'disabled' : ''}>
+                ${opt.name} – Trên 1,4m (${fmtVnd(opt.price_qt)})
+              </option>
+            `).join('');
+
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = `
+              <div class="bk-companion-row">
+                <input
+                  type="text"
+                  class="ck-inp ${isQt ? 'cccd-qt-valid' : ''}"
+                  maxlength="12"
+                  inputmode="numeric"
+                  placeholder="Nhập 12 số CCCD đi cùng"
+                  value="${clean}"
+                  data-comp-idx="${idx}"
+                />
+                <select class="ck-inp" data-comp-svc-idx="${idx}">
+                  ${optionsHtml}
+                </select>
+                <button type="button" class="bk-del-cccd-btn" data-remove-idx="${idx}" title="Xóa CCCD này">✕</button>
+              </div>
+              ${hintHtml}
+            `;
+            listEl.appendChild(wrapper);
+          });
+        }
+
+        const serializedPairs = state.companionRows
+          .filter(r => r.cccd && r.cccd.length > 0)
+          .map(r => r.serviceId ? `${r.cccd}:${r.serviceId}` : r.cccd);
+        document.getElementById('qtCccdListInput').value = serializedPairs.join(',');
+
+        const hasAnyCccd = repClean.length > 0 || serializedPairs.length > 0;
+        if (confirmBox) {
+          confirmBox.style.display = hasAnyCccd ? 'block' : 'none';
+          if (!hasAnyCccd) {
+            document.getElementById('cccdConfirmedCheckbox').checked = false;
+          }
+        }
+      }
+
+      function computeAllocatedQtByPackage() {
+        const allocMap = {};
+        state.packages.forEach(p => { allocMap[p.id] = 0; });
+
+        const seen = new Set();
+        const repInput = document.getElementById('cccdInput');
+        const repClean = (repInput ? repInput.value : '').replace(/\D/g, '');
+
+        if (isQtPrefix(repClean) && state.repServiceId) {
+          const pkg = state.packages.find(p => p.id === state.repServiceId);
+          if (pkg && allocMap[pkg.id] < pkg.adult) {
+            allocMap[pkg.id] += 1;
+            seen.add(repClean);
+          }
+        }
+
+        state.companionRows.forEach(row => {
+          const clean = (row.cccd || '').replace(/\D/g, '');
+          if (!isQtPrefix(clean) || seen.has(clean)) return;
+          let targetPkg = state.packages.find(p => p.id === row.serviceId && allocMap[p.id] < p.adult);
+          if (!targetPkg) {
+            targetPkg = state.packages.find(p => allocMap[p.id] < p.adult);
+          }
+          if (targetPkg) {
+            allocMap[targetPkg.id] += 1;
+            seen.add(clean);
+          }
+        });
+
+        return allocMap;
+      }
+
+      // Đồng bộ trạng thái nút 'Áp dụng' <-> 'Bỏ áp mã'
+      function syncVoucherButtonState() {
+        const btn = document.getElementById('btnApplyVoucher');
+        if (!btn) return;
+        if (state.voucher) {
+          btn.textContent = 'Bỏ áp mã';
+          btn.classList.add('is-applied');
+        } else {
+          btn.textContent = 'Áp dụng';
+          btn.classList.remove('is-applied');
+        }
+      }
+
+      function recalculateTotals() {
+        renderRepServiceBox();
+        renderCompanionRows();
+
+        const qtAllocatedMap = computeAllocatedQtByPackage();
+
+        let subtotal = 0;
+        let totalGuests = 0;
+        const summaryLinesHtml = [];
+
+        state.packages.forEach(pkg => {
+          const qtQty = qtAllocatedMap[pkg.id] || 0;
+          const regAdultQty = Math.max(0, pkg.adult - qtQty);
+          const pkgTotalQty = pkg.adult + pkg.child + pkg.infant;
+          totalGuests += pkgTotalQty;
+
+          document.getElementById(`adult_qty_${pkg.id}`).value = pkg.adult;
+          document.getElementById(`child_qty_${pkg.id}`).value = pkg.child;
+          document.getElementById(`infant_qty_${pkg.id}`).value = pkg.infant;
+          document.getElementById(`qt_adult_qty_${pkg.id}`).value = qtQty;
+
+          const dispAdult = document.getElementById(`disp_adult_${pkg.id}`);
+          const dispChild = document.getElementById(`disp_child_${pkg.id}`);
+          const dispInfant = document.getElementById(`disp_infant_${pkg.id}`);
+          const pkgBadge = document.getElementById(`pkg_total_badge_${pkg.id}`);
+          if (dispAdult) dispAdult.textContent = pkg.adult;
+          if (dispChild) dispChild.textContent = pkg.child;
+          if (dispInfant) dispInfant.textContent = pkg.infant;
+          if (pkgBadge) pkgBadge.innerHTML = `Tổng: <b>${pkgTotalQty}</b> vé`;
+
+          const cardEl = document.querySelector(`.ck-mini-card[data-sid="${pkg.id}"]`);
+          if (cardEl) {
+            cardEl.classList.toggle('is-picked', pkgTotalQty > 0);
+          }
+
+          const regAdultTotal = regAdultQty * pkg.price_adult;
+          const qtAdultTotal = qtQty * pkg.price_qt;
+          const childTotal = pkg.child * pkg.price_child;
+          const lineTotal = regAdultTotal + qtAdultTotal + childTotal;
+          subtotal += lineTotal;
+
+          if (pkgTotalQty > 0) {
+            let subRows = '';
+            if (regAdultQty > 0) {
+              subRows += `
+                <div class="ck-inv-subrow">
+                  <span>${regAdultQty} × Trên 1,4m (Giá tiêu chuẩn)</span>
+                  <span>${fmtVnd(regAdultTotal)}</span>
+                </div>`;
+            }
+            if (qtQty > 0) {
+              subRows += `
+                <div class="ck-inv-subrow is-qt">
+                  <span>${qtQty} × Trên 1,4m (<i>Ưu đãi CCCD Quảng Trị</i>)</span>
+                  <span>${fmtVnd(qtAdultTotal)}</span>
+                </div>`;
+            }
+            if (pkg.child > 0) {
+              subRows += `
+                <div class="ck-inv-subrow">
+                  <span>${pkg.child} × Từ 1m – 1,4m</span>
+                  <span>${fmtVnd(childTotal)}</span>
+                </div>`;
+            }
+            if (pkg.infant > 0) {
+              subRows += `
+                <div class="ck-inv-subrow">
+                  <span>${pkg.infant} × Dưới 1m (Miễn phí)</span>
+                  <span>0 VNĐ</span>
+                </div>`;
+            }
+
+            summaryLinesHtml.push(`
+              <div class="ck-inv-group">
+                <div class="ck-inv-group-head">
+                  <strong>${pkg.name} (${pkgTotalQty} vé)</strong>
+                  <b>${fmtVnd(lineTotal)}</b>
+                </div>
+                ${subRows}
+              </div>
+            `);
+          }
+        });
+
+        document.getElementById('sumTotalGuests').textContent = `${totalGuests} vé`;
+
+        const sumItemsBox = document.getElementById('summaryItemsBox');
+        sumItemsBox.innerHTML = summaryLinesHtml.length
+          ? summaryLinesHtml.join('')
+          : '<div style="font-size:12.5px;color:#64748b;padding:12px 0;text-align:center">Chưa chọn gói vé nào ở Bước 1.</div>';
+
+        let discount = 0;
+        if (state.voucher && subtotal > 0) {
+          if (state.voucher.discount_type === 'PERCENT') {
+            const rawDisc = Math.round(subtotal * state.voucher.discount_value / 100);
+            discount = state.voucher.max_discount > 0 ? Math.min(state.voucher.max_discount, rawDisc) : rawDisc;
+          } else {
+            discount = Math.min(subtotal, state.voucher.discount_value);
+          }
+        }
+
+        const grandTotal = Math.max(0, subtotal - discount);
+        document.getElementById('sumSubtotal').textContent = fmtVnd(subtotal);
+
+        const discountRow = document.getElementById('discountRow');
+        if (discount > 0) {
+          discountRow.style.display = 'flex';
+          document.getElementById('sumDiscount').textContent = '-' + fmtVnd(discount);
+        } else {
+          discountRow.style.display = 'none';
+        }
+        document.getElementById('sumGrandTotal').textContent = fmtVnd(grandTotal);
+        syncVoucherButtonState();
+      }
+
+      document.getElementById('packagesContainer').addEventListener('click', function (e) {
+        const btn = e.target.closest('.step-btn');
+        if (!btn) return;
+        const sid = parseInt(btn.dataset.sid, 10);
+        const type = btn.dataset.type;
+        const action = btn.dataset.action;
+        const pkg = state.packages.find(p => p.id === sid);
+        if (!pkg || !pkg.is_active) return;
+
+        if (action === 'dec') {
+          if (pkg[type] > 0) pkg[type] -= 1;
+        } else {
+          if (type === 'infant') {
+            pkg.infant += 1;
+          } else {
+            const curPaid = pkg.adult + pkg.child;
+            if (curPaid < pkg.available) {
+              pkg[type] += 1;
+            }
+          }
+        }
+        recalculateTotals();
+      });
+
+      document.getElementById('cccdInput').addEventListener('input', recalculateTotals);
+
+      document.getElementById('btnAddCompanionCccd').addEventListener('click', function () {
+        const slotOpts = countRemainingQtSlotsForRow(state.companionRows.length);
+        const defaultOpt = slotOpts.find(o => o.remaining > 0) || slotOpts[0];
+        state.companionRows.push({
+          cccd: '',
+          serviceId: defaultOpt ? defaultOpt.id : 0,
+        });
+        recalculateTotals();
+      });
+
+      document.getElementById('extraCccdList').addEventListener('input', function (e) {
+        const inp = e.target.closest('input[data-comp-idx]');
+        if (!inp) return;
+        const idx = parseInt(inp.dataset.compIdx, 10);
+        state.companionRows[idx].cccd = inp.value;
+        const cursor = inp.selectionStart;
+        recalculateTotals();
+        const nextInp = document.querySelector(`input[data-comp-idx="${idx}"]`);
+        if (nextInp) {
+          nextInp.focus();
+          nextInp.setSelectionRange(cursor, cursor);
+        }
+      });
+
+      document.getElementById('extraCccdList').addEventListener('change', function (e) {
+        const sel = e.target.closest('select[data-comp-svc-idx]');
+        if (!sel) return;
+        const idx = parseInt(sel.dataset.compSvcIdx, 10);
+        state.companionRows[idx].serviceId = parseInt(sel.value || '0', 10) || 0;
+        recalculateTotals();
+      });
+
+      document.getElementById('extraCccdList').addEventListener('click', function (e) {
+        const btn = e.target.closest('button[data-remove-idx]');
+        if (!btn) return;
+        const idx = parseInt(btn.dataset.removeIdx, 10);
+        state.companionRows.splice(idx, 1);
+        recalculateTotals();
+      });
+
+      document.getElementById('visitDateInput').addEventListener('change', async function () {
+        const dateVal = this.value;
+        if (!dateVal) return;
+        document.getElementById('hiddenVisitDate').value = dateVal;
+        try {
+          const res = await fetch(`${URL_CHECK_AVAIL}?date=${encodeURIComponent(dateVal)}`);
+          const data = await res.json();
+          if (!res.ok) {
+            showBannerError(data.error || 'Ngày sử dụng không hợp lệ.');
+            return;
+          }
+          hideBannerError();
+          document.getElementById('dayLabelText').textContent = data.day_label;
+          document.getElementById('sumDateDisp').textContent = data.date_display;
+          document.getElementById('sumDayLabel').textContent = data.day_label;
+
+          data.services.forEach(srv => {
+            const pkg = state.packages.find(p => p.id === srv.id);
+            if (!pkg) return;
+            pkg.available = srv.available;
+            pkg.is_active = srv.is_active;
+            pkg.price_adult = srv.price_adult;
+            pkg.price_child = srv.price_child;
+            pkg.price_qt = srv.price_qt;
+
+            while (pkg.adult + pkg.child > pkg.available) {
+              if (pkg.child > 0) pkg.child -= 1;
+              else if (pkg.adult > 0) pkg.adult -= 1;
+              else break;
+            }
+
+            const lblAdult = document.getElementById(`lbl_adult_${pkg.id}`);
+            const lblQt = document.getElementById(`lbl_qt_${pkg.id}`);
+            const lblChild = document.getElementById(`lbl_child_${pkg.id}`);
+            if (lblAdult) lblAdult.textContent = fmtVnd(srv.price_adult);
+            if (lblQt) lblQt.textContent = fmtVnd(srv.price_qt);
+            if (lblChild) lblChild.textContent = fmtVnd(srv.price_child);
+
+            const badge = document.getElementById(`avail_badge_${pkg.id}`);
+            if (badge && pkg.is_active) {
+              if (srv.available === 0) {
+                badge.className = 'bd no';
+                badge.textContent = 'Hết vé';
+              } else {
+                badge.className = 'bd ok';
+                badge.textContent = `Còn ${srv.available} vé`;
+              }
+            }
+          });
+
+          recalculateTotals();
+        } catch (err) {
+          showBannerError('Không thể cập nhật giá vé theo ngày, vui lòng thử lại.');
+        }
+      });
+
+      // Xử lý ô nhập mã giảm giá & chuyển đổi nút 'Áp dụng' <-> 'Bỏ áp mã'
+      const voucherInpEl = document.getElementById('voucherInput');
+      const voucherBtnEl = document.getElementById('btnApplyVoucher');
+      const voucherMsgEl = document.getElementById('voucherMsg');
+
+      function clearAppliedVoucher(clearInputText) {
+        state.voucher = null;
+        if (clearInputText) {
+          voucherInpEl.value = '';
+        }
+        voucherMsgEl.className = 'bk-voucher-msg';
+        voucherMsgEl.textContent = '';
+        recalculateTotals();
+      }
+
+      // Nếu đang có mã áp dụng mà người dùng sửa sang mã khác -> tự bỏ áp mã cũ và chuyển nút về 'Áp dụng'
+      voucherInpEl.addEventListener('input', function () {
+        if (state.voucher) {
+          const typed = this.value.trim().toUpperCase();
+          const applied = (state.voucher.code || '').toUpperCase();
+          if (typed !== applied) {
+            clearAppliedVoucher(false);
+          }
+        }
+      });
+
+      voucherBtnEl.addEventListener('click', async function () {
+        // Nếu đang ở trạng thái 'Bỏ áp mã' -> xóa mã đã áp và đưa nút về 'Áp dụng'
+        if (state.voucher) {
+          clearAppliedVoucher(true);
+          voucherInpEl.focus();
+          return;
+        }
+
+        const code = (voucherInpEl.value || '').trim().toUpperCase();
+        voucherInpEl.value = code;
+        const subtotalText = document.getElementById('sumSubtotal').textContent.replace(/\D/g, '');
+        const subtotal = parseInt(subtotalText || '0', 10);
+
+        if (!code) {
+          state.voucher = null;
+          voucherMsgEl.className = 'bk-voucher-msg er';
+          voucherMsgEl.textContent = 'Vui lòng nhập mã giảm giá.';
+          recalculateTotals();
+          return;
+        }
+
+        try {
+          const res = await fetch(`${URL_APPLY_VOUCHER}?code=${encodeURIComponent(code)}&subtotal=${subtotal}`);
+          const data = await res.json();
+          if (!res.ok || !data.valid) {
+            state.voucher = null;
+            voucherMsgEl.className = 'bk-voucher-msg er';
+            voucherMsgEl.textContent = data.message || 'Mã ưu đãi không hợp lệ.';
+          } else {
+            state.voucher = { ...data, code };
+            voucherMsgEl.className = 'bk-voucher-msg ok';
+            voucherMsgEl.textContent = '✓ ' + data.label;
+          }
+          recalculateTotals();
+        } catch (err) {
+          voucherMsgEl.className = 'bk-voucher-msg er';
+          voucherMsgEl.textContent = 'Lỗi kiểm tra mã ưu đãi.';
+        }
+      });
+
+      function showBannerError(msg) {
+        const el = document.getElementById('ajaxErrorBanner');
+        el.textContent = '⚠ ' + msg;
+        el.style.display = 'block';
+      }
+
+      function hideBannerError() {
+        const el = document.getElementById('ajaxErrorBanner');
+        el.style.display = 'none';
+      }
+
+      function stopTimers() {
+        if (state.pollTimer) {
+          clearInterval(state.pollTimer);
+          state.pollTimer = null;
+        }
+        if (state.countdownTimer) {
+          clearInterval(state.countdownTimer);
+          state.countdownTimer = null;
+        }
+      }
+
+      function showFormView() {
+        stopTimers();
+        const paySec = document.getElementById('paymentStatusSection');
+        paySec.hidden = true;
+        paySec.style.display = 'none';
+        document.getElementById('bk-editor-card').style.display = 'flex';
+      }
+
+      function showPendingView(orderData) {
+        state.activeOrder = orderData;
+        document.getElementById('bk-editor-card').style.display = 'none';
+        const paySec = document.getElementById('paymentStatusSection');
+        paySec.hidden = false;
+        paySec.style.display = 'block';
+
+        document.getElementById('statePendingCard').style.display = 'block';
+        document.getElementById('stateSuccessCard').style.display = 'none';
+        document.getElementById('stateFailedCard').style.display = 'none';
+
+        document.getElementById('pendOrderCode').textContent = '#' + orderData.order_code;
+        document.getElementById('pendAmountFmt').textContent = orderData.total_amount_fmt;
+
+        startCountdown(orderData.expires_at_ts);
+        startStatusPolling(orderData.order_code);
+      }
+
+      function showSuccessView(info) {
+        stopTimers();
+        document.getElementById('bk-editor-card').style.display = 'none';
+        const paySec = document.getElementById('paymentStatusSection');
+        paySec.hidden = false;
+        paySec.style.display = 'block';
+
+        document.getElementById('statePendingCard').style.display = 'none';
+        document.getElementById('stateSuccessCard').style.display = 'block';
+        document.getElementById('stateFailedCard').style.display = 'none';
+
+        const orderCode = info.order_code || (state.activeOrder && state.activeOrder.order_code) || '';
+        const email = info.email || (state.activeOrder && state.activeOrder.email) || '';
+        const qrCode = info.qr_code || orderCode;
+        const visitDate = info.visit_date_display || (state.activeOrder && state.activeOrder.visit_date_display) || '';
+        const totalFmt = info.total_amount_fmt || (state.activeOrder && state.activeOrder.total_amount_fmt) || '';
+        const lookupUrl = info.lookup_url || (state.activeOrder && state.activeOrder.lookup_url) || "{% url 'booking:lookup_ticket' %}";
+
+        document.getElementById('succSubtitle').innerHTML = email
+          ? `Đơn đặt vé <b>#${orderCode}</b> đã được xác nhận thanh toán. Vé điện tử kèm mã QR check-in đã được cấp và gửi tới email <b>${email}</b>.`
+          : `Đơn đặt vé <b>#${orderCode}</b> đã được xác nhận thanh toán và cấp mã vé điện tử QR check-in.`;
+
+        document.getElementById('succQrCode').textContent = qrCode;
+        document.getElementById('succVisitDate').textContent = visitDate;
+        document.getElementById('succTotalAmount').textContent = totalFmt;
+        document.getElementById('btnViewTicketQr').href = lookupUrl;
+      }
+
+      function showFailedView(reasonType, customMessage) {
+        stopTimers();
+        document.getElementById('bk-editor-card').style.display = 'none';
+        const paySec = document.getElementById('paymentStatusSection');
+        paySec.hidden = false;
+        paySec.style.display = 'block';
+
+        document.getElementById('statePendingCard').style.display = 'none';
+        document.getElementById('stateSuccessCard').style.display = 'none';
+        document.getElementById('stateFailedCard').style.display = 'block';
+
+        const orderCode = (state.activeOrder && state.activeOrder.order_code) || '';
+        const totalFmt = (state.activeOrder && state.activeOrder.total_amount_fmt) || '0 VNĐ';
+        const isExpired = (reasonType === 'expired');
+
+        document.getElementById('failBadgeText').textContent = isExpired ? 'HẾT THỜI GIAN GIỮ VÉ' : 'THANH TOÁN THẤT BẠI';
+        document.getElementById('failHeadingText').textContent = isExpired
+          ? 'Đơn hàng đã hết thời gian giữ vé 15 phút'
+          : 'Thanh toán qua VNPAY chưa hoàn tất';
+        document.getElementById('failSubtext').textContent = customMessage || (
+          isExpired
+            ? 'Thời gian giữ chỗ 15 phút đã kết thúc và số lượng vé đã được giải phóng. Quý khách vui lòng quay lại đặt đơn mới.'
+            : 'Giao dịch thanh toán chưa hoàn tất hoặc đã bị hủy trên cổng VNPAY. Quý khách có thể thử thanh toán lại hoặc quay lại chỉnh sửa đơn.'
+        );
+
+        document.getElementById('failOrderCode').textContent = '#' + orderCode;
+        document.getElementById('failAmountFmt').textContent = totalFmt;
+        document.getElementById('failStatusLabel').textContent = isExpired ? 'Đã hết hạn / Hủy' : 'Chưa thanh toán';
+        document.getElementById('btnRetryVnpay').style.display = isExpired ? 'none' : 'inline-flex';
+      }
+
+      function startCountdown(expiresAtTs) {
+        if (state.countdownTimer) clearInterval(state.countdownTimer);
+        const endTs = expiresAtTs && expiresAtTs > 0
+          ? expiresAtTs * 1000
+          : Date.now() + 15 * 60 * 1000;
+
+        function tick() {
+          const remSec = Math.max(0, Math.floor((endTs - Date.now()) / 1000));
+          const mm = String(Math.floor(remSec / 60)).padStart(2, '0');
+          const ss = String(remSec % 60).padStart(2, '0');
+          document.getElementById('pendCountdown').textContent = `${mm}:${ss}`;
+          if (remSec === 0) {
+            showFailedView('expired');
+          }
+        }
+        tick();
+        state.countdownTimer = setInterval(tick, 1000);
+      }
+
+      async function checkOrderStatusNow(orderCode) {
+        if (!orderCode) return;
+        const url = URL_ORDER_STATUS_TPL.replace('ORDER_CODE_PH', encodeURIComponent(orderCode));
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
+          if (!res.ok || !data.ok) return;
+
+          if (data.state === 'success') {
+            showSuccessView(data);
+          } else if (data.state === 'expired') {
+            showFailedView('expired', data.message);
+          } else if (data.state === 'failed') {
+            showFailedView('failed', data.message);
+          }
+        } catch (err) {}
+      }
+
+      function startStatusPolling(orderCode) {
+        if (state.pollTimer) clearInterval(state.pollTimer);
+        state.pollTimer = setInterval(() => checkOrderStatusNow(orderCode), 2500);
+      }
+
+      if ('BroadcastChannel' in window) {
+        const bc = new BroadcastChannel('bangonsen_vnpay_channel');
+        bc.onmessage = function (ev) {
+          const msg = ev.data || {};
+          if (msg.type === 'VNPAY_RESULT' && state.activeOrder && msg.order_code === state.activeOrder.order_code) {
+            checkOrderStatusNow(state.activeOrder.order_code);
+          }
+        };
+      }
+      window.addEventListener('storage', function (ev) {
+        if (ev.key === 'bangonsen_vnpay_result' && ev.newValue && state.activeOrder) {
+          try {
+            const msg = JSON.parse(ev.newValue);
+            if (msg.order_code === state.activeOrder.order_code) {
+              checkOrderStatusNow(state.activeOrder.order_code);
+            }
+          } catch (e) {}
+        }
+      });
+
+      document.getElementById('bookingForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        hideBannerError();
+
+        // Nếu người dùng nhập text vào ô voucher nhưng chưa bấm Áp dụng -> xóa text nháp để không gửi mã chưa hợp lệ
+        if (!state.voucher) {
+          voucherInpEl.value = '';
+        }
+
+        const fullName = (document.getElementById('fullNameInput').value || '').trim();
+        const phone = (document.getElementById('phoneInput').value || '').trim();
+        const email = (document.getElementById('emailInput').value || '').trim();
+        if (state.activeTab === 'tickets' && (!fullName || !phone || !email)) {
+          window.switchBookingTab('info');
+          showBannerError('Vui lòng điền thông tin người đặt vé (Họ tên, Số điện thoại, Email) để nhận mã QR.');
+          return;
+        }
+
+        const btnSubmit = document.getElementById('btnSubmitBooking');
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Đang khởi tạo đơn vé...';
+
+        const popupWin = window.open('about:blank', '_blank');
+
+        try {
+          const formData = new FormData(this);
+          const res = await fetch(URL_BOOK_FORM, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData,
+          });
+          const data = await res.json();
+
+          if (!res.ok || !data.ok) {
+            if (popupWin && !popupWin.closed) popupWin.close();
+            if (data.error && (data.error.includes('họ và tên') || data.error.includes('Số điện thoại') || data.error.includes('email') || data.error.includes('CCCD'))) {
+              window.switchBookingTab('info');
+            }
+            showBannerError(data.error || 'Vui lòng kiểm tra lại thông tin đặt vé.');
+            return;
+          }
+
+          if (data.zero_amount) {
+            if (popupWin && !popupWin.closed) popupWin.close();
+            showSuccessView(data);
+            return;
+          }
+
+          state.vnpayPopup = popupWin;
+          if (popupWin && !popupWin.closed) {
+            popupWin.location.href = data.vnpay_url;
+          }
+          showPendingView(data);
+        } catch (err) {
+          if (popupWin && !popupWin.closed) popupWin.close();
+          showBannerError('Lỗi kết nối máy chủ khi tạo đơn hàng. Vui lòng thử lại.');
+        } finally {
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'Thanh toán qua VNPAY →';
+        }
+      });
+
+      document.getElementById('btnReopenVnpay').addEventListener('click', function () {
+        if (!state.activeOrder || !state.activeOrder.vnpay_url) return;
+        if (state.vnpayPopup && !state.vnpayPopup.closed) {
+          state.vnpayPopup.focus();
+        } else {
+          state.vnpayPopup = window.open(state.activeOrder.vnpay_url, '_blank');
+        }
+      });
+
+      document.getElementById('btnCancelPending').addEventListener('click', async function () {
+        if (!state.activeOrder) {
+          showFormView();
+          return;
+        }
+        const btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Đang hủy chờ...';
+        try {
+          const fd = new FormData();
+          fd.append('csrfmiddlewaretoken', csrfToken);
+          fd.append('order_code', state.activeOrder.order_code);
+          await fetch(URL_CANCEL_TICKET, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: fd,
+          });
+        } catch (e) {
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Hủy chờ & Chỉnh sửa lại';
+          if (state.vnpayPopup && !state.vnpayPopup.closed) {
+            state.vnpayPopup.close();
+          }
+          state.activeOrder = null;
+          showFormView();
+        }
+      });
+
+      document.getElementById('btnRetryVnpay').addEventListener('click', async function () {
+        if (!state.activeOrder) return;
+        const btn = this;
+        btn.disabled = true;
+        const popupWin = window.open('about:blank', '_blank');
+        try {
+          const retryUrl = URL_RETRY_VNPAY_TPL.replace('ORDER_CODE_PH', encodeURIComponent(state.activeOrder.order_code));
+          const res = await fetch(retryUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          });
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            if (popupWin && !popupWin.closed) popupWin.close();
+            showFailedView(data.expired ? 'expired' : 'failed', data.error);
+            return;
+          }
+          if (data.already_paid) {
+            if (popupWin && !popupWin.closed) popupWin.close();
+            checkOrderStatusNow(state.activeOrder.order_code);
+            return;
+          }
+          state.activeOrder.vnpay_url = data.vnpay_url;
+          state.vnpayPopup = popupWin;
+          if (popupWin && !popupWin.closed) {
+            popupWin.location.href = data.vnpay_url;
+          }
+          showPendingView(state.activeOrder);
+        } catch (e) {
+          if (popupWin && !popupWin.closed) popupWin.close();
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      document.getElementById('btnBackToEdit').addEventListener('click', function () {
+        document.getElementById('btnCancelPending').click();
+      });
+
+      recalculateTotals();
+    })();
+  </script>
+{% endblock %}

@@ -1,0 +1,782 @@
+{% extends 'booking/base_booking.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+  /* Mở khóa chiều cao viewport của trang tra cứu để hiển thị đầy đủ Footer */
+  html:has(.lk-viewport),
+  body:has(.lk-viewport) {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  body:has(.lk-viewport) footer {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    margin-top: auto !important;
+  }
+
+  .lk-viewport {
+    height: auto !important;
+    min-height: calc(100vh - 68px) !important;
+    max-height: none !important;
+    overflow: visible !important;
+    flex: 1 0 auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .lk-workspace {
+    flex: 1 1 auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding-bottom: 28px !important;
+  }
+
+  .lk-stage {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+</style>
+
+<div class="lk-viewport">
+  <!-- THANH TÌM KIẾM CỐ ĐỊNH PHÍA TRÊN -->
+  <div class="lk-top-bar">
+    <div class="w w-wide lk-top-inner">
+      <div>
+        <span class="sec-sub" style="margin-bottom:2px">Dịch vụ khách hàng trực tuyến</span>
+        <h1 style="margin:0;font-size:20px">Tra cứu, Đổi vé & Hủy vé điện tử</h1>
+      </div>
+
+      <form id="lk-search-form" class="lk-search-form" onsubmit="submitInstantLookup(event)">
+        <div class="lk-inp-wrap">
+          <input type="text" id="lk-query-inp" class="ck-inp lk-search-inp"
+                 placeholder="Nhập Mã đơn (BO...), Số điện thoại hoặc Email..."
+                 value="{{ query_str }}" autocomplete="off" required>
+          <button type="button" id="lk-clear-btn" class="lk-clear-btn" onclick="clearLookupInput()" title="Xóa từ khóa" hidden>✕</button>
+        </div>
+        <button type="submit" class="btn p lk-search-btn" id="lk-submit-btn">Tra cứu vé</button>
+      </form>
+
+      <div class="ck-hold-note">⏱ Đổi / Hủy trước <b>48 giờ</b> (Mở cửa <b>09:00 – 21:00</b>)</div>
+    </div>
+  </div>
+
+  <!-- KHÔNG GIAN HIỂN THỊ KẾT QUẢ CỐ ĐỊNH TRONG 1 MÀN HÌNH -->
+  <div class="w w-wide lk-workspace">
+    {% if messages %}
+      {% for m in messages %}
+        <div class="al {% if m.tags == 'success' %}ok{% else %}er{% endif %}" style="margin:0 0 8px;padding:8px 14px;font-size:13px;flex-shrink:0">
+          {% if m.tags == 'success' %}✓{% else %}⚠{% endif %} {{ m }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <div id="lk-banner" class="al" hidden style="margin:0 0 8px;padding:8px 14px;font-size:13px;flex-shrink:0"></div>
+    <div id="lk-stage" class="lk-stage"></div>
+  </div>
+</div>
+
+<input type="hidden" id="lk-csrf-token" value="{{ csrf_token }}">
+<input type="hidden" id="lk-min-reschedule-date" value="{{ min_reschedule_date }}">
+<input type="hidden" id="lk-api-lookup-url" value="{% url 'booking:lookup_ticket_api' %}">
+<input type="hidden" id="lk-api-check-url" value="{% url 'booking:check_reschedule' %}">
+<input type="hidden" id="lk-reschedule-url" value="{% url 'booking:reschedule_ticket' %}">
+<input type="hidden" id="lk-cancel-url" value="{% url 'booking:cancel_ticket' %}">
+<input type="hidden" id="lk-base-page-url" value="{% url 'booking:lookup_ticket' %}">
+<script id="lk-initial-data" type="application/json">{{ initial_payload_json|safe }}</script>
+
+<script>
+let CURRENT_LOOKUP_DATA = null;
+let EXPANDED_ORDER_CODE = '';
+let ACTIVE_TAB_BY_ORDER = {};
+
+// Trạng thái bộ lọc & phân trang
+let FILTER_STATE = {
+  status: 'all', // all | cancelled | rescheduled | checked_in | pending_checkin
+  day: '',
+  month: '',
+  year: '',
+};
+let CHANNEL_VIEW_MODE = 'auto'; // 'auto' | 'overview' | 'ONLINE' | 'COUNTER'
+let PAGE_BY_CHANNEL = { ONLINE: 1, COUNTER: 1 };
+const ITEMS_PER_CHANNEL_PAGE = 5;
+
+window.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('header nav a').forEach(a => {
+    const href = a.getAttribute('href') || '';
+    if (href.includes('tra-cuu')) {
+      a.classList.add('active');
+    } else if (!a.classList.contains('btn')) {
+      a.classList.remove('active');
+    }
+  });
+
+  const inp = document.getElementById('lk-query-inp');
+  const clearBtn = document.getElementById('lk-clear-btn');
+  if (inp && clearBtn) {
+    clearBtn.hidden = !inp.value.trim();
+    inp.addEventListener('input', () => {
+      clearBtn.hidden = !inp.value.trim();
+    });
+  }
+
+  const rawInit = document.getElementById('lk-initial-data');
+  const parsed = rawInit ? JSON.parse(rawInit.textContent || 'null') : null;
+  if (parsed) {
+    CURRENT_LOOKUP_DATA = parsed;
+    renderLookupStage(parsed);
+  } else {
+    renderEmptyGuide();
+  }
+});
+
+function showLookupBanner(type, text) {
+  const box = document.getElementById('lk-banner');
+  if (!box) return;
+  if (!text) {
+    box.hidden = true;
+    box.textContent = '';
+    return;
+  }
+  box.className = `al ${type === 'ok' ? 'ok' : 'er'}`;
+  box.innerHTML = `${type === 'ok' ? '✓' : '⚠'} ${text}`;
+  box.hidden = false;
+}
+
+function resetFilterAndPaging() {
+  FILTER_STATE = { status: 'all', day: '', month: '', year: '' };
+  CHANNEL_VIEW_MODE = 'auto';
+  PAGE_BY_CHANNEL = { ONLINE: 1, COUNTER: 1 };
+  EXPANDED_ORDER_CODE = '';
+}
+
+function clearLookupInput() {
+  const inp = document.getElementById('lk-query-inp');
+  const clearBtn = document.getElementById('lk-clear-btn');
+  const baseUrl = document.getElementById('lk-base-page-url')?.value || '/tra-cuu/';
+  if (inp) {
+    inp.value = '';
+    inp.focus();
+  }
+  if (clearBtn) clearBtn.hidden = true;
+  showLookupBanner('', '');
+  CURRENT_LOOKUP_DATA = null;
+  resetFilterAndPaging();
+  window.history.replaceState({}, '', baseUrl);
+  renderEmptyGuide();
+}
+
+async function submitInstantLookup(e) {
+  if (e) e.preventDefault();
+  const inp = document.getElementById('lk-query-inp');
+  const btn = document.getElementById('lk-submit-btn');
+  const apiUrl = document.getElementById('lk-api-lookup-url')?.value || '/api/lookup/';
+  const baseUrl = document.getElementById('lk-base-page-url')?.value || '/tra-cuu/';
+  const query = (inp?.value || '').trim();
+  if (!query) return;
+
+  showLookupBanner('', '');
+  if (btn) btn.disabled = true;
+
+  try {
+    const resp = await fetch(`${apiUrl}?q=${encodeURIComponent(query)}`);
+    const rawText = await resp.text();
+    let data = null;
+
+    try {
+      data = JSON.parse(rawText);
+    } catch (parseErr) {
+      showLookupBanner('er', `Máy chủ trả về phản hồi không hợp lệ (HTTP ${resp.status}).`);
+      return;
+    }
+
+    CURRENT_LOOKUP_DATA = data;
+    resetFilterAndPaging();
+
+    window.history.replaceState({}, '', `${baseUrl}?q=${encodeURIComponent(query)}`);
+    renderLookupStage(data);
+  } catch (err) {
+    showLookupBanner('er', 'Không thể kết nối tới máy chủ Django. Vui lòng kiểm tra server đang chạy.');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function refreshLookupSilently(keepExpandedCode = '') {
+  const inp = document.getElementById('lk-query-inp');
+  const apiUrl = document.getElementById('lk-api-lookup-url')?.value || '/api/lookup/';
+  const query = (inp?.value || '').trim();
+  if (!query) return;
+  try {
+    const resp = await fetch(`${apiUrl}?q=${encodeURIComponent(query)}`);
+    const data = await resp.json();
+    CURRENT_LOOKUP_DATA = data;
+    EXPANDED_ORDER_CODE = keepExpandedCode;
+    renderLookupStage(data);
+  } catch (e) {}
+}
+
+// ==========================================================================
+// 1. MÀN HÌNH HƯỚNG DẪN BAN ĐẦU
+// ==========================================================================
+function renderEmptyGuide() {
+  const stage = document.getElementById('lk-stage');
+  if (!stage) return;
+  stage.innerHTML = `
+    <div class="lk-guide-wrap">
+      <div class="lk-guide-grid">
+        <div class="ck-step-card is-active" style="display:block;padding:22px">
+          <span class="bd" style="margin-bottom:10px">1. Tra cứu đa kênh</span>
+          <h3 style="margin:0 0 8px;font-size:16.5px">Mã đơn, Số điện thoại hoặc Email</h3>
+          <p class="sm" style="font-style:normal;margin:0;line-height:1.6">
+            Nhập <b>Mã đơn vé</b> để mở ngay chi tiết đơn đó, hoặc nhập <b>SĐT / Email</b> để xem danh sách tách riêng <b>Vé mua Online</b> và <b>Vé mua tại quầy</b>.
+          </p>
+        </div>
+
+        <div class="ck-step-card is-active" style="display:block;padding:22px">
+          <span class="bd ok" style="margin-bottom:10px">2. Đổi vé trước 48 giờ</span>
+          <h3 style="margin:0 0 8px;font-size:16.5px">Đổi ngày, dịch vụ & số lượng vé</h3>
+          <p class="sm" style="font-style:normal;margin:0;line-height:1.6">
+            Áp dụng cho vé Online trước tối thiểu <b>48 giờ</b> (đổi ngang giá hoặc cao hơn giá đơn cũ), thanh toán bổ sung chênh lệch qua VNPAY và cấp mã QR mới.
+          </p>
+        </div>
+
+        <div class="ck-step-card is-active" style="display:block;padding:22px">
+          <span class="bd no" style="margin-bottom:10px">3. Hủy vé trước 48 giờ</span>
+          <h3 style="margin:0 0 8px;font-size:16.5px">Giải phóng chỗ & Hoàn tiền 100%</h3>
+          <p class="sm" style="font-style:normal;margin:0;line-height:1.6">
+            Đơn vé Online hủy trước hạn 48 giờ sẽ tự động vô hiệu hóa mã QR cũ, giải phóng vé tồn kho và kích hoạt hoàn tiền 100%.
+          </p>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ==========================================================================
+// 2. BỘ LỌC TÌNH TRẠNG VÉ & THỜI GIAN (NGÀY / THÁNG / NĂM)
+// ==========================================================================
+function matchesOrderFilter(order) {
+  if (FILTER_STATE.status === 'cancelled' && !order.is_cancelled) return false;
+  if (FILTER_STATE.status === 'rescheduled' && !(order.reschedule_count > 0)) return false;
+  if (FILTER_STATE.status === 'checked_in' && order.checkin_state !== 'checked_in') return false;
+  if (FILTER_STATE.status === 'pending_checkin' && order.checkin_state !== 'pending_checkin') return false;
+
+  if (FILTER_STATE.day && Number(order.visit_day) !== Number(FILTER_STATE.day)) return false;
+  if (FILTER_STATE.month && Number(order.visit_month) !== Number(FILTER_STATE.month)) return false;
+  if (FILTER_STATE.year && Number(order.visit_year) !== Number(FILTER_STATE.year)) return false;
+
+  return true;
+}
+
+function updateFilterField(field, value) {
+  FILTER_STATE[field] = value;
+  PAGE_BY_CHANNEL = { ONLINE: 1, COUNTER: 1 };
+  EXPANDED_ORDER_CODE = '';
+  if (CURRENT_LOOKUP_DATA) renderLookupStage(CURRENT_LOOKUP_DATA);
+}
+
+function clearFiltersOnly() {
+  FILTER_STATE = { status: 'all', day: '', month: '', year: '' };
+  PAGE_BY_CHANNEL = { ONLINE: 1, COUNTER: 1 };
+  EXPANDED_ORDER_CODE = '';
+  if (CURRENT_LOOKUP_DATA) renderLookupStage(CURRENT_LOOKUP_DATA);
+}
+
+function switchChannelView(mode) {
+  CHANNEL_VIEW_MODE = mode;
+  EXPANDED_ORDER_CODE = '';
+  if (CURRENT_LOOKUP_DATA) renderLookupStage(CURRENT_LOOKUP_DATA);
+}
+
+function changeChannelPage(channel, pageNum) {
+  PAGE_BY_CHANNEL[channel] = pageNum;
+  EXPANDED_ORDER_CODE = '';
+  if (CURRENT_LOOKUP_DATA) renderLookupStage(CURRENT_LOOKUP_DATA);
+}
+
+function buildFilterToolbarHtml(allOrders, searchLabel, filteredTotal) {
+  const yearsSet = new Set([new Date().getFullYear()]);
+  allOrders.forEach(o => { if (o.visit_year) yearsSet.add(Number(o.visit_year)); });
+  const sortedYears = Array.from(yearsSet).sort((a, b) => b - a);
+
+  const dayOpts = ['<option value="">Ngày: Tất cả</option>'];
+  for (let d = 1; d <= 31; d++) {
+    const sel = String(FILTER_STATE.day) === String(d) ? 'selected' : '';
+    dayOpts.push(`<option value="${d}" ${sel}>Ngày ${String(d).padStart(2, '0')}</option>`);
+  }
+
+  const monthOpts = ['<option value="">Tháng: Tất cả</option>'];
+  for (let m = 1; m <= 12; m++) {
+    const sel = String(FILTER_STATE.month) === String(m) ? 'selected' : '';
+    monthOpts.push(`<option value="${m}" ${sel}>Tháng ${String(m).padStart(2, '0')}</option>`);
+  }
+
+  const yearOpts = ['<option value="">Năm: Tất cả</option>'];
+  sortedYears.forEach(y => {
+    const sel = String(FILTER_STATE.year) === String(y) ? 'selected' : '';
+    yearOpts.push(`<option value="${y}" ${sel}>Năm ${y}</option>`);
+  });
+
+  const hasActiveFilter = (
+    FILTER_STATE.status !== 'all' ||
+    FILTER_STATE.day !== '' ||
+    FILTER_STATE.month !== '' ||
+    FILTER_STATE.year !== ''
+  );
+
+  return `
+    <div class="lk-filter-bar">
+      <div class="lk-filter-info">
+        <span>Tìm thấy <b>${filteredTotal}/${allOrders.length} đơn vé</b> của ${searchLabel}</span>
+      </div>
+
+      <div class="lk-filter-controls">
+        <select class="lk-flt-sel" onchange="updateFilterField('status', this.value)" title="Lọc theo tình trạng vé">
+          <option value="all" ${FILTER_STATE.status === 'all' ? 'selected' : ''}>Tình trạng: Tất cả</option>
+          <option value="pending_checkin" ${FILTER_STATE.status === 'pending_checkin' ? 'selected' : ''}>Chờ check-in</option>
+          <option value="checked_in" ${FILTER_STATE.status === 'checked_in' ? 'selected' : ''}>Đã check-in</option>
+          <option value="rescheduled" ${FILTER_STATE.status === 'rescheduled' ? 'selected' : ''}>Đã đổi vé</option>
+          <option value="cancelled" ${FILTER_STATE.status === 'cancelled' ? 'selected' : ''}>Đã hủy vé</option>
+        </select>
+
+        <select class="lk-flt-sel" onchange="updateFilterField('day', this.value)" title="Lọc theo ngày sử dụng">${dayOpts.join('')}</select>
+        <select class="lk-flt-sel" onchange="updateFilterField('month', this.value)" title="Lọc theo tháng sử dụng">${monthOpts.join('')}</select>
+        <select class="lk-flt-sel" onchange="updateFilterField('year', this.value)" title="Lọc theo năm sử dụng">${yearOpts.join('')}</select>
+
+        ${hasActiveFilter ? `<button type="button" class="lk-flt-reset" onclick="clearFiltersOnly()">✕ Xóa lọc</button>` : ''}
+      </div>
+    </div>`;
+}
+
+// ==========================================================================
+// 3. RENDER KẾT QUẢ THEO LOẠI TRA CỨU (MÃ ĐƠN VS SĐT/EMAIL)
+// ==========================================================================
+function renderLookupStage(data) {
+  const stage = document.getElementById('lk-stage');
+  if (!stage) return;
+
+  if (!data || !data.ok) {
+    stage.innerHTML = `
+      <div class="lk-guide-wrap">
+        <div class="al er" style="max-width:680px;margin:0 auto;padding:16px 20px;font-size:14px">
+          ⚠ ${escapeHtml(data?.error || 'Không tìm thấy thông tin vé phù hợp.')}
+        </div>
+      </div>`;
+    return;
+  }
+
+  // CHẾ ĐỘ 1: TRA THEO MÃ ĐƠN -> CHỈ HIỆN THÔNG TIN CHI TIẾT ĐƠN ĐÓ
+  if (data.search_type === 'order_code' && data.single_order) {
+    stage.innerHTML = buildFullOrderDetailHtml(data.single_order, false);
+    return;
+  }
+
+  // CHẾ ĐỘ 2: TRA THEO SĐT / EMAIL
+  const rawOnline = data.online_orders || [];
+  const rawCounter = data.counter_orders || [];
+  const allOrders = [...rawOnline, ...rawCounter];
+
+  const onlineList = rawOnline.filter(matchesOrderFilter);
+  const counterList = rawCounter.filter(matchesOrderFilter);
+  const totalFiltered = onlineList.length + counterList.length;
+
+  const searchLabel = data.search_type === 'email'
+    ? `Email <b>${escapeHtml(data.query)}</b>`
+    : `SĐT <b>${escapeHtml(data.query)}</b>`;
+
+  const filterToolbarHtml = buildFilterToolbarHtml(allOrders, searchLabel, totalFiltered);
+
+  const isTooLongForOneScreen = (totalFiltered > 3 || onlineList.length > 2 || counterList.length > 2);
+  let effectiveMode = CHANNEL_VIEW_MODE;
+  if (effectiveMode === 'auto') {
+    if (isTooLongForOneScreen) {
+      effectiveMode = onlineList.length > 0 ? 'ONLINE' : 'COUNTER';
+    } else {
+      effectiveMode = 'overview';
+    }
+  }
+
+  const channelSwitcherHtml = `
+    <div class="lk-channel-nav">
+      <div class="lk-channel-tabs">
+        ${!isTooLongForOneScreen ? `
+          <button type="button" class="lk-ch-tab ${effectiveMode === 'overview' ? 'is-active' : ''}"
+                  onclick="switchChannelView('overview')">
+            Hiển thị cả 2 mục (${totalFiltered})
+          </button>` : ''}
+        <button type="button" class="lk-ch-tab is-online ${effectiveMode === 'ONLINE' ? 'is-active' : ''}"
+                onclick="switchChannelView('ONLINE')">
+          Vé mua Online (${onlineList.length} đơn)
+        </button>
+        <button type="button" class="lk-ch-tab is-counter ${effectiveMode === 'COUNTER' ? 'is-active' : ''}"
+                onclick="switchChannelView('COUNTER')">
+          Vé mua tại quầy (${counterList.length} đơn)
+        </button>
+      </div>
+      ${isTooLongForOneScreen
+        ? `<span class="sm" style="font-style:normal">Danh sách dài được tách thành trang riêng cho từng kênh để không phải cuộn trang</span>`
+        : `<span class="sm" style="font-style:normal">Bấm vào từng đơn vé để xem chi tiết & mã QR</span>`
+      }
+    </div>`;
+
+  if (effectiveMode === 'overview') {
+    const onlineBlockHtml = `
+      <section class="lk-channel-block is-online">
+        <div class="lk-block-head">
+          <h2 class="lk-channel-heading is-online">Vé mua Online (${onlineList.length} đơn)</h2>
+          ${onlineList.length > 0
+            ? `<button type="button" class="lk-open-page-btn" onclick="switchChannelView('ONLINE')">Mở trang riêng →</button>`
+            : ''}
+        </div>
+        ${onlineList.length > 0
+          ? `<div class="lk-acc-list">${onlineList.map(o => buildAccordionRowHtml(o)).join('')}</div>`
+          : `<p class="sm" style="font-style:normal;margin:8px 0 2px">Không có đơn vé mua Online phù hợp.</p>`
+        }
+      </section>`;
+
+    const counterBlockHtml = `
+      <section class="lk-channel-block is-counter">
+        <div class="lk-block-head">
+          <h2 class="lk-channel-heading is-counter">Vé mua tại quầy (${counterList.length} đơn)</h2>
+          ${counterList.length > 0
+            ? `<button type="button" class="lk-open-page-btn" onclick="switchChannelView('COUNTER')">Mở trang riêng →</button>`
+            : ''}
+        </div>
+        ${counterList.length > 0
+          ? `<div class="lk-acc-list">${counterList.map(o => buildAccordionRowHtml(o)).join('')}</div>`
+          : `<p class="sm" style="font-style:normal;margin:8px 0 2px">Không có đơn vé mua tại quầy phù hợp.</p>`
+        }
+      </section>`;
+
+    stage.innerHTML = `
+      <div class="lk-list-container">
+        ${filterToolbarHtml}
+        ${channelSwitcherHtml}
+        <div class="lk-blocks-fit">
+          ${onlineBlockHtml}
+          ${counterBlockHtml}
+        </div>
+      </div>`;
+    return;
+  }
+
+  const targetList = (effectiveMode === 'ONLINE') ? onlineList : counterList;
+  const channelTitle = (effectiveMode === 'ONLINE')
+    ? `Vé mua Online (${onlineList.length} đơn)`
+    : `Vé mua tại quầy (${counterList.length} đơn)`;
+  const channelCls = (effectiveMode === 'ONLINE') ? 'is-online' : 'is-counter';
+
+  const pageSize = EXPANDED_ORDER_CODE ? 1 : ITEMS_PER_CHANNEL_PAGE;
+  const totalPages = Math.max(1, Math.ceil(targetList.length / pageSize));
+  let curPage = PAGE_BY_CHANNEL[effectiveMode] || 1;
+  if (EXPANDED_ORDER_CODE) {
+    const expIdx = targetList.findIndex(o => o.order_code === EXPANDED_ORDER_CODE);
+    if (expIdx >= 0) curPage = expIdx + 1;
+  }
+  curPage = Math.min(Math.max(1, curPage), totalPages);
+  PAGE_BY_CHANNEL[effectiveMode] = curPage;
+
+  const startIdx = (curPage - 1) * pageSize;
+  const pageItems = targetList.slice(startIdx, startIdx + pageSize);
+
+  const paginationHtml = totalPages > 1 ? `
+    <div class="lk-pagination">
+      <button type="button" class="lk-pg-btn" ${curPage <= 1 ? 'disabled' : ''}
+              onclick="changeChannelPage('${effectiveMode}', ${curPage - 1})">
+        ← Trang trước
+      </button>
+      <span class="lk-pg-info">Trang <b>${curPage}</b> / ${totalPages}</span>
+      <button type="button" class="lk-pg-btn" ${curPage >= totalPages ? 'disabled' : ''}
+              onclick="changeChannelPage('${effectiveMode}', ${curPage + 1})">
+        Trang sau →
+      </button>
+    </div>` : '';
+
+  stage.innerHTML = `
+    <div class="lk-list-container">
+      ${filterToolbarHtml}
+      ${channelSwitcherHtml}
+      <section class="lk-channel-block ${channelCls} is-dedicated-page">
+        <div class="lk-block-head">
+          <h2 class="lk-channel-heading ${channelCls}">${channelTitle}</h2>
+          ${paginationHtml}
+        </div>
+        ${pageItems.length > 0
+          ? `<div class="lk-acc-list">${pageItems.map(o => buildAccordionRowHtml(o)).join('')}</div>`
+          : `<p class="sm" style="font-style:normal;margin:12px 0">Không có đơn vé nào trong mục này khớp với bộ lọc hiện tại.</p>`
+        }
+      </section>
+    </div>`;
+}
+
+function toggleAccordionOrder(orderCode) {
+  EXPANDED_ORDER_CODE = (EXPANDED_ORDER_CODE === orderCode) ? '' : orderCode;
+  if (CURRENT_LOOKUP_DATA) {
+    renderLookupStage(CURRENT_LOOKUP_DATA);
+  }
+}
+
+function buildAccordionRowHtml(order) {
+  const isOpen = (EXPANDED_ORDER_CODE === order.order_code);
+
+  let actionTimeBadge = '';
+  if (order.is_cancelled && order.cancelled_at) {
+    actionTimeBadge = `<span class="lk-time-tag is-cancel">Hủy lúc ${order.cancelled_at}</span>`;
+  } else if (order.reschedule_count > 0) {
+    actionTimeBadge = `<span class="lk-time-tag is-reschedule">Đã đổi (${order.reschedule_count} lần)${order.rescheduled_at ? ' · ' + order.rescheduled_at : ''}</span>`;
+  }
+
+  return `
+    <div class="lk-acc-item ${isOpen ? 'is-open' : ''}">
+      <button type="button" class="lk-acc-trigger" onclick="toggleAccordionOrder('${order.order_code}')" aria-expanded="${isOpen}">
+        <div class="lk-acc-main">
+          <span class="bd">${order.order_code}</span>
+          <strong style="font-size:13.5px;color:var(--tx)">Ngày đi: ${order.visit_date_display}</strong>
+          <span class="sm" style="font-style:normal">${escapeHtml(order.service_summary)}</span>
+          ${actionTimeBadge}
+        </div>
+        <div class="lk-acc-right">
+          <strong style="color:var(--red);font-size:14px">${order.total_fmt}</strong>
+          <span class="bd ${order.checkin_badge_cls}">${order.checkin_label}</span>
+          <span class="lk-acc-arrow">${isOpen ? '▲' : '▼'}</span>
+        </div>
+      </button>
+      ${isOpen ? `<div class="lk-acc-drawer">${buildFullOrderDetailHtml(order, true)}</div>` : ''}
+    </div>`;
+}
+
+// ==========================================================================
+// 4. KHỐI CHI TIẾT ĐẦY ĐỦ CỦA 1 ĐƠN VÉ
+// ==========================================================================
+function buildFullOrderDetailHtml(order, isInsideAccordion) {
+  const activeTab = ACTIVE_TAB_BY_ORDER[order.order_code] || 'reschedule';
+
+  const linesHtml = (order.lines || []).map(line => {
+    let subHtml = '';
+    if (line.reg_adult_qty > 0) subHtml += `<div class="ck-inv-subrow"><span>${line.reg_adult_qty} × Trên 1,4m (Giá tiêu chuẩn)</span></div>`;
+    if (line.qt_adult_qty > 0) subHtml += `<div class="ck-inv-subrow is-qt"><span>${line.qt_adult_qty} × Trên 1,4m (Ưu đãi CCCD Quảng Trị)</span></div>`;
+    if (line.child_qty > 0) subHtml += `<div class="ck-inv-subrow"><span>${line.child_qty} × Từ 1m – 1,4m</span></div>`;
+    if (line.infant_qty > 0) subHtml += `<div class="ck-inv-subrow"><span>${line.infant_qty} × Dưới 1m (Miễn phí vé vào)</span></div>`;
+    return `
+      <div class="ck-inv-group">
+        <div class="ck-inv-group-head">
+          <strong>${escapeHtml(line.service_name)}</strong>
+          <b>${line.line_total_fmt}</b>
+        </div>
+        ${subHtml}
+      </div>`;
+  }).join('');
+
+  const qrSectionHtml = order.is_qr_active
+    ? `
+      <img src="${order.qr_image_url}" alt="Mã QR ${order.qr_payload}" width="144" height="144">
+      <strong style="display:block;margin-top:6px;font-size:13px;color:var(--tx)">${order.qr_payload}</strong>
+      <span class="bd ok" style="margin-top:4px">Mã QR đang hiệu lực</span>
+      <small class="sm" style="font-style:normal;display:block;margin-top:6px;line-height:1.4">
+        Quét mã tại cổng check-in từ 09:00 – 21:00 ngày ${order.visit_date_display}.
+      </small>`
+    : `
+      <div class="lk-qr-disabled">
+        <span style="font-size:24px;display:block;margin-bottom:4px">⊘</span>
+        <strong>Mã QR không khả dụng</strong>
+        <small style="display:block;margin-top:4px;font-style:normal">
+          ${order.is_cancelled
+            ? 'Vé đã hủy và vô hiệu hóa.'
+            : (order.is_checked_in ? 'Vé đã hoàn tất check-in.' : 'Đơn chưa hoàn tất thanh toán.')}
+        </small>
+      </div>`;
+
+  const actionPanelHtml = order.policy.can_modify
+    ? `
+      <div class="al ok" style="margin:0 0 8px;padding:7px 10px;font-size:12px">
+        ✓ <strong>Đủ điều kiện đổi / hủy trực tuyến</strong> (${order.policy.time_left_label})
+      </div>
+
+      <div class="lk-action-tabs">
+        <button type="button" id="tab-res-${order.order_code}"
+                class="lk-act-tab ${activeTab === 'reschedule' ? 'is-active' : ''}"
+                onclick="switchOrderActionTab('${order.order_code}', 'reschedule')">
+          Đổi vé (Ngày / Dịch vụ / SL)
+        </button>
+        <button type="button" id="tab-can-${order.order_code}"
+                class="lk-act-tab ${activeTab === 'cancel' ? 'is-active' : ''}"
+                onclick="switchOrderActionTab('${order.order_code}', 'cancel')">
+          Hủy vé & Hoàn tiền
+        </button>
+      </div>
+
+      <!-- TAB ĐỔI VÉ SANG TRANG RIÊNG -->
+      <div id="pane-res-${order.order_code}" ${activeTab !== 'reschedule' ? 'hidden' : ''} style="margin-top:10px">
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:10px;font-size:12.5px;line-height:1.55;color:#334155">
+          <div style="font-weight:700;color:#0f172a;margin-bottom:4px">Chính sách đổi vé trực tuyến:</div>
+          <ul style="margin:0;padding-left:16px">
+            <li>Cho phép đổi <b>ngày sử dụng</b>, <b>gói dịch vụ Onsen</b> hoặc <b>số lượng vé</b>.</li>
+            <li>Chỉ áp dụng đổi ngang giá hoặc nâng cấp vé có giá trị cao hơn đơn hiện tại (<b>${order.total_fmt}</b>).</li>
+            <li>Thanh toán phần chênh lệch trực tuyến qua VNPAY và nhận mã QR mới qua email.</li>
+          </ul>
+        </div>
+
+        <a href="/doi-ve/${order.order_code}/" class="btn p" style="width:100%;text-align:center;display:block">
+          Đổi ngày, dịch vụ & số lượng vé →
+        </a>
+      </div>
+
+      <!-- TAB HỦY VÉ -->
+      <div id="pane-can-${order.order_code}" ${activeTab !== 'cancel' ? 'hidden' : ''} style="margin-top:8px">
+        <form onsubmit="submitCancelAjax(event, '${order.order_code}')">
+          <div class="lk-refund-note" style="font-size:12px;padding:8px 10px">
+            <strong>Chính sách hủy trước 48 giờ:</strong> Hoàn tiền <b>100%</b> (${order.total_fmt}) và vô hiệu hóa ngay mã QR cũ.
+          </div>
+
+          <label style="margin:6px 0;font-size:13px">Lý do hủy vé <span style="color:var(--red)">*</span>
+            <select id="reason-can-${order.order_code}" class="ck-inp" style="padding:6px 10px">
+              <option value="Thay đổi kế hoạch cá nhân / gia đình">Thay đổi kế hoạch cá nhân / gia đình</option>
+              <option value="Đặt nhầm ngày sử dụng hoặc gói dịch vụ">Đặt nhầm ngày sử dụng hoặc gói dịch vụ</option>
+              <option value="Lý do sức khỏe hoặc thời tiết">Lý do sức khỏe hoặc thời tiết</option>
+              <option value="Lý do khác">Lý do khác</option>
+            </select>
+          </label>
+
+          <label class="ck-agree ck-agree-box" style="margin:6px 0 8px;font-size:12px">
+            <input type="checkbox" id="chk-can-${order.order_code}" onchange="updateOrderActionBtns('${order.order_code}')">
+            <span>Tôi xác nhận hủy đơn vé <b>${order.order_code}</b> và hiểu thao tác này không thể hoàn tác.</span>
+          </label>
+
+          <button type="submit" class="btn p" id="btn-can-${order.order_code}" style="width:100%" disabled>
+            Xác nhận hủy vé ngay
+          </button>
+        </form>
+      </div>`
+    : `
+      <div class="al er" style="margin:0 0 10px;padding:10px 12px;font-size:12.5px;line-height:1.5">
+        ⚠ <strong>Không hỗ trợ đổi / hủy trực tuyến</strong><br>
+        ${escapeHtml(order.policy.reason)}
+      </div>
+      <p class="sm" style="font-style:normal;line-height:1.55;margin:0">
+        Tổng đài hỗ trợ khách hàng Bang Onsen: <b>1900 8888</b> (09:00 – 21:00 hằng ngày).
+      </p>`;
+
+  return `
+    <div class="lk-single-grid ${isInsideAccordion ? 'is-compact-drawer' : ''}">
+      <!-- CỘT THÔNG TIN ĐƠN & QR -->
+      <div class="lk-detail-card">
+        <div class="lk-card-head">
+          <div class="row" style="gap:6px;flex-wrap:wrap">
+            <span class="bd">${order.order_code}</span>
+            <span class="bd ${order.channel === 'ONLINE' ? 'ok' : ''}">${order.channel_label}</span>
+            <span class="bd ${order.checkin_badge_cls}">${order.checkin_label}</span>
+            ${order.reschedule_count > 0 ? `<span class="bd ok">Đã đổi vé (${order.reschedule_count} lần)</span>` : ''}
+          </div>
+          <strong style="font-size:18px;color:var(--red)">${order.total_fmt}</strong>
+        </div>
+
+        <div class="lk-detail-split">
+          <div class="lk-detail-scroll">
+            <div class="ck-inv-meta" style="margin-top:0">
+              <div><span>Ngày sử dụng:</span> <b>${order.visit_date_display} (${order.day_label})</b></div>
+              <div><span>Giờ mở cửa check-in:</span> <b>09:00 – 21:00 ngày ${order.visit_date_display}</b></div>
+              <div><span>Trạng thái check-in:</span> <b>${order.checkin_label}</b></div>
+              ${order.rescheduled_at ? `<div><span>Thời gian đổi vé gần nhất:</span> <b style="color:var(--ok)">${order.rescheduled_at}</b></div>` : ''}
+              ${order.cancelled_at ? `<div><span>Thời gian hủy vé:</span> <b style="color:var(--red)">${order.cancelled_at}</b></div>` : ''}
+              <div><span>Khách hàng:</span> <b>${escapeHtml(order.customer_name)} · ${escapeHtml(order.customer_phone)}</b></div>
+              ${order.customer_email ? `<div><span>Email nhận vé:</span> <b>${escapeHtml(order.customer_email)}</b></div>` : ''}
+              ${order.cccd ? `<div><span>CCCD khai báo:</span> <b>${escapeHtml(order.cccd)}</b></div>` : ''}
+            </div>
+
+            <div style="margin-top:8px">
+              <strong style="font-size:13px;display:block;margin-bottom:5px">Chi tiết dịch vụ (${order.total_tickets} vé)</strong>
+              <div class="lk-items-box">${linesHtml}</div>
+            </div>
+
+            ${order.note ? `<div class="lk-audit-note"><strong>Lịch sử & Ghi chú:</strong> <span>${escapeHtml(order.note)}</span></div>` : ''}
+          </div>
+
+          <div class="lk-qr-box">${qrSectionHtml}</div>
+        </div>
+      </div>
+
+      <!-- CỘT THAO TÁC ĐỔI VÉ & HỦY VÉ -->
+      <div class="lk-action-card">
+        <h3 style="margin:0 0 8px;font-size:16px">Đổi vé & Hủy vé</h3>
+        ${actionPanelHtml}
+      </div>
+    </div>`;
+}
+
+// ==========================================================================
+// 5. XỬ LÝ TƯƠNG TÁC TAB & HỦY VÉ QUA AJAX
+// ==========================================================================
+function switchOrderActionTab(orderCode, tabName) {
+  ACTIVE_TAB_BY_ORDER[orderCode] = tabName;
+  const isRes = (tabName === 'reschedule');
+  const resPane = document.getElementById(`pane-res-${orderCode}`);
+  const canPane = document.getElementById(`pane-can-${orderCode}`);
+  const resTab = document.getElementById(`tab-res-${orderCode}`);
+  const canTab = document.getElementById(`tab-can-${orderCode}`);
+  if (resPane) resPane.hidden = !isRes;
+  if (canPane) canPane.hidden = isRes;
+  if (resTab) resTab.classList.toggle('is-active', isRes);
+  if (canTab) canTab.classList.toggle('is-active', !isRes);
+}
+
+function updateOrderActionBtns(orderCode) {
+  const chkCan = document.getElementById(`chk-can-${orderCode}`);
+  const btnCan = document.getElementById(`btn-can-${orderCode}`);
+  if (btnCan) btnCan.disabled = !(chkCan && chkCan.checked);
+}
+
+async function submitCancelAjax(e, orderCode) {
+  e.preventDefault();
+  const csrf = document.getElementById('lk-csrf-token')?.value || '';
+  const postUrl = document.getElementById('lk-cancel-url')?.value || '/tra-cuu/huy-ve/';
+  const reason = document.getElementById(`reason-can-${orderCode}`)?.value || '';
+  const btn = document.getElementById(`btn-can-${orderCode}`);
+  if (btn) btn.disabled = true;
+
+  const formData = new URLSearchParams({
+    order_code: orderCode,
+    cancel_reason: reason,
+  });
+
+  try {
+    const resp = await fetch(postUrl, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrf,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData.toString(),
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.ok) {
+      showLookupBanner('er', data.error || 'Không thể hủy vé.');
+      if (btn) btn.disabled = false;
+      return;
+    }
+    showLookupBanner('ok', data.message);
+    await refreshLookupSilently(orderCode);
+  } catch (err) {
+    showLookupBanner('er', 'Lỗi kết nối máy chủ khi hủy vé.');
+    if (btn) btn.disabled = false;
+  }
+}
+
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&')
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '"');
+}
+</script>
+{% endblock %}

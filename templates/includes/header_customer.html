@@ -9,18 +9,22 @@
 
     <nav id="cnav">
       <div class="dd" onclick="this.classList.toggle('open')">
-        <a class="on" href="#flt">Đặt vé Onsen ▾</a>
+        <a style="cursor:pointer">Dịch vụ Onsen ▾</a>
         <div class="dm">
           {% for s in services %}
             <a href="{% url 'booking:onsen_detail' s.id %}">Gói dịch vụ {{ s.name }}</a>
+          {% empty %}
+            <a href="{% url 'booking:onsen_detail' 1 %}">Gói dịch vụ Onsen 1</a>
+            <a href="{% url 'booking:onsen_detail' 2 %}">Gói dịch vụ Onsen 2</a>
+            <a href="{% url 'booking:onsen_detail' 3 %}">Gói dịch vụ Onsen 3</a>
           {% endfor %}
         </div>
       </div>
 
-      <a href="{% url 'booking:lookup' %}">Tra cứu vé</a>
+      <a href="{% url 'booking:lookup_ticket' %}">Tra cứu vé</a>
 
       <div class="dd" onclick="this.classList.toggle('open')">
-        <a>Dịch vụ khác ▾</a>
+        <a style="cursor:pointer">Dịch vụ khác ▾</a>
         <div class="dm">
           <a href="{% url 'booking:info_page' 'rooms' %}">Phòng nghỉ</a>
           <a href="{% url 'booking:info_page' 'spa' %}">Spa & Trị liệu</a>
@@ -30,7 +34,7 @@
         </div>
       </div>
 
-      <a class="btn p sm" href="#flt">Đặt vé ngay</a>
+      <a class="btn p sm" href="{% url 'booking:book_form' %}">Đặt vé ngay</a>
     </nav>
   </div>
 </header>

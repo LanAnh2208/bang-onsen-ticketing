@@ -1,0 +1,542 @@
+{% extends 'booking/base_booking.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+  /* ================= HERO BANNER CHI TIẾT DỊCH VỤ ================= */
+  .od-hero {
+    position: relative;
+    background: #14171a;
+    color: #ffffff;
+    padding: 54px 0 58px;
+    overflow: hidden;
+  }
+  .od-hero-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.88;
+    filter: contrast(1.05) saturate(1.08);
+    transform: scale(1.02);
+  }
+  .od-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      95deg,
+      rgba(20, 18, 17, 0.56) 0%,
+      rgba(20, 18, 17, 0.28) 55%,
+      rgba(20, 18, 17, 0.12) 100%
+    );
+  }
+  .od-hero .w {
+    position: relative;
+    z-index: 2;
+  }
+  .od-crumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: rgba(255, 255, 255, 0.76);
+    margin-bottom: 14px;
+  }
+  .od-crumb a {
+    color: rgba(255, 255, 255, 0.86);
+    text-decoration: none;
+  }
+  .od-crumb a:hover {
+    color: #ffffff;
+    text-decoration: underline;
+  }
+  .od-pill {
+    display: inline-block;
+    background: #ffffff;
+    color: #2b2625;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 14px;
+    border-radius: 999px;
+    margin-bottom: 12px;
+    letter-spacing: 0.2px;
+  }
+  .od-hero h1 {
+    margin: 0 0 10px;
+    font-size: clamp(28px, 3.4vw, 38px);
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.2;
+  }
+  .od-hero-sub {
+    margin: 0;
+    max-width: 780px;
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  /* ================= BỐ CỤC 2 CỘT CHÍNH ================= */
+  .od-body {
+    padding: 34px 0 46px;
+  }
+  .od-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.68fr) minmax(320px, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+  .od-card {
+    background: #ffffff;
+    border: 1px solid #e6e8ec;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 6px 22px rgba(15, 23, 42, 0.04);
+  }
+
+  /* LƯỚI 3 ẢNH (2 TRÊN + 1 DƯỚI ĐÚNG MẪU) */
+  .od-gal {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .od-gal-item {
+    position: relative;
+    height: 178px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #eef1f5;
+    border: 1px solid #e2e8f0;
+    cursor: zoom-in;
+    margin: 0;
+  }
+  .od-gal-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.35s ease;
+  }
+  .od-gal-item:hover img {
+    transform: scale(1.04);
+  }
+  .od-gal-cap {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    background: rgba(17, 24, 39, 0.68);
+    backdrop-filter: blur(4px);
+    color: #ffffff;
+    font-size: 11.5px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+
+  /* MÔ TẢ & TIỆN ÍCH NỔI BẬT */
+  .od-desc {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #475569;
+    margin: 0 0 18px;
+  }
+  .od-sec-title {
+    margin: 0 0 12px;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--tx);
+  }
+  .od-bullets {
+    margin: 0 0 22px;
+    padding-left: 18px;
+    display: grid;
+    gap: 8px;
+    font-size: 14px;
+    color: #334155;
+    line-height: 1.55;
+  }
+  .od-bullets li::marker {
+    color: var(--red);
+  }
+  .od-policy-box {
+    background: #f4f6f8;
+    border: 1px solid #dfe4ea;
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 13.5px;
+    font-style: italic;
+    line-height: 1.6;
+    color: #475569;
+  }
+
+  /* CỘT PHẢI: BẢNG GIÁ VÉ STICKY */
+  .od-price-card {
+    position: sticky;
+    top: 84px;
+  }
+  .od-price-title {
+    margin: 0 0 14px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--tx);
+  }
+  .od-price-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    margin-bottom: 12px;
+  }
+  .od-price-table thead th {
+    background: #f1f4f7;
+    color: #1e293b;
+    font-weight: 700;
+    padding: 10px 10px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .od-price-table thead th:first-child {
+    border-top-left-radius: 8px;
+  }
+  .od-price-table thead th:last-child {
+    border-top-right-radius: 8px;
+  }
+  .od-price-table tbody td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #eef2f6;
+    color: #334155;
+    vertical-align: middle;
+  }
+  .od-price-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .od-price-table tbody tr.is-qt td:first-child {
+    color: var(--ok);
+    font-weight: 600;
+  }
+  .od-price-val {
+    font-weight: 600;
+    color: #0f172a;
+    white-space: nowrap;
+  }
+  .od-infant-note {
+    font-size: 12.5px;
+    color: #64748b;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 16px;
+  }
+  .od-book-btn {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 12px 18px;
+    font-size: 14.5px;
+    font-weight: 700;
+    border-radius: 10px;
+  }
+  .od-sub-links {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 12.5px;
+  }
+  .od-sub-links a {
+    color: #475569;
+    text-decoration: none;
+  }
+  .od-sub-links a:hover {
+    color: var(--red);
+    text-decoration: underline;
+  }
+
+  /* KHỐI GỢI Ý 2 GÓI ONSEN CÒN LẠI */
+  .od-other-sec {
+    padding: 36px 0 48px;
+    border-top: 1px solid #e6e8ec;
+  }
+  .od-other-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .od-other-card {
+    background: #ffffff;
+    border: 1px solid #e6e8ec;
+    border-radius: 14px;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+  }
+  .od-other-thumb {
+    height: 100%;
+    min-height: 156px;
+    background: #e2e8f0;
+  }
+  .od-other-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .od-other-info {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  /* MODAL PHÓNG TO ẢNH */
+  .od-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(15, 23, 42, 0.86);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .od-lightbox[hidden] {
+    display: none;
+  }
+  .od-lb-box {
+    max-width: 860px;
+    width: 100%;
+    background: #ffffff;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  }
+  .od-lb-box img {
+    width: 100%;
+    max-height: 72vh;
+    object-fit: cover;
+    display: block;
+  }
+  .od-lb-foot {
+    padding: 12px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  @media (max-width: 920px) {
+    .od-grid {
+      grid-template-columns: 1fr;
+    }
+    .od-price-card {
+      position: static;
+    }
+    .od-other-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 600px) {
+    .od-gal {
+      grid-template-columns: 1fr;
+    }
+    .od-other-card {
+      grid-template-columns: 1fr;
+    }
+    .od-other-thumb {
+      height: 170px;
+    }
+  }
+</style>
+
+<!-- 1. HERO BANNER GÓI DỊCH VỤ -->
+<section class="od-hero">
+  <div
+    class="od-hero-bg"
+    style="background-image: url('{% static hero_image_path %}');"
+    aria-hidden="true"
+  ></div>
+  <div class="w">
+    <nav class="od-crumb" aria-label="Điều hướng phân cấp">
+      <a href="{% url 'booking:home' %}">Trang chủ</a>
+      <span>/</span>
+      <span>Dịch vụ Onsen</span>
+      <span>/</span>
+      <strong style="color:#fff">{{ service.name }}</strong>
+    </nav>
+
+    <span class="od-pill">Gói dịch vụ</span>
+    <h1>{{ service.name }}</h1>
+    <p class="od-hero-sub">{{ summary_line }}</p>
+  </div>
+</section>
+
+<!-- 2. NỘI DUNG CHI TIẾT & BẢNG GIÁ VÉ -->
+<section class="sec-band band-mist od-body">
+  <div class="w">
+    <div class="od-grid">
+      <!-- CỘT TRÁI: LƯỚI 3 ẢNH + TIỆN ÍCH NỔI BẬT + LƯU Ý -->
+      <article class="od-card">
+        <div class="od-gal">
+          {% for img in gallery_items %}
+            <figure class="od-gal-item" onclick="openOnsenPhoto('{% static img.primary %}', '{{ img.fallback_url }}', '{{ img.caption|escapejs }}')">
+              <img
+                src="{% static img.primary %}"
+                onerror="this.onerror=null;this.src='{{ img.fallback_url }}';"
+                alt="{{ img.caption }}"
+              >
+              <figcaption class="od-gal-cap">{{ img.caption }}</figcaption>
+            </figure>
+          {% endfor %}
+        </div>
+
+        <p class="od-desc">{{ description_text }}</p>
+
+        <h2 class="od-sec-title">Tiện ích nổi bật</h2>
+        <ul class="od-bullets">
+          {% for item in highlights_list %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+
+        <div class="od-policy-box">
+          Trẻ em dưới 1m miễn phí vé vào. Giá ưu đãi dành cho người Quảng Trị (kiểm tra theo CCCD đầu số 044, 045 – vui lòng mang CCCD bản gốc khi check-in). Đổi/hủy vé online trước 48 giờ.
+        </div>
+      </article>
+
+      <!-- CỘT PHẢI: BẢNG GIÁ VÉ & ĐẶT VÉ -->
+      <aside class="od-card od-price-card" aria-labelledby="price-box-title">
+        <h2 class="od-price-title" id="price-box-title">Bảng giá vé</h2>
+
+        <table class="od-price-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>>1,4m</th>
+              <th>1–1,4m</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Công bố T2–T6</td>
+              <td class="od-price-val">{{ pricing.pub_wd_adult }}</td>
+              <td class="od-price-val">{{ pricing.pub_wd_child }}</td>
+            </tr>
+            <tr>
+              <td>Công bố T7–CN</td>
+              <td class="od-price-val">{{ pricing.pub_we_adult }}</td>
+              <td class="od-price-val">{{ pricing.pub_we_child }}</td>
+            </tr>
+            <tr class="is-qt">
+              <td>Quảng Trị T2–T6</td>
+              <td class="od-price-val">{{ pricing.qt_wd_adult }}</td>
+              <td class="od-price-val">{{ pricing.qt_wd_child }}</td>
+            </tr>
+            <tr class="is-qt">
+              <td>Quảng Trị T7–CN</td>
+              <td class="od-price-val">{{ pricing.qt_we_adult }}</td>
+              <td class="od-price-val">{{ pricing.qt_we_child }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="od-infant-note">
+          ✓ Trẻ em chiều cao <b>dưới 1m</b>: <b>Miễn phí</b> vé vào cổng.
+        </div>
+
+        <a class="btn p od-book-btn" href="{% url 'booking:book_form' %}?service={{ service.id }}">
+          Đặt vé gói này
+        </a>
+
+        <div class="od-sub-links">
+          <a href="{% url 'booking:home' %}#flt">Kiểm tra ngày còn vé</a>
+          <a href="{% url 'booking:lookup_ticket' %}">Tra cứu / Đổi vé</a>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- 3. CÁC GÓI DỊCH VỤ ONSEN KHÁC -->
+{% if other_services %}
+<section class="sec-band band-white od-other-sec" aria-labelledby="other-onsen-title">
+  <div class="w">
+    <div class="sec-head" style="margin-bottom:18px">
+      <div>
+        <span class="sec-sub">So sánh lựa chọn</span>
+        <h2 id="other-onsen-title" style="margin:0;font-size:21px">Các gói dịch vụ Onsen khác</h2>
+      </div>
+      <a class="btn s sm" href="{% url 'booking:book_form' %}">Đặt nhiều gói cùng lúc →</a>
+    </div>
+
+    <div class="od-other-grid">
+      {% for o in other_services %}
+        <article class="od-other-card">
+          <div class="od-other-thumb">
+            <img
+              src="{% static o.thumb_primary %}"
+              onerror="this.onerror=null;this.src='{{ o.thumb_fallback }}';"
+              alt="{{ o.name }}"
+            >
+          </div>
+          <div class="od-other-info">
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">
+                <strong style="font-size:16px;color:var(--tx)">{{ o.name }}</strong>
+                <span style="font-size:13px;font-weight:700;color:var(--red)">Từ {{ o.price_weekday_fmt }}</span>
+              </div>
+              <p class="sm" style="font-style:normal;margin:0;line-height:1.5">{{ o.short_desc }}</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <a class="btn s sm" href="{% url 'booking:onsen_detail' o.id %}">Xem chi tiết</a>
+              <a class="btn p sm" href="{% url 'booking:book_form' %}?service={{ o.id }}">Đặt vé</a>
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- MODAL XEM ẢNH PHÓNG TO -->
+<div class="od-lightbox" id="od-lightbox" hidden onclick="if(event.target===this) closeOnsenPhoto()">
+  <div class="od-lb-box">
+    <img id="od-lb-img" src="" alt="">
+    <div class="od-lb-foot">
+      <strong id="od-lb-cap" style="font-size:14px;color:var(--tx)"></strong>
+      <button type="button" class="btn s sm" onclick="closeOnsenPhoto()">Đóng ✕</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openOnsenPhoto(primarySrc, fallbackSrc, caption) {
+  const modal = document.getElementById('od-lightbox');
+  const img = document.getElementById('od-lb-img');
+  const cap = document.getElementById('od-lb-cap');
+  if (!modal || !img) return;
+  img.onerror = function() {
+    this.onerror = null;
+    this.src = fallbackSrc;
+  };
+  img.src = primarySrc;
+  img.alt = caption;
+  if (cap) cap.textContent = caption;
+  modal.hidden = false;
+}
+
+function closeOnsenPhoto() {
+  const modal = document.getElementById('od-lightbox');
+  if (modal) modal.hidden = true;
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeOnsenPhoto();
+});
+</script>
+{% endblock %}

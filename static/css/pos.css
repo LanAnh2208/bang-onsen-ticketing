@@ -1244,3 +1244,119 @@ body {
         flex: 1 1 100%;
     }
 }
+/* ================= ĐỒNG BỘ HEADER POS VỚI HEADER ADMIN ================= */
+.pos-header {
+    background-color: var(--pos-bg);
+    border-bottom: 1px solid var(--pos-gray);
+    padding: 0 32px;
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.pos-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--pos-text);
+}
+
+.pos-header-logo {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+
+.pos-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pos-nav-link {
+    text-decoration: none;
+    color: var(--pos-text);
+    font-weight: 600;
+    font-size: 15px;
+    padding: 10px 16px;
+    border-radius: 6px;
+    background: transparent;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.pos-nav-link:hover {
+    color: var(--pos-red);
+    background-color: rgba(188, 32, 47, 0.06);
+}
+
+.pos-nav-link.active {
+    color: var(--pos-red);
+    background-color: transparent;
+    border-bottom: 2px solid var(--pos-red);
+    border-radius: 6px 6px 0 0;
+}
+
+.pos-user-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.pos-staff-name {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--pos-text);
+}
+
+.pos-logout-btn {
+    background-color: var(--pos-red);
+    color: #FFFFFF;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    transition: background-color 0.2s ease;
+}
+
+.pos-logout-btn:hover {
+    background-color: var(--pos-red-hover);
+    color: #FFFFFF;
+}
+
+.pos-sticky {
+    top: 92px;
+}
+
+@media (max-width: 768px) {
+    .pos-header {
+        padding: 10px 16px;
+        flex-wrap: wrap;
+        height: auto;
+    }
+    .pos-nav {
+        width: 100%;
+        order: 3;
+        justify-content: center;
+    }
+    .pos-nav-link {
+        font-size: 13.5px;
+        padding: 8px 12px;
+    }
+    .pos-logout-btn {
+        font-size: 13.5px;
+        padding: 8px 14px;
+    }
+}

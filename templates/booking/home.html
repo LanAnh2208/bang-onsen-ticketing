@@ -1,4 +1,5 @@
 {% extends 'booking/base_booking.html' %}
+{% load static %}
 
 {% block structured_data %}
 <script type="application/ld+json">
@@ -43,11 +44,76 @@
 {% endblock %}
 
 {% block content %}
+  <style>
+    /* Đảm bảo ảnh trong khung .ph luôn hiển thị rõ nét, không bị lớp phủ sọc chéo của placeholder che mất */
+    .ph.has-img,
+    .ph:has(img) {
+      padding: 0 !important;
+      border: none !important;
+      background: #e9ecef !important;
+      position: relative;
+      overflow: hidden;
+    }
+    .ph.has-img::before,
+    .ph.has-img::after,
+    .ph:has(img)::before,
+    .ph:has(img)::after {
+      display: none !important;
+      content: none !important;
+      animation: none !important;
+    }
+    .ph.has-img img,
+    .ph:has(img) img {
+      position: relative !important;
+      z-index: 2 !important;
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      transition: transform 0.35s ease !important;
+    }
+    .eco-card:hover .ph.has-img img,
+    .gal-item:hover .ph.has-img img {
+      transform: scale(1.04);
+    }
+       
+    .hero {
+      background: #14171a !important;
+    }
+
+    .hero .hbg {
+      opacity: 0.88 !important; /* Tăng từ mức mờ cũ lên 88% để ảnh rõ nét */
+      filter: contrast(1.05) saturate(1.08);
+    }
+
+    .hero::before,
+    .hero::after {
+      background: linear-gradient(
+        90deg,
+        rgba(15, 18, 20, 0.52) 0%,
+        rgba(15, 18, 20, 0.24) 55%,
+        rgba(15, 18, 20, 0.08) 100%
+      ) !important;
+      opacity: 1 !important;
+    }
+
+    .hero h1,
+    .hero p,
+    .hero-trust span {
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+    }
+  </style>
+
   <!-- 1. HERO BANNER (NỀN KHOÁNG ẤM PARALLAX) -->
   <section class="hero">
-    <div class="hbg" role="img" aria-label="Toàn cảnh suối khoáng nóng tự nhiên Bang Onsen Spa & Resort Quảng Trị">
-      <span>📷 Khung ảnh nền chìm Parallax – Toàn cảnh suối khoáng nóng Bang Onsen</span>
-    </div>
+    <div
+      class="hbg"
+      role="img"
+      aria-label="Toàn cảnh suối khoáng nóng tự nhiên Bang Onsen Spa & Resort Quảng Trị"
+      style="background-image: url('{% static 'images/home/hero-banner.jpg' %}'); background-size: cover; background-position: center;"
+    ></div>
     <div class="w">
       <span class="hero-tag">♨ Nguồn khoáng nóng tự nhiên 105°C · Chuẩn nghỉ dưỡng Nhật Bản</span>
       <h1>Bang Onsen Spa & Resort – Tắm Onsen & suối khoáng nóng Quảng Trị</h1>
@@ -87,7 +153,7 @@
     </div>
   </div>
 
-  <!-- 3. BLOCK 1: BA GÓI DỊCH VỤ ONSEN (TRÀN ẢNH ĐẠI DIỆN + HOVER HIỆN NÚT, VỪA KHỚP 1 SCREEN) -->
+  <!-- 3. BLOCK 1: BA GÓI DỊCH VỤ ONSEN (GÁN ẢNH TỪ static/images/home/onsen-1..3.jpg) -->
   <section class="sec-band band-light sec-showcase" aria-labelledby="onsen-sec">
     <div class="w w-wide">
       <div class="sec-head showcase-head">
@@ -102,7 +168,13 @@
         {% for s in services %}
           <article class="onsen-tile" id="cd{{ s.id }}">
             <div class="onsen-tile-media">
-              {% if s.image_url %}
+              {% if forloop.counter == 1 %}
+                <img src="{% static 'images/home/onsen-1.jpg' %}" onerror="this.onerror=null;this.src='{% static 'images/home/onsen-1.png' %}';" alt="{{ s.name }}">
+              {% elif forloop.counter == 2 %}
+                <img src="{% static 'images/home/onsen-2.jpg' %}" onerror="this.onerror=null;this.src='{% static 'images/home/onsen-2.png' %}';" alt="{{ s.name }}">
+              {% elif forloop.counter == 3 %}
+                <img src="{% static 'images/home/onsen-3.jpg' %}" onerror="this.onerror=null;this.src='{% static 'images/home/onsen-3.png' %}';" alt="{{ s.name }}">
+              {% elif s.image_url %}
                 <img src="{{ s.image_url }}" alt="{{ s.name }}">
               {% else %}
                 <div class="onsen-tile-ph">
@@ -124,7 +196,7 @@
         {% endfor %}
       </div>
 
-      <!-- Bảng so sánh nhanh 3 gói Onsen (thu gọn để giữ bố cục trọn 1 màn hình) -->
+      <!-- Bảng so sánh nhanh 3 gói Onsen -->
       <div class="cmp-wrap showcase-cmp">
         <button type="button" class="cmp-toggle" onclick="toggleCompareTable(this)">
           <span>📊 Bảng so sánh nhanh tiện ích & giá vé 3 gói Onsen</span>
@@ -253,21 +325,27 @@
 
       <div class="g3">
         <article class="eco-card">
-          <figure class="ph" style="height:150px"><span>📷 Không gian Phòng nghỉ Bang Onsen</span></figure>
+          <figure class="ph has-img" style="height:150px">
+            <img src="{% static 'images/home/eco-rooms.jpg' %}" alt="Không gian Phòng nghỉ Bang Onsen">
+          </figure>
           <h3>Phòng nghỉ</h3>
           <p class="sm">{{ info_pages.rooms.desc }}</p>
           <a class="btn s sm" href="{% url 'booking:info_page' 'rooms' %}">Khám phá phòng nghỉ</a>
         </article>
 
         <article class="eco-card">
-          <figure class="ph" style="height:150px"><span>📷 Không gian Spa & Trị liệu</span></figure>
+          <figure class="ph has-img" style="height:150px">
+            <img src="{% static 'images/home/eco-spa.jpg' %}" alt="Không gian Spa & Trị liệu">
+          </figure>
           <h3>Spa & Trị liệu</h3>
           <p class="sm">{{ info_pages.spa.desc }}</p>
           <a class="btn s sm" href="{% url 'booking:info_page' 'spa' %}">Khám phá spa & trị liệu</a>
         </article>
 
         <article class="eco-card">
-          <figure class="ph" style="height:150px"><span>📷 Không gian Nhà hàng & Hội nghị</span></figure>
+          <figure class="ph has-img" style="height:150px">
+            <img src="{% static 'images/home/eco-dining.jpg' %}" alt="Không gian Nhà hàng & Hội nghị">
+          </figure>
           <h3>Nhà hàng & Hội nghị</h3>
           <p class="sm">{{ info_pages.dining.desc }}</p>
           <a class="btn s sm" href="{% url 'booking:info_page' 'dining' %}">Khám phá nhà hàng & hội nghị</a>
@@ -276,7 +354,7 @@
     </div>
   </section>
 
-  <!-- 6. BLOCK 4: ĐÁNH GIÁ KHÁCH HÀNG CHẠY NGANG LIÊN TỤC (NỀN TỐI #333333 - 30% TƯƠNG PHẢN) -->
+  <!-- 6. BLOCK 4: ĐÁNH GIÁ KHÁCH HÀNG CHẠY NGANG LIÊN TỤC (NỀN TỐI #333333) -->
   <section class="sec-band band-dark" id="review-sec" aria-labelledby="rev-title">
     <div class="w">
       <div class="rev-head">
@@ -286,7 +364,7 @@
         </div>
         <div class="rev-lead">
           <p>Lắng nghe cảm nhận từ du khách đã đặt vé trực tuyến và tận hưởng nguồn khoáng nóng tự nhiên 105°C tại Quảng Trị.</p>
-          <a href="#flt">Đặt vé trải nghiệm ngay →</a>
+          <a href="{% url 'booking:book_form' %}">Đặt vé trải nghiệm ngay →</a>
         </div>
       </div>
     </div>
@@ -294,7 +372,6 @@
     <!-- Dải thẻ 10 đánh giá chạy ngang liên tục -->
     <div class="mq-wrap" aria-label="Danh sách 10 đánh giá nổi bật từ khách hàng">
       <div class="mq-track">
-        <!-- Bộ 10 đánh giá chính -->
         <article class="rv-card accent-red">
           <div class="rv-top">
             <span class="rv-av">MA</span>
@@ -415,7 +492,7 @@
           </div>
         </article>
 
-        <!-- Bản sao liền mạch 10 đánh giá để vòng lặp chạy vô tận không giật -->
+        <!-- Bản sao liền mạch 10 đánh giá -->
         <article class="rv-card accent-red" aria-hidden="true">
           <div class="rv-top"><span class="rv-av">MA</span><span class="rv-tag">Khu Onsen 1</span></div>
           <p class="rv-quote">“Đặt vé online chỉ mất 2 phút là có mã QR gửi về email. Đến cổng quét mã vào thẳng, không phải xếp hàng mua vé như trước.”</p>
@@ -469,7 +546,7 @@
       </div>
     </div>
 
-    <!-- Dải thẻ từ khóa khen ngợi chạy ngược chiều bên dưới -->
+    <!-- Dải thẻ từ khóa khen ngợi chạy ngược chiều -->
     <div class="mq-pills-wrap" aria-hidden="true">
       <div class="mq-pills-track">
         <span class="mq-pill"><i class="dot-red"></i>Khoáng nóng tự nhiên 105°C</span>
@@ -480,7 +557,6 @@
         <span class="mq-pill"><i class="dot-ok"></i>Ẩm thực Set Menu Nhật – Việt</span>
         <span class="mq-pill"><i class="dot-red"></i>Kiến trúc chuẩn Nhật Bản</span>
         <span class="mq-pill"><i class="dot-br"></i>Đổi / Hủy vé trực tuyến 24/7</span>
-        <!-- Lặp lại liền mạch -->
         <span class="mq-pill"><i class="dot-red"></i>Khoáng nóng tự nhiên 105°C</span>
         <span class="mq-pill"><i class="dot-br"></i>Check-in QR không xếp hàng</span>
         <span class="mq-pill"><i class="dot-ok"></i>Ưu đãi CCCD Quảng Trị</span>
@@ -493,7 +569,7 @@
     </div>
   </section>
 
-<!-- 7. BLOCK 5: THƯ VIỆN 7 ẢNH (50% TRÁI + 50% PHẢI, DÀN TO VỪA KHỚP 1 SCREEN) -->
+  <!-- 7. BLOCK 5: THƯ VIỆN 7 ẢNH -->
   <section class="sec-band band-white sec-showcase" aria-labelledby="gal-sec">
     <div class="w w-wide">
       <div class="sec-head showcase-head">
@@ -506,38 +582,52 @@
 
       <div class="gal-mosaic">
         <div class="gal-item gal-main" onclick="previewGallery('Toàn cảnh suối khoáng nóng Bang Onsen', 'Nguồn khoáng nóng tự nhiên 105°C giữa núi rừng Quảng Trị')">
-          <figure class="ph"><span>📷 Ảnh nổi bật – Toàn cảnh suối khoáng nóng Bang Onsen</span></figure>
+          <figure class="ph has-img">
+            <img src="{% static 'images/home/gal-1.jpg' %}" alt="Toàn cảnh suối khoáng nóng Bang Onsen">
+          </figure>
           <span class="gal-cap">Toàn cảnh suối khoáng nóng Bang Onsen</span>
         </div>
 
         <div class="gal-sub-grid">
           <div class="gal-item" onclick="previewGallery('Bể Onsen ngoài trời', 'Bể khoáng nóng ngoài trời giữa rừng nguyên sinh')">
-            <figure class="ph"><span>📷 Bể Onsen ngoài trời</span></figure>
+            <figure class="ph has-img">
+              <img src="{% static 'images/home/gal-2.jpg' %}" alt="Bể Onsen ngoài trời">
+            </figure>
             <span class="gal-cap">Bể Onsen ngoài trời</span>
           </div>
 
           <div class="gal-item" onclick="previewGallery('Khu xông hơi trị liệu', 'Phòng xông hơi tinh dầu & xông đá muối chuẩn Nhật')">
-            <figure class="ph"><span>📷 Khu xông hơi trị liệu</span></figure>
+            <figure class="ph has-img">
+              <img src="{% static 'images/home/gal-3.jpg' %}" alt="Khu xông hơi trị liệu">
+            </figure>
             <span class="gal-cap">Khu xông hơi trị liệu</span>
           </div>
 
           <div class="gal-item" onclick="previewGallery('Bể ngâm khoáng trong nhà', 'Hệ thống bể khoáng nóng nhiệt độ phân tầng')">
-            <figure class="ph"><span>📷 Bể ngâm khoáng trong nhà</span></figure>
+            <figure class="ph has-img">
+              <img src="{% static 'images/home/gal-4.jpg' %}" alt="Bể ngâm khoáng trong nhà">
+            </figure>
             <span class="gal-cap">Bể khoáng trong nhà</span>
           </div>
 
           <div class="gal-item" onclick="previewGallery('Công viên nước khoáng', 'Khu vui chơi nước khoáng nóng ngoài trời')">
-            <figure class="ph"><span>📷 Công viên nước khoáng</span></figure>
+            <figure class="ph has-img">
+              <img src="{% static 'images/home/gal-5.jpg' %}" alt="Công viên nước khoáng">
+            </figure>
             <span class="gal-cap">Công viên nước</span>
           </div>
 
           <div class="gal-item" onclick="previewGallery('Ẩm thực Nhật – Việt', 'Set menu chuẩn Nhật và đặc sản địa phương')">
-            <figure class="ph"><span>📷 Ẩm thực Nhật – Việt</span></figure>
+            <figure class="ph has-img">
+              <img src="{% static 'images/home/gal-6.jpg' %}" alt="Ẩm thực Nhật – Việt">
+            </figure>
             <span class="gal-cap">Ẩm thực Nhật – Việt</span>
           </div>
 
           <div class="gal-item" onclick="previewGallery('Phòng nghỉ chuẩn Nhật', 'Không gian lưu trú tĩnh tại tối giản')">
-            <figure class="ph"><span>📷 Phòng nghỉ chuẩn Nhật</span></figure>
+            <figure class="ph has-img">
+              <img src="{% static 'images/home/gal-7.jpg' %}" alt="Phòng nghỉ chuẩn Nhật">
+            </figure>
             <span class="gal-cap">Phòng nghỉ chuẩn Nhật</span>
           </div>
         </div>
@@ -545,7 +635,7 @@
     </div>
   </section>
 
-  <!-- 8. BLOCK 6: CÂU HỎI THƯỜNG GẶP FAQ (NỀN SƯƠNG NHẸ #F1F4F6) -->
+  <!-- 8. BLOCK 6: CÂU HỎI THƯỜNG GẶP FAQ -->
   <section class="sec-band band-mist" aria-labelledby="faq-title">
     <div class="w">
       <div class="sec-head">
@@ -572,7 +662,7 @@
 
       <details class="faq-item">
         <summary>Tôi có thể đổi ngày đi hoặc hủy vé đã đặt online không?</summary>
-        <p>Quý khách có thể chủ động tra cứu vé bằng số điện thoại tại mục <a href="{% url 'booking:lookup' %}" style="color:var(--red);font-weight:600">Tra cứu vé</a> để thực hiện đổi vé (sang vé có giá trị bằng hoặc cao hơn) hoặc hủy vé online trước giờ sử dụng theo quy định của khu nghỉ dưỡng.</p>
+        <p>Quý khách có thể chủ động tra cứu vé bằng số điện thoại tại mục <a href="{% url 'booking:lookup_ticket' %}" style="color:var(--red);font-weight:600">Tra cứu vé</a> để thực hiện đổi vé (sang vé có giá trị bằng hoặc cao hơn) hoặc hủy vé online trước giờ sử dụng theo quy định của khu nghỉ dưỡng.</p>
       </details>
     </div>
   </section>

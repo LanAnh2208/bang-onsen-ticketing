@@ -25,7 +25,7 @@ PAYMENT_METHOD_CHOICES = [
     ('CASH', 'Tiền mặt'),
     ('BANK_TRANSFER', 'Chuyển khoản ngân hàng / VietQR'),
     ('CARD', 'Thẻ ngân hàng / Máy POS'),
-    ('E_WALLET', 'Ví điện tử (VNPAY / MoMo)'),
+    ('E_WALLET', 'Cổng thanh toán VNPAY'),
 ]
 
 
@@ -218,6 +218,7 @@ class Order(models.Model):
     TICKET_STATUS_CHOICES = [
         ('UNUSED', 'Chưa sử dụng'),
         ('USED', 'Đã check-in / Đã xuất vé giấy'),
+        ('EXPIRED', 'Quá hạn check-in'),
         ('VOID', 'Đã hủy / Vô hiệu'),
     ]
 
@@ -259,12 +260,45 @@ class Order(models.Model):
         return False
 
     @property
-    def can_cancel_or_exchange(self):
+    def is_checkin_overdue(self):
+        """Đơn online đã thanh toán nhưng đã qua ngày sử dụng mà chưa check-in."""
+        if self.channel == 'COUNTER':
+            return False
+        if self.ticket_status == 'EXPIRED':
+            return True
         return (
             self.order_status == 'Paid'
             and self.ticket_status == 'UNUSED'
+            and self.visit_date < timezone.localdate()
+        )
+
+    @property
+    def effective_ticket_status(self):
+        if self.channel == 'COUNTER':
+            return 'USED'
+        if self.is_checkin_overdue:
+            return 'EXPIRED'
+        return self.ticket_status
+
+    @property
+    def can_cancel_or_exchange(self):
+        return (
+            self.channel == 'ONLINE'
+            and self.order_status == 'Paid'
+            and self.effective_ticket_status == 'UNUSED'
             and self.visit_date >= timezone.localdate()
         )
+
+    @classmethod
+    def sync_overdue_tickets(cls):
+        """Đồng bộ hàng loạt các đơn online đã thanh toán nhưng quá ngày sử dụng sang trạng thái EXPIRED."""
+        today = timezone.localdate()
+        return cls.objects.filter(
+            channel='ONLINE',
+            order_status='Paid',
+            ticket_status='UNUSED',
+            visit_date__lt=today
+        ).update(ticket_status='EXPIRED')
 
     def issue_qr_ticket(self):
         if not self.ticket_id:
@@ -272,16 +306,27 @@ class Order(models.Model):
         if not self.qr_code:
             self.qr_code = f"BOS-{self.order_id}-{uuid.uuid4().hex[:6].upper()}"
         self.order_status = 'Paid'
-        self.ticket_status = 'UNUSED'
+        self.ticket_status = 'USED' if self.channel == 'COUNTER' else 'UNUSED'
 
     def save(self, *args, **kwargs):
         if not self.order_id:
             date_part = timezone.localtime().strftime('%y%m%d')
             self.order_id = f"ORD-{date_part}-{uuid.uuid4().hex[:6].upper()}"
+        if self.channel == 'COUNTER':
+            self.ticket_status = 'USED'
+            if not self.checked_in_at:
+                self.checked_in_at = self.created_time or timezone.now()
+        elif (
+            self.order_status == 'Paid'
+            and self.ticket_status == 'UNUSED'
+            and self.visit_date
+            and self.visit_date < timezone.localdate()
+        ):
+            self.ticket_status = 'EXPIRED'
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.order_id} ({self.get_channel_display()} - {self.order_status})"
+        return f"{self.order_id} ({self.get_channel_display()} - {self.order_status} / {self.effective_ticket_status})"
 
 
 class OrderItem(models.Model):

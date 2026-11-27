@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kết quả thanh toán VNPAY – Bang Onsen Spa & Resort</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .box {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 32px 28px;
+      max-width: 460px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .badge.ok { background: #dcfce7; color: #166534; }
+    .badge.er { background: #fee2e2; color: #991b1b; }
+    h1 { margin: 0 0 10px; font-size: 20px; }
+    p { margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.55; }
+    .btn {
+      display: inline-block;
+      background: #b91c1c;
+      color: #fff;
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    {% if status == 'success' %}
+      <span class="badge ok">✓ Thanh toán thành công</span>
+      <h1>Giao dịch VNPAY hoàn tất</h1>
+      <p>{{ message }} Hệ thống đang chuyển về trang đặt vé (hoặc bạn có thể đóng tab này).</p>
+      <a href="{{ lookup_url }}" class="btn">Xem chi tiết vé ngay →</a>
+    {% else %}
+      <span class="badge er">✕ Thanh toán chưa thành công</span>
+      <h1>Giao dịch VNPAY chưa hoàn tất</h1>
+      <p>{{ message }} Vui lòng đóng tab này để quay lại trang đặt vé chọn thanh toán lại hoặc về trang chủ.</p>
+      <button type="button" class="btn" onclick="closeAndReturn()">Đóng tab này</button>
+    {% endif %}
+  </div>
+
+  <script id="vnpay-callback-data" type="application/json">{{ payload_json|safe }}</script>
+  <script>
+    const PAYLOAD = JSON.parse(document.getElementById('vnpay-callback-data').textContent || '{}');
+
+    function notifyBookingTabAndClose() {
+      // 1. Gửi qua BroadcastChannel (hoạt động xuyên tab cùng origin kể cả khi COOP ngắt window.opener)
+      try {
+        if ('BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('bangonsen_vnpay_channel');
+          bc.postMessage(PAYLOAD);
+          setTimeout(() => bc.close(), 500);
+        }
+      } catch (e) {}
+
+      // 2. Gửi dự phòng qua localStorage
+      try {
+        localStorage.setItem('bangonsen_vnpay_result', JSON.stringify(PAYLOAD));
+      } catch (e) {}
+
+      // 3. Gửi qua window.opener nếu trình duyệt vẫn giữ tham chiếu
+      try {
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage(PAYLOAD, window.location.origin);
+          window.opener.focus();
+        }
+      } catch (e) {}
+
+      // 4. Tự động đóng tab VNPAY
+      try { window.close(); } catch (e) {}
+      setTimeout(() => {
+        try { window.close(); } catch (e) {}
+      }, 300);
+    }
+
+    function closeAndReturn() {
+      try { window.close(); } catch (e) {}
+      if (PAYLOAD.fallback_url) {
+        window.location.href = PAYLOAD.fallback_url;
+      }
+    }
+
+    notifyBookingTabAndClose();
+  </script>
+</body>
+</html>

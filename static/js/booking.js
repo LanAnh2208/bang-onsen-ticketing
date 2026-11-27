@@ -336,7 +336,7 @@ function proceedToBooking() {
     date: dateVal,
     items: itemsParam,
   });
-  window.location.href = `/khai-bao-thong-tin/?${params.toString()}`;
+  window.location.href = `/dat-ve/?${params.toString()}`;
 }
 
 // ==========================================================================

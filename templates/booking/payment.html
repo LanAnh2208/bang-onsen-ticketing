@@ -1,0 +1,90 @@
+{% extends 'booking/base_booking.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="w ck-page" style="max-width:760px">
+    <div class="ck-card" style="text-align:center;padding:32px 24px">
+      {% if messages %}
+        {% for message in messages %}
+          <div class="al {% if 'error' in message.tags %}er{% else %}ok{% endif %}" style="margin-bottom:16px;text-align:left">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <span class="bd" style="margin-bottom:10px">Chờ hoàn tất thanh toán VNPAY</span>
+      <h1 style="margin:6px 0 8px;font-size:25px">Đơn đặt vé #{{ order.order_id }}</h1>
+      <p class="sm" style="font-style:normal;max-width:540px;margin:0 auto 18px">
+        Đơn hàng của quý khách đang được giữ chỗ trong 15 phút. Nhấn nút bên dưới để tiếp tục thanh toán qua cổng VNPAY.
+      </p>
+
+      <div class="pay-timer-box">
+        <span>Thời gian giữ vé còn lại:</span>
+        <strong id="hold-countdown" data-expires="{{ order.expires_at_ts }}">15:00</strong>
+      </div>
+
+      <div style="text-align:left;max-width:560px;margin:20px auto 0">
+        <div class="ck-sum-meta">
+          <div><span>Mã đơn hàng:</span> <b>{{ order.order_id }}</b></div>
+          <div><span>Khách hàng:</span> <b>{{ order.full_name }} ({{ order.phone }})</b></div>
+          <div><span>Email nhận vé QR:</span> <b>{{ order.email }}</b></div>
+          <div><span>Ngày sử dụng:</span> <b>{{ order.visit_date_display }} · {{ order.day_label }}</b></div>
+        </div>
+
+        <div class="ck-sum-lines" style="margin-top:12px">
+          {% for line in order.lines %}
+            <div class="ck-sum-item">
+              <div>
+                <strong>{{ line.service_name }}</strong>
+                <small style="font-style:normal;display:block">
+                  {% if line.regular_adult_qty > 0 %}Người lớn: {{ line.regular_adult_qty }} · {% endif %}
+                  {% if line.qt_adult_qty > 0 %}Ưu đãi Quảng Trị: {{ line.qt_adult_qty }} · {% endif %}
+                  {% if line.child_qty > 0 %}Trẻ em (1–1,4m): {{ line.child_qty }} · {% endif %}
+                  {% if line.infant_qty > 0 %}Trẻ em (<1m miễn phí): {{ line.infant_qty }}{% endif %}
+                </small>
+              </div>
+              <b>{{ line.line_total_fmt }}</b>
+            </div>
+          {% endfor %}
+        </div>
+
+        {% if order.discount_amount > 0 %}
+          <div class="ck-sum-row" style="margin-top:10px">
+            <span style="color:var(--ok)">Giảm giá Voucher</span>
+            <b style="color:var(--ok)">-{{ order.discount_fmt }}</b>
+          </div>
+        {% endif %}
+
+        <div class="ck-sum-total" style="margin-top:14px">
+          <span>Tổng thanh toán</span>
+          <strong>{{ order.total_fmt }}</strong>
+        </div>
+
+        <div class="row" style="margin-top:20px;justify-content:space-between">
+          <a href="{% url 'booking:home' %}" class="btn s">Về trang chủ</a>
+          {% if not order.is_expired and order.order_status == 'New' %}
+            <a href="{% url 'booking:retry_vnpay' order.order_id %}" class="btn p">
+              Thanh toán lại qua VNPAY →
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const el = document.getElementById('hold-countdown');
+      if (!el) return;
+      const exp = Number(el.dataset.expires || 0) * 1000;
+      function tick() {
+        const diff = Math.max(0, Math.floor((exp - Date.now()) / 1000));
+        const m = String(Math.floor(diff / 60)).padStart(2, '0');
+        const s = String(diff % 60).padStart(2, '0');
+        el.textContent = diff > 0 ? `${m}:${s}` : 'Đã hết hạn giữ vé';
+      }
+      tick();
+      setInterval(tick, 1000);
+    })();
+  </script>
+{% endblock %}

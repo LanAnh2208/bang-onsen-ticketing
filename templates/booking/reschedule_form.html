@@ -1,0 +1,600 @@
+{% extends 'booking/base_booking.html' %}
+{% load static %}
+
+{% block extra_css %}
+  {{ block.super }}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    body, button, input, select, textarea,
+    .ck-viewport, .ck-viewport * {
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    }
+    .rs-seg-tabs {
+      display: inline-flex;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      gap: 4px;
+    }
+    .rs-seg-btn {
+      border: none;
+      padding: 8px 16px;
+      border-radius: 9px;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .15s ease;
+      background: transparent;
+      color: #475569;
+    }
+    .rs-seg-btn.is-active {
+      background: #ffffff;
+      color: var(--red);
+      box-shadow: 0 1px 4px rgba(15, 23, 42, .08);
+    }
+    .rs-btn-cancel-red {
+      border: 1.5px solid var(--red) !important;
+      color: var(--red) !important;
+      background: #ffffff !important;
+      font-weight: 600;
+    }
+    .rs-btn-cancel-red:hover {
+      background: #fff5f5 !important;
+    }
+    .rs-info-grid-top {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .rs-info-grid-bot {
+      display: grid;
+      grid-template-columns: 1fr 1.25fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .rs-rep-service-box {
+      background: #eefaf1;
+      border: 1px solid #bce3c6;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-top: 12px;
+    }
+    .rs-rep-service-box label {
+      display: block;
+      margin: 0;
+      font-size: 13px;
+      font-weight: 700;
+      color: #1f2937;
+    }
+    .rs-rep-service-box select {
+      margin-top: 6px;
+      width: 100%;
+      background: #ffffff;
+      font-weight: 500;
+      color: #0f172a;
+    }
+    .rs-companion-divider {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px dashed #cbd5e1;
+    }
+    .rs-companion-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .rs-companion-row {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr auto;
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .rs-del-cccd-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      border: 1px solid #fca5a5;
+      background: #fff5f5;
+      color: var(--red);
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: .15s;
+    }
+    .rs-del-cccd-btn:hover {
+      background: #fee2e2;
+    }
+
+    /* KHUNG TRẠNG THÁI THANH TOÁN BỔ SUNG */
+    .rs-pay-status-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 28px 24px;
+      text-align: center;
+      box-shadow: 0 6px 24px rgba(15, 23, 42, .05);
+    }
+    .rs-spinner {
+      width: 52px;
+      height: 52px;
+      border: 4px solid #fee2e2;
+      border-top-color: var(--red);
+      border-radius: 50%;
+      margin: 0 auto 14px;
+      animation: rsSpin .85s linear infinite;
+    }
+    @keyframes rsSpin {
+      to { transform: rotate(360deg); }
+    }
+    .rs-status-icon-ok {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #dcfce7;
+      color: var(--ok);
+      font-size: 28px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 14px;
+    }
+    .rs-status-icon-er {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #fee2e2;
+      color: var(--red);
+      font-size: 28px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 14px;
+    }
+    .rs-pay-meta-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin: 16px auto;
+      max-width: 480px;
+      text-align: left;
+      font-size: 13.5px;
+    }
+    .rs-pay-meta-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      gap: 10px;
+    }
+    @media (max-width: 900px) {
+      .rs-info-grid-top,
+      .rs-info-grid-bot,
+      .rs-companion-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="ck-viewport">
+  <!-- THANH TIÊU ĐỀ TRÊN CÙNG -->
+  <div class="ck-top-bar">
+    <div class="w w-wide ck-top-inner">
+      <a href="{% url 'booking:lookup_ticket' %}?q={{ order.order_code }}" class="ck-back">← Quay lại tra cứu vé</a>
+
+      <div class="row" style="gap:8px;justify-content:center">
+        <span class="bd">Đơn #{{ order.order_code }}</span>
+        <strong style="font-size:15px">Đổi vé & Cập nhật thông tin khách hàng</strong>
+      </div>
+
+      <div class="ck-hold-note" style="color:var(--ok)">✓ Đủ điều kiện đổi trước 48h</div>
+    </div>
+  </div>
+
+  <!-- KHUNG 2 CỘT ĐỒNG BỘ GIAO DIỆN TRANG ĐẶT VÉ -->
+  <form method="post" id="reschedule-form" class="w w-wide ck-workspace" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="visit_date" id="hidden-visit-date" value="{{ target_date_iso }}">
+    <input type="hidden" id="hidden-orig-date" value="{{ orig_date_iso }}">
+    <input type="hidden" id="hidden-order-code" value="{{ order.order_code }}">
+    <input type="hidden" name="qt_cccd_list" id="hidden-qt-cccd-list" value="">
+
+    <div class="ck-grid-fixed">
+      <!-- ==================== CỘT TRÁI ==================== -->
+      <div class="ck-left-col">
+        {% if error_msg %}
+          <div class="al er" role="alert" style="margin:0 0 8px;padding:7px 12px;font-size:12.5px">
+            ⚠ {{ error_msg }}
+          </div>
+        {% endif %}
+
+        <!-- THẺ NHẬP THÔNG TIN ĐỔI VÉ (ẨN KHI CHUYỂN SANG TRẠNG THÁI CHỜ THANH TOÁN BỔ SUNG) -->
+        <section class="ck-step-card is-active" id="rs-editor-card">
+          <!-- THANH CHUYỂN 2 TAB & CHỌN NGÀY -->
+          <div class="ck-pane-head" style="gap:10px;flex-wrap:wrap">
+            <div class="rs-seg-tabs">
+              <button type="button" id="rs-tab-btn-tickets"
+                      class="rs-seg-btn {% if active_tab != 'info' %}is-active{% endif %}"
+                      onclick="switchRescheduleTab('tickets')">
+                1. Điều chỉnh vé
+              </button>
+              <button type="button" id="rs-tab-btn-info"
+                      class="rs-seg-btn {% if active_tab == 'info' %}is-active{% endif %}"
+                      onclick="switchRescheduleTab('info')">
+                2. Điều chỉnh thông tin
+              </button>
+            </div>
+
+            <div class="ck-date-picker-box" id="rs-date-box-wrap">
+              <label for="rs-date-input" style="margin:0;font-size:12.5px">Ngày mới:</label>
+              <input type="date" id="rs-date-input" min="{{ min_date_iso }}" value="{{ target_date_iso }}"
+                     onchange="changeRescheduleDate(this.value)">
+              <span class="bd" id="rs-day-badge">{{ day_label }}</span>
+            </div>
+          </div>
+
+          <div class="ck-pane-body" style="display:flex;flex-direction:column;justify-content:space-between;gap:10px">
+            <!-- ==================== TAB 1: ĐIỀU CHỈNH NGÀY, GÓI DỊCH VỤ & SỐ LƯỢNG VÉ ==================== -->
+            <div id="rs-tab-pane-tickets" {% if active_tab == 'info' %}hidden style="display:none"{% endif %}>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;gap:8px;flex-wrap:wrap">
+                <div>
+                  <span class="sec-sub" style="margin-bottom:2px">BƯỚC 1 / 2</span>
+                  <h2 style="margin:0;font-size:19px">Chọn ngày sử dụng & gói dịch vụ Onsen</h2>
+                </div>
+                <span class="sm" style="font-style:normal">Chỉ áp dụng đổi ngang giá hoặc cao hơn đơn cũ ({{ old_total_fmt }})</span>
+              </div>
+
+              <div class="ck-compact-grid">
+                {% for pkg in service_packages %}
+                  <article class="ck-mini-card {% if pkg.init_adult or pkg.init_child or pkg.init_infant %}is-picked{% endif %} {% if not pkg.is_active or pkg.available <= 0 %}is-disabled{% endif %}"
+                           data-pkg-id="{{ pkg.id }}">
+                    <input type="hidden" name="adult_qty_{{ pkg.id }}" id="adult_qty_{{ pkg.id }}" value="{{ pkg.init_adult }}">
+                    <input type="hidden" name="child_qty_{{ pkg.id }}" id="child_qty_{{ pkg.id }}" value="{{ pkg.init_child }}">
+                    <input type="hidden" name="infant_qty_{{ pkg.id }}" id="infant_qty_{{ pkg.id }}" value="{{ pkg.init_infant }}">
+
+                    <div class="ck-mini-head">
+                      <div class="row" style="gap:6px">
+                        <span class="bd">{{ pkg.name }}</span>
+                        {% if not pkg.is_active %}
+                          <span class="bd no" id="avail-badge-{{ pkg.id }}">Tạm ngừng</span>
+                        {% elif pkg.available <= 0 %}
+                          <span class="bd no" id="avail-badge-{{ pkg.id }}">Hết vé</span>
+                        {% else %}
+                          <span class="bd ok" id="avail-badge-{{ pkg.id }}">Còn {{ pkg.available }} vé</span>
+                        {% endif %}
+                      </div>
+                      <span class="ck-auto-total" id="pkg-auto-total-{{ pkg.id }}">
+                        Tổng: <b>{{ pkg.init_adult|add:pkg.init_child|add:pkg.init_infant }}</b> vé
+                      </span>
+                    </div>
+
+                    {% if pkg.is_active and pkg.available > 0 %}
+                      <div class="ck-mini-rows">
+                        <div class="ck-mini-row">
+                          <div class="ck-mini-lbl">
+                            <strong>Trên 1,4m</strong>
+                            <span class="ck-mini-price" id="price-adult-{{ pkg.id }}">{{ pkg.price_adult_fmt }}</span>
+                          </div>
+                          <div class="st">
+                            <button type="button" onclick="adjustRescheduleTicket({{ pkg.id }}, 'adult', -1)">−</button>
+                            <b id="disp-adult-{{ pkg.id }}">{{ pkg.init_adult }}</b>
+                            <button type="button" onclick="adjustRescheduleTicket({{ pkg.id }}, 'adult', 1)">+</button>
+                          </div>
+                        </div>
+
+                        <div class="ck-mini-row">
+                          <div class="ck-mini-lbl">
+                            <strong>Từ 1m – 1,4m</strong>
+                            <span class="ck-mini-price" id="price-child-{{ pkg.id }}">{{ pkg.price_child_fmt }}</span>
+                          </div>
+                          <div class="st">
+                            <button type="button" onclick="adjustRescheduleTicket({{ pkg.id }}, 'child', -1)">−</button>
+                            <b id="disp-child-{{ pkg.id }}">{{ pkg.init_child }}</b>
+                            <button type="button" onclick="adjustRescheduleTicket({{ pkg.id }}, 'child', 1)">+</button>
+                          </div>
+                        </div>
+
+                        <div class="ck-mini-row">
+                          <div class="ck-mini-lbl">
+                            <strong>Dưới 1m</strong>
+                            <span class="ck-mini-free">Miễn phí vé vào</span>
+                          </div>
+                          <div class="st">
+                            <button type="button" onclick="adjustRescheduleTicket({{ pkg.id }}, 'infant', -1)">−</button>
+                            <b id="disp-infant-{{ pkg.id }}">{{ pkg.init_infant }}</b>
+                            <button type="button" onclick="adjustRescheduleTicket({{ pkg.id }}, 'infant', 1)">+</button>
+                          </div>
+                        </div>
+                      </div>
+                    {% else %}
+                      <div class="ck-mini-closed">
+                        Gói dịch vụ này hiện không khả dụng trong ngày đã chọn.
+                      </div>
+                    {% endif %}
+                  </article>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- ==================== TAB 2: ĐIỀU CHỈNH THÔNG TIN ==================== -->
+            <div id="rs-tab-pane-info" {% if active_tab != 'info' %}hidden style="display:none"{% endif %}>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;gap:8px;flex-wrap:wrap">
+                <div>
+                  <span class="sec-sub" style="margin-bottom:2px">BƯỚC 2 / 2</span>
+                  <h2 style="margin:0;font-size:19px">Thông tin khách hàng & Ưu đãi CCCD Quảng Trị</h2>
+                </div>
+                <span class="sm" style="font-style:normal">Vé điện tử QR mới sẽ gửi qua Email</span>
+              </div>
+
+              <!-- HÀNG 1: HỌ TÊN | SỐ ĐIỆN THOẠI | SỐ CCCD (12 SỐ) -->
+              <div class="rs-info-grid-top">
+                <label style="margin:0;font-size:13px">Họ và tên khách hàng <span style="color:var(--red)">*</span>
+                  <input type="text" class="ck-inp" name="full_name" id="rs-cust-name"
+                         value="{{ form_customer.full_name }}" placeholder="Nguyễn Văn An"
+                         oninput="renderRescheduleSummary()" required>
+                </label>
+
+                <label style="margin:0;font-size:13px">Số điện thoại <span style="color:var(--red)">*</span>
+                  <input type="tel" class="ck-inp" name="phone" id="rs-cust-phone" maxlength="10"
+                         value="{{ form_customer.phone }}" placeholder="0912345678"
+                         oninput="this.value=this.value.replace(/\D/g,'');renderRescheduleSummary()" required>
+                </label>
+
+                <label style="margin:0;font-size:13px">Số CCCD (12 số)
+                  <input type="text" class="ck-inp" name="cccd" id="rs-cust-cccd" maxlength="12"
+                         value="{{ form_customer.cccd }}" placeholder="045305004283"
+                         oninput="this.value=this.value.replace(/\D/g,'');renderRepServiceBox();renderCompanionRows();renderRescheduleSummary()">
+                  <small id="rs-rep-cccd-hint" class="sm" style="font-style:normal;display:none;margin-top:3px"></small>
+                </label>
+              </div>
+
+              <!-- HÀNG 2: EMAIL NHẬN MÃ VÉ QR | LÝ DO ĐỔI VÉ / GHI CHÚ -->
+              <div class="rs-info-grid-bot">
+                <label style="margin:0;font-size:13px">Email nhận mã vé QR <span style="color:var(--red)">*</span>
+                  <input type="email" class="ck-inp" name="email" id="rs-cust-email"
+                         value="{{ form_customer.email }}" placeholder="example@gmail.com"
+                         oninput="renderRescheduleSummary()" required>
+                </label>
+
+                <label style="margin:0;font-size:13px">Lý do đổi vé / Ghi chú (tùy chọn)
+                  <input type="text" class="ck-inp" name="exchange_reason" value="{{ reason_note }}"
+                         placeholder="Dời lịch gia đình, bổ sung người đi cùng, đổi email nhận vé...">
+                </label>
+              </div>
+
+              <!-- KHUNG CHỌN LOẠI VÉ ÁP ƯU ĐÃI CHO NGƯỜI ĐẠI DIỆN -->
+              <div id="rs-rep-service-box" class="rs-rep-service-box" style="display:none">
+                <label for="rs-rep-cccd-service">
+                  Áp ưu đãi CCCD người đại diện cho vé:
+                  <select class="ck-inp" name="rep_cccd_service_id" id="rs-rep-cccd-service"
+                          onchange="handleRepServiceChange(this.value)">
+                  </select>
+                </label>
+              </div>
+
+              <!-- KHU VỰC THÊM CCCD ĐI CÙNG -->
+              <div id="rs-extra-cccd-box" class="rs-companion-divider" style="display:none">
+                <div class="rs-companion-head">
+                  <span class="sm" style="color:#475569">
+                    Mỗi CCCD Quảng Trị (đầu số 044/045) chỉ áp dụng ưu đãi cho <b>01 vé</b>.
+                  </span>
+                  <button type="button" class="btn" id="rs-add-cccd-btn" onclick="addCompanionRow()">
+                    + Thêm CCCD ưu đãi khác
+                  </button>
+                </div>
+                <div id="rs-companion-list"></div>
+              </div>
+
+              <!-- Ô TICK XÁC NHẬN CCCD -->
+              <div id="rs-cccd-confirm-wrap" class="ck-cccd-confirm-box" style="margin-top:10px;padding:8px 12px;display:none">
+                <label class="ck-agree ck-agree-box" style="margin:0;font-size:12.5px">
+                  <input type="checkbox" name="cccd_confirmed" id="chk-cccd-confirm" value="1"
+                         {% if cccd_confirmed_checked %}checked{% endif %}
+                         onchange="renderRescheduleSummary()">
+                  <span>
+                    Tôi xác nhận thông tin số CCCD đã nhập là hoàn toàn chính xác và sẵn sàng xuất trình bản gốc CCCD (hoặc định danh điện tử VNeID) để nhân viên Bang Onsen kiểm tra, đối chiếu khi check-in. <span style="color:var(--red)">*</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <!-- ==================== XÁC NHẬN ĐỔI VÉ Ở ĐÁY THẺ ==================== -->
+            <div class="ck-cccd-confirm-box" style="padding:8px 12px;margin-top:auto">
+              <label class="ck-agree ck-agree-box" style="margin:0;font-size:12.5px">
+                <input type="checkbox" name="confirm_exchange" id="chk-confirm-exchange" value="1" onchange="renderRescheduleSummary()">
+                <span>
+                  Tôi xác nhận thông tin đổi vé mới; mã QR cũ sẽ tự động vô hiệu hóa và hệ thống cấp mã QR mới qua email <b id="confirm-email-disp">{{ form_customer.email }}</b>. <span style="color:var(--red)">*</span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <!-- CHÂN THẺ -->
+          <div class="ck-pane-foot">
+            <a href="{% url 'booking:lookup_ticket' %}?q={{ order.order_code }}" class="btn rs-btn-cancel-red">
+              Hủy bỏ & Quay lại
+            </a>
+            <button type="button" class="btn" id="rs-foot-switch-btn" onclick="handleFooterTabSwitch()">
+              {% if active_tab == 'info' %}← Quay lại điều chỉnh vé{% else %}Điều chỉnh thông tin →{% endif %}
+            </button>
+          </div>
+        </section>
+
+        <!-- ==================== MÀN HÌNH TRẠNG THÁI THANH TOÁN BỔ SUNG (GIỐNG TRANG ĐẶT VÉ) ==================== -->
+        <section id="rs-payment-status-panel" class="rs-pay-status-card" hidden style="display:none">
+          <!-- 1. TRẠNG THÁI CHỜ THANH TOÁN -->
+          <div id="rs-pay-state-pending">
+            <div class="rs-spinner"></div>
+            <span class="bd" style="background:#fef3c7;color:#92400e;border-color:#fde68a">CHỜ THANH TOÁN BỔ SUNG</span>
+            <h2 style="margin:10px 0 6px;font-size:21px">Đang chờ hoàn tất thanh toán trên cổng VNPAY</h2>
+            <p class="sm" style="font-style:normal;max-width:520px;margin:0 auto;line-height:1.5">
+              Cổng thanh toán VNPAY đã được mở ở <b>tab trình duyệt mới</b>. Vui lòng hoàn tất giao dịch ở tab đó — trang này sẽ tự động cập nhật ngay khi có kết quả.
+            </p>
+
+            <div class="rs-pay-meta-box">
+              <div class="rs-pay-meta-row">
+                <span style="color:#64748b">Mã đơn hàng:</span>
+                <b>#{{ order.order_code }}</b>
+              </div>
+              <div class="rs-pay-meta-row">
+                <span style="color:#64748b">Số tiền thanh toán bổ sung:</span>
+                <b id="rs-pend-amount" style="color:var(--red)">0 VNĐ</b>
+              </div>
+              <div class="rs-pay-meta-row">
+                <span style="color:#64748b">Thời gian giữ giao dịch:</span>
+                <b id="rs-pend-countdown" style="color:#0f172a">15:00</b>
+              </div>
+            </div>
+
+            <div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px">
+              <a href="#" target="_blank" rel="noopener" id="rs-reopen-vnpay-link" class="btn p">
+                Mở lại trang thanh toán VNPAY ↗
+              </a>
+              <button type="button" class="btn rs-btn-cancel-red" onclick="resetExchangePaymentPanel()">
+                Hủy chờ & Chỉnh sửa lại
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. TRẠNG THÁI THÀNH CÔNG -->
+          <div id="rs-pay-state-success" hidden style="display:none">
+            <div class="rs-status-icon-ok">✓</div>
+            <span class="bd ok">THANH TOÁN THÀNH CÔNG</span>
+            <h2 style="margin:10px 0 6px;font-size:21px;color:#166534">Đổi vé & Thanh toán bổ sung hoàn tất!</h2>
+            <p class="sm" style="font-style:normal;max-width:520px;margin:0 auto;line-height:1.5">
+              Mã QR cũ của đơn <b>#{{ order.order_code }}</b> đã được vô hiệu hóa. Mã vé điện tử QR mới đã được cấp và gửi tới email <b id="rs-succ-email"></b>.
+            </p>
+
+            <div class="rs-pay-meta-box">
+              <div class="rs-pay-meta-row">
+                <span style="color:#64748b">Mã vé QR mới:</span>
+                <b id="rs-succ-qr" style="color:var(--ok)">—</b>
+              </div>
+              <div class="rs-pay-meta-row">
+                <span style="color:#64748b">Ngày sử dụng mới:</span>
+                <b id="rs-succ-date">—</b>
+              </div>
+              <div class="rs-pay-meta-row">
+                <span style="color:#64748b">Tổng giá trị đơn sau đổi:</span>
+                <b id="rs-succ-total">—</b>
+              </div>
+            </div>
+
+            <div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px">
+              <a href="{% url 'booking:lookup_ticket' %}?q={{ order.order_code }}" id="rs-succ-lookup-btn" class="btn p">
+                Xem chi tiết vé & Mã QR mới →
+              </a>
+            </div>
+          </div>
+
+          <!-- 3. TRẠNG THÁI THẤT BẠI -->
+          <div id="rs-pay-state-failed" hidden style="display:none">
+            <div class="rs-status-icon-er">✕</div>
+            <span class="bd no">THANH TOÁN THẤT BẠI</span>
+            <h2 style="margin:10px 0 6px;font-size:21px;color:#991b1b">Thanh toán bổ sung không thành công</h2>
+            <p id="rs-fail-reason" class="sm" style="font-style:normal;max-width:520px;margin:0 auto;line-height:1.5">
+              Giao dịch trên cổng VNPAY đã bị hủy hoặc gặp lỗi. Đơn vé cũ của bạn vẫn giữ nguyên hiệu lực.
+            </p>
+
+            <div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap;margin-top:18px">
+              <button type="button" class="btn p" onclick="retryExchangePayment()">
+                Thử thanh toán lại →
+              </button>
+              <button type="button" class="btn rs-btn-cancel-red" onclick="resetExchangePaymentPanel()">
+                Quay lại chỉnh sửa đơn đổi
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ==================== CỘT PHẢI: THẺ ĐỐI SOÁNG & TỔNG THANH TOÁN BỔ SUNG ==================== -->
+      <aside class="ck-right-col">
+        <div class="ck-invoice-card">
+          <div class="ck-inv-head">
+            <h3 style="margin:0;font-size:17px">Đối soát & Thanh toán bổ sung</h3>
+            <span class="bd" id="inv-day-badge">{{ day_label }}</span>
+          </div>
+
+          <!-- Thẻ thông tin đơn gốc đã thanh toán -->
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="color:#64748b">Đơn hiện tại ({{ order.visit_date_display }}):</span>
+              <b>{{ order.total_tickets }} vé</b>
+            </div>
+            <div style="display:flex;justify-content:space-between">
+              <span style="color:#64748b">Số tiền đã thanh toán:</span>
+              <b style="color:var(--ok)">{{ old_total_fmt }}</b>
+            </div>
+          </div>
+
+          <div class="ck-inv-meta">
+            <div><span>Ngày sử dụng mới:</span> <b id="inv-date-disp">{{ target_date_display }}</b></div>
+            <div><span>Tổng số vé mới:</span> <b id="inv-total-tickets">0 vé</b></div>
+          </div>
+
+          <div id="sum-lines" class="ck-inv-lines"></div>
+
+          <div id="rs-client-err" class="al er" hidden style="display:none;margin:8px 0;padding:8px 12px;font-size:12.5px"></div>
+
+          <div class="ck-inv-bottom">
+            <div class="ck-sum-row">
+              <span>Giá trị đơn vé mới</span>
+              <b id="sum-new-total">0 VNĐ</b>
+            </div>
+            <div class="ck-sum-row">
+              <span>Trừ đã thanh toán đơn cũ</span>
+              <b style="color:var(--ok)">-{{ old_total_fmt }}</b>
+            </div>
+
+            <!-- THẺ HIỂN THỊ TỔNG CẦN PHẢI THANH TOÁN BỔ SUNG -->
+            <div id="diff-summary-card" style="background:#fff5f5;border:1.5px solid #fecaca;border-radius:12px;padding:12px 14px;margin-top:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                <span id="diff-title-lbl" style="font-size:13.5px;font-weight:700;color:#991b1b">
+                  Tổng cần thanh toán bổ sung
+                </span>
+                <strong id="sum-diff-amount" style="font-size:19px;color:var(--red)">0 VNĐ</strong>
+              </div>
+              <small id="diff-sub-note" class="sm" style="font-style:normal;display:block;margin-top:4px;line-height:1.4">
+                Thanh toán phần chênh lệch qua cổng VNPAY để hoàn tất đổi vé.
+              </small>
+            </div>
+
+            <button type="submit" class="btn p" id="rs-submit-btn" style="width:100%;margin-top:10px" disabled>
+              Xác nhận đổi vé →
+            </button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </form>
+</div>
+
+<script id="rs-packages-data" type="application/json">{{ packages_json|safe }}</script>
+<script id="rs-orig-qt-cccds-data" type="application/json">{{ orig_qt_cccds_json|safe }}</script>
+<script id="rs-orig-qt-alloc-data" type="application/json">{{ orig_qt_alloc_json|safe }}</script>
+<script id="rs-rep-cccd-service-data" type="application/json">{{ rep_cccd_service_id }}</script>
+<script id="rs-extra-qt-items-data" type="application/json">{{ extra_qt_items_json|safe }}</script>
+<script id="rs-orig-customer-data" type="application/json">{{ orig_customer_json|safe }}</script>
+<script id="rs-voucher-data" type="application/json">{{ voucher_json|safe }}</script>
+<script id="rs-old-total-data" type="application/json">{{ old_total }}</script>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'js/booking.js' %}?v=12"></script>
+  <script src="{% static 'js/reschedule.js' %}?v=9"></script>
+{% endblock %}

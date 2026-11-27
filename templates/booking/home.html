@@ -1,5 +1,4 @@
 {% extends 'booking/base_booking.html' %}
-{% load humanize %}
 
 {% block structured_data %}
 <script type="application/ld+json">
@@ -44,7 +43,7 @@
 {% endblock %}
 
 {% block content %}
-  <!-- 1. HERO BANNER (PARALLAX SCROLLING) -->
+  <!-- 1. HERO BANNER (NỀN KHOÁNG ẤM PARALLAX) -->
   <section class="hero">
     <div class="hbg" role="img" aria-label="Toàn cảnh suối khoáng nóng tự nhiên Bang Onsen Spa & Resort Quảng Trị">
       <span>📷 Khung ảnh nền chìm Parallax – Toàn cảnh suối khoáng nóng Bang Onsen</span>
@@ -61,70 +60,72 @@
     </div>
   </section>
 
-  <!-- 2. BỘ LỌC ĐẶT VÉ NHANH (QUICK BOOKING WIDGET) -->
-  <!-- 2. BỘ LỌC ĐẶT VÉ NHANH (QUICK BOOKING WIDGET) -->
-  <div class="w flt-wrap" id="flt">
-    <div class="flt">
-      <div class="flt-head">
-        <div>
-          <h2 style="font-size:20px;margin:0">Đặt vé Onsen nhanh</h2>
-          <small style="font-style:normal">Chọn ngày sử dụng để kiểm tra tình trạng vé và chọn số lượng cho từng gói dịch vụ</small>
+  <!-- 2. KHỐI ĐẶT VÉ NHANH NỔI (NỀN #FFFFFF) -->
+  <div class="band-hero-flt">
+    <div class="w flt-wrap" id="flt">
+      <div class="flt" id="flt-box">
+        <div class="flt-top">
+          <div class="flt-head">
+            <div>
+              <h2 style="font-size:19px;margin:0">Đặt vé Onsen nhanh</h2>
+              <small style="font-style:normal">Chọn ngày đi để kiểm tra vé trống</small>
+            </div>
+            <span class="bd" id="fday-badge">{{ default_day_label }}</span>
+          </div>
+
+          <div class="qb">
+            <label>Ngày đi *
+              <input type="date" id="fd" min="{{ today_iso }}" value="{{ default_date_iso }}" onchange="updateDayLabel(this.value)">
+            </label>
+
+            <button type="button" class="btn p" onclick="findTickets()">🔍 Tìm vé</button>
+          </div>
         </div>
-        <span class="bd" id="fday-badge">{{ default_day_label }}</span>
+
+        <div id="res"></div>
       </div>
-
-      <div class="qb">
-        <label>Ngày đi *
-          <input type="date" id="fd" min="{{ today_iso }}" value="{{ default_date_iso }}" onchange="updateDayLabel(this.value)">
-        </label>
-
-        <button type="button" class="btn p" onclick="findTickets()">🔍 Tìm vé</button>
-      </div>
-
-      <div id="res"></div>
     </div>
   </div>
 
-  <div class="w">
-    <!-- 3. KHÁM PHÁ & SO SÁNH 3 GÓI DỊCH VỤ ONSEN -->
-    <section class="sec" aria-labelledby="onsen-sec">
-      <div class="sec-head">
+  <!-- 3. BLOCK 1: BA GÓI DỊCH VỤ ONSEN (TRÀN ẢNH ĐẠI DIỆN + HOVER HIỆN NÚT, VỪA KHỚP 1 SCREEN) -->
+  <section class="sec-band band-light sec-showcase" aria-labelledby="onsen-sec">
+    <div class="w w-wide">
+      <div class="sec-head showcase-head">
         <div>
           <span class="sec-sub">Trải nghiệm khoáng nóng</span>
           <h2 id="onsen-sec" style="margin:0">Ba gói dịch vụ Onsen tại Bang Onsen</h2>
         </div>
-        <span class="sm" style="font-style:normal">Trẻ em dưới 1m miễn phí vé vào · Mang theo CCCD gốc khi áp dụng ưu đãi Quảng Trị</span>
+        <span class="sm" style="font-style:normal">Rơ chuột vào từng khu Onsen để đặt vé hoặc xem chi tiết gói dịch vụ</span>
       </div>
 
-      <div class="g3">
+      <div class="onsen-showcase-grid">
         {% for s in services %}
-          <article class="cd" id="cd{{ s.id }}">
-            <figure class="ph" style="height:150px" role="img" aria-label="Ảnh gói dịch vụ {{ s.name }}">
-              <span>📷 Khung ảnh – Gói dịch vụ {{ s.name }}</span>
-            </figure>
-
-            <div class="row" style="justify-content:space-between;margin-top:12px">
-              <span class="bd">{{ s.name }}</span>
-              <span class="sm" style="font-style:normal">Tối đa {{ s.cap }} khách/ngày</span>
+          <article class="onsen-tile" id="cd{{ s.id }}">
+            <div class="onsen-tile-media">
+              {% if s.image_url %}
+                <img src="{{ s.image_url }}" alt="{{ s.name }}">
+              {% else %}
+                <div class="onsen-tile-ph">
+                  <span>📷 Ảnh đại diện – {{ s.name }}</span>
+                </div>
+              {% endif %}
             </div>
 
-            <h3 style="margin:10px 0 4px">Gói dịch vụ {{ s.name }}</h3>
-            <div class="pc">Từ {{ s.price_weekday }} ₫</div>
-            <small class="ps2">Trẻ em 1–1,4m: từ {{ s.price_child_weekday }} ₫ · Người Quảng Trị: từ {{ s.price_qt_weekday }} ₫</small>
-            <p class="sm hl">{{ s.highlights }}</p>
+            <div class="onsen-tile-overlay"></div>
 
-            <div class="act">
-              <div class="row">
-                <a class="btn s sm" href="{% url 'booking:onsen_detail' s.id %}">Xem chi tiết</a>
-                <button type="button" class="btn p sm" onclick="quickPickService({{ s.id }})">Đặt vé gói này</button>
+            <div class="onsen-tile-center">
+              <h3 class="onsen-tile-title">{{ s.name }}</h3>
+              <div class="onsen-tile-actions">
+                <button type="button" class="btn p sm" onclick="quickPickService({{ s.id }})">Đặt vé</button>
+                <a class="btn tile-ghost sm" href="{% url 'booking:onsen_detail' s.id %}">Tìm hiểu thêm</a>
               </div>
             </div>
           </article>
         {% endfor %}
       </div>
 
-      <!-- Bảng so sánh nhanh 3 gói Onsen -->
-      <div class="cmp-wrap">
+      <!-- Bảng so sánh nhanh 3 gói Onsen (thu gọn để giữ bố cục trọn 1 màn hình) -->
+      <div class="cmp-wrap showcase-cmp">
         <button type="button" class="cmp-toggle" onclick="toggleCompareTable(this)">
           <span>📊 Bảng so sánh nhanh tiện ích & giá vé 3 gói Onsen</span>
           <span>Mở bảng so sánh ▼</span>
@@ -143,25 +144,25 @@
               <tr>
                 <td><b>Giá người lớn (T2–T6)</b></td>
                 {% for s in services %}
-                  <td><b style="color:var(--red)">{{ s.price_weekday }} ₫</b></td>
+                  <td><b style="color:var(--red)">{{ s.price_weekday_fmt }}</b></td>
                 {% endfor %}
               </tr>
               <tr>
                 <td><b>Giá người lớn (T7–CN)</b></td>
                 {% for s in services %}
-                  <td>{{ s.price_weekend }} ₫</td>
+                  <td>{{ s.price_weekend_fmt }}</td>
                 {% endfor %}
               </tr>
               <tr>
                 <td><b>Ưu đãi người Quảng Trị (T2–T6)</b></td>
                 {% for s in services %}
-                  <td><span style="color:var(--ok);font-weight:600">{{ s.price_qt_weekday }} ₫</span></td>
+                  <td><span style="color:var(--ok);font-weight:600">{{ s.price_qt_weekday_fmt }}</span></td>
                 {% endfor %}
               </tr>
               <tr>
                 <td><b>Trẻ em (1m – 1,4m)</b></td>
                 {% for s in services %}
-                  <td>Từ {{ s.price_child_weekday }} ₫ (Dưới 1m miễn phí)</td>
+                  <td>Từ {{ s.price_child_weekday_fmt }} (Dưới 1m miễn phí)</td>
                 {% endfor %}
               </tr>
               <tr>
@@ -174,38 +175,74 @@
           </table>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- 4. QUY TRÌNH ĐẶT VÉ ONLINE 3 BƯỚC -->
-    <section class="sec" aria-labelledby="step-sec">
+  <!-- 4. BLOCK 2: SƠ ĐỒ QUY TRÌNH 3 BƯỚC (NỀN TRẮNG #FFFFFF) -->
+  <section class="sec-band band-white" aria-labelledby="step-sec">
+    <div class="w">
       <div class="sec-head">
         <div>
           <span class="sec-sub">Tiện lợi & Nhanh chóng</span>
           <h2 id="step-sec" style="margin:0">Đặt vé trực tuyến chỉ với 3 bước</h2>
         </div>
+        <span class="sm" style="font-style:normal">Bấm vào từng bước để xem hướng dẫn chi tiết</span>
       </div>
 
-      <div class="g3">
-        <div class="step-card">
-          <span class="step-num">1</span>
-          <h3>Chọn ngày & Gói Onsen</h3>
-          <p class="sm" style="font-style:normal;margin:0">Kiểm tra số vé trống theo thời gian thực và chọn cùng lúc 1 hoặc nhiều gói Onsen phù hợp.</p>
+      <div class="flow-board" id="flow-board">
+        <div class="flow-track">
+          <div class="flow-pill is-active" data-step="0" onclick="activateFlowStep(0)">
+            <div class="fp-icon-wrap">
+              <span class="fp-num">1</span>
+              <span class="fp-icon" aria-hidden="true">📅</span>
+            </div>
+            <div class="fp-text">
+              <strong>Chọn ngày & Gói</strong>
+              <span>Kiểm tra suất trống</span>
+            </div>
+            <span class="fp-arrow" aria-hidden="true">↓</span>
+          </div>
+
+          <div class="flow-conn" data-conn="0"><i class="fc-beam"></i></div>
+
+          <div class="flow-pill" data-step="1" onclick="activateFlowStep(1)">
+            <div class="fp-icon-wrap">
+              <span class="fp-num">2</span>
+              <span class="fp-icon" aria-hidden="true">💳</span>
+            </div>
+            <div class="fp-text">
+              <strong>Khai báo & Thanh toán</strong>
+              <span>Áp ưu đãi & Voucher</span>
+            </div>
+            <span class="fp-arrow" aria-hidden="true">↓</span>
+          </div>
+
+          <div class="flow-conn" data-conn="1"><i class="fc-beam"></i></div>
+
+          <div class="flow-pill" data-step="2" onclick="activateFlowStep(2)">
+            <div class="fp-icon-wrap">
+              <span class="fp-num">★</span>
+              <span class="fp-icon" aria-hidden="true">📲</span>
+            </div>
+            <div class="fp-text">
+              <strong>Nhận vé QR Email</strong>
+              <span>Check-in không xếp hàng</span>
+            </div>
+            <span class="fp-arrow" aria-hidden="true">✓</span>
+          </div>
         </div>
-        <div class="step-card">
-          <span class="step-num">2</span>
-          <h3>Khai báo & Thanh toán</h3>
-          <p class="sm" style="font-style:normal;margin:0">Phân bổ vé theo chiều cao, nhập CCCD nhận ưu đãi Quảng Trị, áp voucher và thanh toán bảo mật.</p>
-        </div>
-        <div class="step-card">
-          <span class="step-num">3</span>
-          <h3>Nhận vé QR qua Email</h3>
-          <p class="sm" style="font-style:normal;margin:0">Mã QR điện tử gửi thẳng về email sau 2 phút. Quét mã tại cổng check-in, không cần xếp hàng.</p>
+
+        <div class="flow-detail" id="flow-detail">
+          <span class="bd" id="fd-badge">Bước 1 / 3</span>
+          <p id="fd-desc">Chọn ngày sử dụng dịch vụ, kiểm tra số vé trống theo thời gian thực và chọn cùng lúc 1 hoặc nhiều gói Onsen phù hợp.</p>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- 5. HỆ SINH THÁI BANG ONSEN SPA & RESORT -->
-    <section class="sec" id="eco-sec" aria-labelledby="eco-title">
+  <!-- 5. BLOCK 3: HỆ SINH THÁI BANG ONSEN (NỀN SẮC KHOÁNG ẤM #F4EFEA) -->
+  <section class="sec-band band-warm" id="eco-sec" aria-labelledby="eco-title">
+    <div class="w">
       <div class="sec-head">
         <div>
           <span class="sec-sub">Nghỉ dưỡng toàn diện</span>
@@ -236,11 +273,230 @@
           <a class="btn s sm" href="{% url 'booking:info_page' 'dining' %}">Khám phá nhà hàng & hội nghị</a>
         </article>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- 6. THƯ VIỆN KHÔNG GIAN & TRẢI NGHIỆM -->
-    <section class="sec" aria-labelledby="gal-sec">
-      <div class="sec-head">
+  <!-- 6. BLOCK 4: ĐÁNH GIÁ KHÁCH HÀNG CHẠY NGANG LIÊN TỤC (NỀN TỐI #333333 - 30% TƯƠNG PHẢN) -->
+  <section class="sec-band band-dark" id="review-sec" aria-labelledby="rev-title">
+    <div class="w">
+      <div class="rev-head">
+        <div>
+          <span class="rev-kicker">★ 4.9 / 5.0 · Hơn 2.500 lượt khách hài lòng</span>
+          <h2 id="rev-title" style="margin:0">Trải nghiệm thực tế từ khách hàng Bang Onsen</h2>
+        </div>
+        <div class="rev-lead">
+          <p>Lắng nghe cảm nhận từ du khách đã đặt vé trực tuyến và tận hưởng nguồn khoáng nóng tự nhiên 105°C tại Quảng Trị.</p>
+          <a href="#flt">Đặt vé trải nghiệm ngay →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dải thẻ 10 đánh giá chạy ngang liên tục -->
+    <div class="mq-wrap" aria-label="Danh sách 10 đánh giá nổi bật từ khách hàng">
+      <div class="mq-track">
+        <!-- Bộ 10 đánh giá chính -->
+        <article class="rv-card accent-red">
+          <div class="rv-top">
+            <span class="rv-av">MA</span>
+            <span class="rv-tag">Khu Onsen 1</span>
+          </div>
+          <p class="rv-quote">“Đặt vé online chỉ mất 2 phút là có mã QR gửi về email. Đến cổng quét mã vào thẳng, không phải xếp hàng mua vé như trước.”</p>
+          <div class="rv-foot">
+            <div><strong>Nguyễn Minh Anh</strong><span>Đà Nẵng · ★★★★★</span></div>
+            <small>Đã xác thực</small>
+          </div>
+        </article>
+
+        <article class="rv-card accent-br">
+          <div class="rv-top">
+            <span class="rv-av">QB</span>
+            <span class="rv-tag">Ưu đãi Quảng Trị</span>
+          </div>
+          <p class="rv-quote">“Hệ thống tự động nhận diện CCCD Quảng Trị và áp giá ưu đãi ngay lúc đặt vé. Nước khoáng nóng 105°C ngâm cực kỳ thư giãn.”</p>
+          <div class="rv-foot">
+            <div><strong>Trần Quốc Bảo</strong><span>Đông Hà, Quảng Trị · ★★★★★</span></div>
+            <small>Đã xác thực</small>
+          </div>
+        </article>
+
+        <article class="rv-card accent-ok">
+          <div class="rv-top">
+            <span class="rv-av">TH</span>
+            <span class="rv-tag">Khu Onsen 1</span>
+          </div>
+          <p class="rv-quote">“Không gian chuẩn Nhật giữa núi rừng rất yên tĩnh. Khu xông hơi đá muối và bữa ăn set menu Nhật Bản đi kèm đều rất chỉn chu.”</p>
+          <div class="rv-foot">
+            <div><strong>Lê Thị Thu Hà</strong><span>TP. Huế · ★★★★★</span></div>
+            <small>Đã xác thực</small>
+          </div>
+        </article>
+
+        <article class="rv-card accent-red">
+          <div class="rv-top">
+            <span class="rv-av">HN</span>
+            <span class="rv-tag">Khu Onsen 2</span>
+          </div>
+          <p class="rv-quote">“Gia đình mình đi 4 người có bé dưới 1m được miễn phí vé. Bể khoáng ngoài trời rộng, sạch sẽ, nhân viên hướng dẫn tận tình.”</p>
+          <div class="rv-foot">
+            <div><strong>Phạm Hoàng Nam</strong><span>Hà Nội · ★★★★★</span></div>
+            <small>Đã xác thực</small>
+          </div>
+        </article>
+
+        <article class="rv-card accent-br">
+          <div class="rv-top">
+            <span class="rv-av">TT</span>
+            <span class="rv-tag">Đặt vé trực tuyến</span>
+          </div>
+          <p class="rv-quote">“Rất thích tính năng xem lịch ngày còn vé trước khi chốt đơn. Cuối tuần đông khách nhưng khu Onsen vẫn kiểm soát suất rất thoáng.”</p>
+          <div class="rv-foot">
+            <div><strong>Võ Thanh Thảo</strong><span>Đồng Hới · ★★★★★</span></div>
+            <small>Đã xác thực</small>
+          </div>
+        </article>
+
+        <article class="rv-card accent-ok">
+          <div class="rv-top">
+            <span class="rv-av">HP</span>
+            <span class="rv-tag">Nghỉ dưỡng & Onsen</span>
+          </div>
+          <p class="rv-quote">“Lần đầu trải nghiệm suối Bang tại Quảng Trị mà ấn tượng thật sự. Từ lúc đặt vé trên web đến khi check-in đều mượt mà, minh bạch.”</p>
+          <div class="rv-foot">
+            <div><strong>Đặng Hữu Phước</strong><span>TP. Hồ Chí Minh · ★★★★★</span></div>
+            <small>Đã xác thực</small>
+          </div>
+        </article>
+
+        <article class="rv-card accent-red">
+          <div class="rv-top">
+            <span class="rv-av">KN</span>
+            <span class="rv-tag">Khu Onsen 2</span>
+          </div>
+          <p class="rv-quote">“Cuối tuần đưa ba mẹ đi tắm khoáng phục hồi sức khỏe. Bố mẹ mình khen nước khoáng nóng tự nhiên ngâm xong ngủ rất ngon.”</p>
+          <div class="rv-foot">
+            <div><strong>Hoàng Kim Ngân</strong><span>Quảng Trị · ★★★★★</span></div>
+            <small>Đã xác thực</small>
+          </div>
+        </article>
+
+        <article class="rv-card accent-br">
+          <div class="rv-top">
+            <span class="rv-av">ĐT</span>
+            <span class="rv-tag">Hỗ trợ đổi vé</span>
+          </div>
+          <p class="rv-quote">“Mình đặt nhầm ngày đi nhưng vào mục Tra cứu vé đổi lịch online rất nhanh. Giao diện rõ ràng, báo giá chi tiết từng loại vé.”</p>
+          <div class="rv-foot">
+            <div><strong>Bùi Đức Thắng</strong><span>Nghệ An · ★★★★★</span></div>
+            <small>Đã xác thực</small>
+          </div>
+        </article>
+
+        <article class="rv-card accent-ok">
+          <div class="rv-top">
+            <span class="rv-av">PL</span>
+            <span class="rv-tag">Spa & Trị liệu</span>
+          </div>
+          <p class="rv-quote">“Tắm Onsen xong kết hợp massage trị liệu cảm giác nhẹ hẳn người. Kiến trúc gỗ tối giản lên hình góc nào cũng sang và tĩnh tại.”</p>
+          <div class="rv-foot">
+            <div><strong>Ngô Phương Linh</strong><span>Đà Nẵng · ★★★★★</span></div>
+            <small>Đã xác thực</small>
+          </div>
+        </article>
+
+        <article class="rv-card accent-red">
+          <div class="rv-top">
+            <span class="rv-av">VH</span>
+            <span class="rv-tag">Thanh toán VietQR</span>
+          </div>
+          <p class="rv-quote">“Thanh toán chuyển khoản VietQR xác nhận ngay lập tức, voucher giảm giá áp dụng dễ dàng. Rất đáng trải nghiệm khi ghé Quảng Trị.”</p>
+          <div class="rv-foot">
+            <div><strong>Trịnh Văn Hùng</strong><span>Hà Tĩnh · ★★★★★</span></div>
+            <small>Đã xác thực</small>
+          </div>
+        </article>
+
+        <!-- Bản sao liền mạch 10 đánh giá để vòng lặp chạy vô tận không giật -->
+        <article class="rv-card accent-red" aria-hidden="true">
+          <div class="rv-top"><span class="rv-av">MA</span><span class="rv-tag">Khu Onsen 1</span></div>
+          <p class="rv-quote">“Đặt vé online chỉ mất 2 phút là có mã QR gửi về email. Đến cổng quét mã vào thẳng, không phải xếp hàng mua vé như trước.”</p>
+          <div class="rv-foot"><div><strong>Nguyễn Minh Anh</strong><span>Đà Nẵng · ★★★★★</span></div><small>Đã xác thực</small></div>
+        </article>
+        <article class="rv-card accent-br" aria-hidden="true">
+          <div class="rv-top"><span class="rv-av">QB</span><span class="rv-tag">Ưu đãi Quảng Trị</span></div>
+          <p class="rv-quote">“Hệ thống tự động nhận diện CCCD Quảng Trị và áp giá ưu đãi ngay lúc đặt vé. Nước khoáng nóng 105°C ngâm cực kỳ thư giãn.”</p>
+          <div class="rv-foot"><div><strong>Trần Quốc Bảo</strong><span>Đông Hà, Quảng Trị · ★★★★★</span></div><small>Đã xác thực</small></div>
+        </article>
+        <article class="rv-card accent-ok" aria-hidden="true">
+          <div class="rv-top"><span class="rv-av">TH</span><span class="rv-tag">Khu Onsen 1</span></div>
+          <p class="rv-quote">“Không gian chuẩn Nhật giữa núi rừng rất yên tĩnh. Khu xông hơi đá muối và bữa ăn set menu Nhật Bản đi kèm đều rất chỉn chu.”</p>
+          <div class="rv-foot"><div><strong>Lê Thị Thu Hà</strong><span>TP. Huế · ★★★★★</span></div><small>Đã xác thực</small></div>
+        </article>
+        <article class="rv-card accent-red" aria-hidden="true">
+          <div class="rv-top"><span class="rv-av">HN</span><span class="rv-tag">Khu Onsen 2</span></div>
+          <p class="rv-quote">“Gia đình mình đi 4 người có bé dưới 1m được miễn phí vé. Bể khoáng ngoài trời rộng, sạch sẽ, nhân viên hướng dẫn tận tình.”</p>
+          <div class="rv-foot"><div><strong>Phạm Hoàng Nam</strong><span>Hà Nội · ★★★★★</span></div><small>Đã xác thực</small></div>
+        </article>
+        <article class="rv-card accent-br" aria-hidden="true">
+          <div class="rv-top"><span class="rv-av">TT</span><span class="rv-tag">Đặt vé trực tuyến</span></div>
+          <p class="rv-quote">“Rất thích tính năng xem lịch ngày còn vé trước khi chốt đơn. Cuối tuần đông khách nhưng khu Onsen vẫn kiểm soát suất rất thoáng.”</p>
+          <div class="rv-foot"><div><strong>Võ Thanh Thảo</strong><span>Đồng Hới · ★★★★★</span></div><small>Đã xác thực</small></div>
+        </article>
+        <article class="rv-card accent-ok" aria-hidden="true">
+          <div class="rv-top"><span class="rv-av">HP</span><span class="rv-tag">Nghỉ dưỡng & Onsen</span></div>
+          <p class="rv-quote">“Lần đầu trải nghiệm suối Bang tại Quảng Trị mà ấn tượng thật sự. Từ lúc đặt vé trên web đến khi check-in đều mượt mà, minh bạch.”</p>
+          <div class="rv-foot"><div><strong>Đặng Hữu Phước</strong><span>TP. Hồ Chí Minh · ★★★★★</span></div><small>Đã xác thực</small></div>
+        </article>
+        <article class="rv-card accent-red" aria-hidden="true">
+          <div class="rv-top"><span class="rv-av">KN</span><span class="rv-tag">Khu Onsen 2</span></div>
+          <p class="rv-quote">“Cuối tuần đưa ba mẹ đi tắm khoáng phục hồi sức khỏe. Bố mẹ mình khen nước khoáng nóng tự nhiên ngâm xong ngủ rất ngon.”</p>
+          <div class="rv-foot"><div><strong>Hoàng Kim Ngân</strong><span>Quảng Trị · ★★★★★</span></div><small>Đã xác thực</small></div>
+        </article>
+        <article class="rv-card accent-br" aria-hidden="true">
+          <div class="rv-top"><span class="rv-av">ĐT</span><span class="rv-tag">Hỗ trợ đổi vé</span></div>
+          <p class="rv-quote">“Mình đặt nhầm ngày đi nhưng vào mục Tra cứu vé đổi lịch online rất nhanh. Giao diện rõ ràng, báo giá chi tiết từng loại vé.”</p>
+          <div class="rv-foot"><div><strong>Bùi Đức Thắng</strong><span>Nghệ An · ★★★★★</span></div><small>Đã xác thực</small></div>
+        </article>
+        <article class="rv-card accent-ok" aria-hidden="true">
+          <div class="rv-top"><span class="rv-av">PL</span><span class="rv-tag">Spa & Trị liệu</span></div>
+          <p class="rv-quote">“Tắm Onsen xong kết hợp massage trị liệu cảm giác nhẹ hẳn người. Kiến trúc gỗ tối giản lên hình góc nào cũng sang và tĩnh tại.”</p>
+          <div class="rv-foot"><div><strong>Ngô Phương Linh</strong><span>Đà Nẵng · ★★★★★</span></div><small>Đã xác thực</small></div>
+        </article>
+        <article class="rv-card accent-red" aria-hidden="true">
+          <div class="rv-top"><span class="rv-av">VH</span><span class="rv-tag">Thanh toán VietQR</span></div>
+          <p class="rv-quote">“Thanh toán chuyển khoản VietQR xác nhận ngay lập tức, voucher giảm giá áp dụng dễ dàng. Rất đáng trải nghiệm khi ghé Quảng Trị.”</p>
+          <div class="rv-foot"><div><strong>Trịnh Văn Hùng</strong><span>Hà Tĩnh · ★★★★★</span></div><small>Đã xác thực</small></div>
+        </article>
+      </div>
+    </div>
+
+    <!-- Dải thẻ từ khóa khen ngợi chạy ngược chiều bên dưới -->
+    <div class="mq-pills-wrap" aria-hidden="true">
+      <div class="mq-pills-track">
+        <span class="mq-pill"><i class="dot-red"></i>Khoáng nóng tự nhiên 105°C</span>
+        <span class="mq-pill"><i class="dot-br"></i>Check-in QR không xếp hàng</span>
+        <span class="mq-pill"><i class="dot-ok"></i>Ưu đãi CCCD Quảng Trị</span>
+        <span class="mq-pill"><i class="dot-red"></i>07 bể ngâm khoáng trong nhà</span>
+        <span class="mq-pill"><i class="dot-br"></i>Xông hơi đá muối & tinh dầu</span>
+        <span class="mq-pill"><i class="dot-ok"></i>Ẩm thực Set Menu Nhật – Việt</span>
+        <span class="mq-pill"><i class="dot-red"></i>Kiến trúc chuẩn Nhật Bản</span>
+        <span class="mq-pill"><i class="dot-br"></i>Đổi / Hủy vé trực tuyến 24/7</span>
+        <!-- Lặp lại liền mạch -->
+        <span class="mq-pill"><i class="dot-red"></i>Khoáng nóng tự nhiên 105°C</span>
+        <span class="mq-pill"><i class="dot-br"></i>Check-in QR không xếp hàng</span>
+        <span class="mq-pill"><i class="dot-ok"></i>Ưu đãi CCCD Quảng Trị</span>
+        <span class="mq-pill"><i class="dot-red"></i>07 bể ngâm khoáng trong nhà</span>
+        <span class="mq-pill"><i class="dot-br"></i>Xông hơi đá muối & tinh dầu</span>
+        <span class="mq-pill"><i class="dot-ok"></i>Ẩm thực Set Menu Nhật – Việt</span>
+        <span class="mq-pill"><i class="dot-red"></i>Kiến trúc chuẩn Nhật Bản</span>
+        <span class="mq-pill"><i class="dot-br"></i>Đổi / Hủy vé trực tuyến 24/7</span>
+      </div>
+    </div>
+  </section>
+
+<!-- 7. BLOCK 5: THƯ VIỆN 7 ẢNH (50% TRÁI + 50% PHẢI, DÀN TO VỪA KHỚP 1 SCREEN) -->
+  <section class="sec-band band-white sec-showcase" aria-labelledby="gal-sec">
+    <div class="w w-wide">
+      <div class="sec-head showcase-head">
         <div>
           <span class="sec-sub">Thư viện hình ảnh</span>
           <h2 id="gal-sec" style="margin:0">Không gian & trải nghiệm tại Bang Onsen</h2>
@@ -248,26 +504,50 @@
         <span class="sm" style="font-style:normal">Bấm vào từng khung ảnh để xem phóng to</span>
       </div>
 
-      <div class="g3">
-        <div class="gal-item" onclick="previewGallery('Bể Onsen ngoài trời', 'Bể khoáng nóng ngoài trời giữa rừng nguyên sinh')">
-          <figure class="ph" style="height:180px"><span>📷 Bể khoáng nóng ngoài trời giữa rừng nguyên sinh</span></figure>
-          <span class="gal-cap">Bể Onsen ngoài trời</span>
+      <div class="gal-mosaic">
+        <div class="gal-item gal-main" onclick="previewGallery('Toàn cảnh suối khoáng nóng Bang Onsen', 'Nguồn khoáng nóng tự nhiên 105°C giữa núi rừng Quảng Trị')">
+          <figure class="ph"><span>📷 Ảnh nổi bật – Toàn cảnh suối khoáng nóng Bang Onsen</span></figure>
+          <span class="gal-cap">Toàn cảnh suối khoáng nóng Bang Onsen</span>
         </div>
 
-        <div class="gal-item" onclick="previewGallery('Khu xông hơi trị liệu', 'Phòng xông hơi tinh dầu & xông đá muối chuẩn Nhật')">
-          <figure class="ph" style="height:180px"><span>📷 Phòng xông hơi tinh dầu & xông đá muối chuẩn Nhật</span></figure>
-          <span class="gal-cap">Khu xông hơi trị liệu</span>
-        </div>
+        <div class="gal-sub-grid">
+          <div class="gal-item" onclick="previewGallery('Bể Onsen ngoài trời', 'Bể khoáng nóng ngoài trời giữa rừng nguyên sinh')">
+            <figure class="ph"><span>📷 Bể Onsen ngoài trời</span></figure>
+            <span class="gal-cap">Bể Onsen ngoài trời</span>
+          </div>
 
-        <div class="gal-item" onclick="previewGallery('Không gian nhà hàng & nghỉ dưỡng', 'Kiến trúc gỗ tối giản & ẩm thực Nhật – Việt')">
-          <figure class="ph" style="height:180px"><span>📷 Kiến trúc gỗ tối giản & ẩm thực Nhật – Việt</span></figure>
-          <span class="gal-cap">Không gian nhà hàng & nghỉ dưỡng</span>
+          <div class="gal-item" onclick="previewGallery('Khu xông hơi trị liệu', 'Phòng xông hơi tinh dầu & xông đá muối chuẩn Nhật')">
+            <figure class="ph"><span>📷 Khu xông hơi trị liệu</span></figure>
+            <span class="gal-cap">Khu xông hơi trị liệu</span>
+          </div>
+
+          <div class="gal-item" onclick="previewGallery('Bể ngâm khoáng trong nhà', 'Hệ thống bể khoáng nóng nhiệt độ phân tầng')">
+            <figure class="ph"><span>📷 Bể ngâm khoáng trong nhà</span></figure>
+            <span class="gal-cap">Bể khoáng trong nhà</span>
+          </div>
+
+          <div class="gal-item" onclick="previewGallery('Công viên nước khoáng', 'Khu vui chơi nước khoáng nóng ngoài trời')">
+            <figure class="ph"><span>📷 Công viên nước khoáng</span></figure>
+            <span class="gal-cap">Công viên nước</span>
+          </div>
+
+          <div class="gal-item" onclick="previewGallery('Ẩm thực Nhật – Việt', 'Set menu chuẩn Nhật và đặc sản địa phương')">
+            <figure class="ph"><span>📷 Ẩm thực Nhật – Việt</span></figure>
+            <span class="gal-cap">Ẩm thực Nhật – Việt</span>
+          </div>
+
+          <div class="gal-item" onclick="previewGallery('Phòng nghỉ chuẩn Nhật', 'Không gian lưu trú tĩnh tại tối giản')">
+            <figure class="ph"><span>📷 Phòng nghỉ chuẩn Nhật</span></figure>
+            <span class="gal-cap">Phòng nghỉ chuẩn Nhật</span>
+          </div>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- 7. CÂU HỎI THƯỜNG GẶP (FAQ ACCORDION) -->
-    <section class="sec" aria-labelledby="faq-title">
+  <!-- 8. BLOCK 6: CÂU HỎI THƯỜNG GẶP FAQ (NỀN SƯƠNG NHẸ #F1F4F6) -->
+  <section class="sec-band band-mist" aria-labelledby="faq-title">
+    <div class="w">
       <div class="sec-head">
         <div>
           <span class="sec-sub">Giải đáp thông tin</span>
@@ -287,13 +567,13 @@
 
       <details class="faq-item">
         <summary>Giá vé Bang Onsen bao nhiêu? Chính sách cho trẻ em và người Quảng Trị như thế nào?</summary>
-        <p>Giá vé công bố ngày thường (T2–T6) từ <b>{{ min_price }} ₫</b>/người lớn. Trẻ em dưới 1m được miễn phí vé vào; trẻ em từ 1m–1,4m tính bằng 50% giá người lớn. Khách hàng có CCCD tỉnh Quảng Trị (đầu số 045) được hệ thống tự động áp bảng giá ưu đãi riêng khi khai báo thông tin đặt vé.</p>
+        <p>Giá vé công bố ngày thường (T2–T6) từ <b>{{ min_price_fmt }}</b>/người lớn. Trẻ em dưới 1m được miễn phí vé vào; trẻ em từ 1m–1,4m tính bằng 50% giá người lớn. Khách hàng có CCCD tỉnh Quảng Trị (đầu số 044, 045) được hệ thống tự động áp bảng giá ưu đãi riêng khi khai báo thông tin đặt vé.</p>
       </details>
 
       <details class="faq-item">
         <summary>Tôi có thể đổi ngày đi hoặc hủy vé đã đặt online không?</summary>
         <p>Quý khách có thể chủ động tra cứu vé bằng số điện thoại tại mục <a href="{% url 'booking:lookup' %}" style="color:var(--red);font-weight:600">Tra cứu vé</a> để thực hiện đổi vé (sang vé có giá trị bằng hoặc cao hơn) hoặc hủy vé online trước giờ sử dụng theo quy định của khu nghỉ dưỡng.</p>
       </details>
-    </section>
-  </div>
+    </div>
+  </section>
 {% endblock %}

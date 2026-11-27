@@ -1,16 +1,46 @@
 const $ = s => document.querySelector(s);
-const fm = n => Math.round(n).toLocaleString('vi-VN') + ' ₫';
+const fm = n => Math.round(Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' VNĐ';
 
-// Lưu số lượng vé khách chọn riêng cho từng gói: { serviceId: quantity }
 let selectedQtys = {};
 let hasSearched = false;
 
+// ==========================================================================
+// 1. KHỞI TẠO PRELOADER, REVEAL NỐI TIẾP & HỆ THỐNG PARALLAX ĐA TẦNG
+// ==========================================================================
 window.addEventListener('DOMContentLoaded', () => {
   const pl = $('#pl');
   if (pl) {
-    setTimeout(() => pl.classList.add('x'), 750);
-    setTimeout(() => pl.remove(), 1250);
+    setTimeout(() => pl.classList.add('x'), 650);
+    setTimeout(() => pl.remove(), 1100);
   }
+
+  initRevealAnimations();
+  initFullPageParallax();
+
+  if (document.querySelector('.flow-pill')) {
+    activateFlowStep(0);
+  }
+});
+
+function initRevealAnimations() {
+  const revealGroups = [
+    'main.tc .sec-head',
+    'main.tc .rev-head',
+    'main.tc .onsen-tile',
+    'main.tc .flow-board',
+    'main.tc .eco-card',
+    'main.tc .gal-item',
+    'main.tc .faq-item',
+    'main.tc .cmp-wrap',
+  ];
+
+  const targets = document.querySelectorAll(revealGroups.join(', '));
+  targets.forEach((el, idx) => {
+    el.classList.add('rv');
+    const mod = idx % 3;
+    if (mod === 1) el.classList.add('rv-d1');
+    if (mod === 2) el.classList.add('rv-d2');
+  });
 
   const io = new IntersectionObserver(entries => {
     entries.forEach(entry => {
@@ -19,44 +49,122 @@ window.addEventListener('DOMContentLoaded', () => {
         io.unobserve(entry.target);
       }
     });
-  }, { threshold: 0.1 });
+  }, {
+    threshold: 0.1,
+    rootMargin: '0px 0px -36px 0px',
+  });
 
-  document.querySelectorAll('main.tc .sec, main.tc .cd, main.tc .step-card, main.tc .eco-card, main.tc .gal-item, main.tc .faq-item')
-    .forEach(el => {
-      el.classList.add('rv');
-      io.observe(el);
+  targets.forEach(el => io.observe(el));
+}
+
+function initFullPageParallax() {
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduceMotion) return;
+
+  const layers = [];
+  const register = (selector, range, maxShift, isHeroBg = false) => {
+    document.querySelectorAll(selector).forEach(el => {
+      el.classList.add('px-layer');
+      layers.push({
+        el,
+        range,
+        maxShift,
+        isHeroBg,
+        currentY: 0,
+      });
     });
-});
+  };
 
-let ticking = false;
-window.addEventListener('scroll', () => {
-  if (ticking) return;
-  ticking = true;
-  requestAnimationFrame(() => {
+  // Hero & Thanh đặt vé nhanh
+  register('.hbg', 110, 62, true);
+  register('.hero .w', -34, 20);
+  register('.flt-wrap', -22, 14);
+
+  // Tiêu đề các block
+  register('.sec-band .sec-head', -20, 12);
+  register('.band-dark .rev-head', -20, 12);
+
+  // Block 1: 3 gói dịch vụ Onsen (lệch pha giữa cột giữa và 2 cột biên + ảnh nền bên trong)
+  register('.onsen-tile:nth-child(1)', 26, 15);
+  register('.onsen-tile:nth-child(2)', -26, 15);
+  register('.onsen-tile:nth-child(3)', 26, 15);
+  register('.onsen-tile-media', -24, 14);
+
+  // Block 2: Quy trình 3 bước
+  register('.flow-board', 22, 13);
+
+  // Block 3: Hệ sinh thái nghỉ dưỡng
+  register('.eco-card:nth-child(1)', 24, 14);
+  register('.eco-card:nth-child(2)', -24, 14);
+  register('.eco-card:nth-child(3)', 24, 14);
+
+  // Block 4: Đánh giá khách hàng chạy ngang
+  register('.mq-wrap', 18, 11);
+  register('.mq-pills-wrap', -16, 10);
+
+  // Block 5: Thư viện 7 ảnh (50% ảnh lớn trái và 50% cụm 6 ảnh phải đối nghịch nhẹ)
+  register('.gal-main', 28, 16);
+  register('.gal-sub-grid', -28, 16);
+
+  // Block 6: Danh sách FAQ
+  register('.band-mist .faq-item', 14, 8);
+
+  const ease = 0.16; // Độ trễ mượt ~0.3s, vừa đủ cảm nhận chuyển động mà không bị ì
+
+  function animateParallax() {
     const header = $('header.h');
     if (header) header.classList.toggle('s', window.scrollY > 12);
 
-    const bg = $('.hbg');
-    if (bg && window.scrollY < 680) {
-      bg.style.transform = `translate3d(0, ${window.scrollY * 0.25}px, 0)`;
-    }
-    const heroInner = $('.hero > .w');
-    if (heroInner && window.scrollY < 680) {
-      heroInner.style.transform = `translate3d(0, ${window.scrollY * 0.08}px, 0)`;
-    }
-    ticking = false;
-  });
-}, { passive: true });
+    if (window.innerWidth > 960) {
+      const vh = window.innerHeight || 1;
+      const vCenter = vh * 0.5;
 
+      for (let i = 0; i < layers.length; i++) {
+        const item = layers[i];
+        const rect = item.el.getBoundingClientRect();
+        const naturalTop = rect.top - item.currentY;
+        const naturalBottom = naturalTop + rect.height;
+
+        // Chỉ tính toán cho các block nằm gần khung nhìn hiện tại
+        if (naturalBottom < -220 || naturalTop > vh + 220) continue;
+
+        let targetY = 0;
+        if (item.isHeroBg) {
+          const heroProgress = Math.min(1, Math.max(0, window.scrollY / Math.max(vh, 560)));
+          targetY = Math.min(item.maxShift, heroProgress * item.range);
+        } else {
+          const elCenter = naturalTop + rect.height * 0.5;
+          const progress = Math.max(-1, Math.min(1, (vCenter - elCenter) / vh));
+          targetY = Math.max(-item.maxShift, Math.min(item.maxShift, progress * item.range));
+        }
+
+        const diff = targetY - item.currentY;
+        if (Math.abs(diff) > 0.08) {
+          item.currentY += diff * ease;
+          item.el.style.translate = `0px ${item.currentY.toFixed(2)}px`;
+        }
+      }
+    }
+
+    requestAnimationFrame(animateParallax);
+  }
+
+  requestAnimationFrame(animateParallax);
+}
+
+// ==========================================================================
+// 2. TRA CỨU VÉ & CHỌN SỐ LƯỢNG TRỰC TIẾP TRÊN TỪNG GÓI DỊCH VỤ
+// ==========================================================================
 function updateDayLabel(dateStr) {
   const badge = $('#fday-badge');
   if (!badge || !dateStr) return;
-  const day = new Date(dateStr).getDay();
+  const parts = dateStr.split('-').map(Number);
+  const localDate = new Date(parts[0], parts[1] - 1, parts[2]);
+  const day = localDate.getDay();
   badge.textContent = (day === 0 || day === 6) ? 'Cuối tuần (T7–CN)' : 'Đầu tuần (T2–T6)';
   if (hasSearched) findTickets(true);
 }
 
-// Khi bấm "Đặt vé gói này" ở khu quảng bá bên dưới
 function quickPickService(serviceId) {
   selectedQtys[serviceId] = Math.max(1, selectedQtys[serviceId] || 1);
   const flt = $('#flt');
@@ -76,6 +184,9 @@ async function findTickets(instant = false) {
   }
 
   hasSearched = true;
+  const fltBox = $('#flt-box');
+  if (fltBox) fltBox.classList.add('expanded');
+
   if (!instant) {
     resBox.innerHTML = '<div class="skl" aria-label="Đang kiểm tra tình trạng vé"></div>';
   }
@@ -89,9 +200,8 @@ async function findTickets(instant = false) {
       return;
     }
 
-    if (!instant) await new Promise(r => setTimeout(r, 300));
+    if (!instant) await new Promise(r => setTimeout(r, 220));
 
-    // Giới hạn lại số lượng đã chọn nếu vượt quá vé trống hoặc gói đang tạm ngừng
     data.services.forEach(s => {
       if (!s.is_active || s.available <= 0) {
         selectedQtys[s.id] = 0;
@@ -114,8 +224,7 @@ function changeServiceQty(serviceId, delta) {
   if (!svc || !svc.is_active) return;
 
   const current = selectedQtys[serviceId] || 0;
-  const nextVal = Math.max(0, Math.min(svc.available, current + delta));
-  selectedQtys[serviceId] = nextVal;
+  selectedQtys[serviceId] = Math.max(0, Math.min(svc.available, current + delta));
   renderFilteredResults();
 }
 
@@ -128,15 +237,17 @@ function renderFilteredResults() {
     const qty = selectedQtys[s.id] || 0;
     const isSel = s.is_active && qty > 0;
 
-    // Trạng thái badge góc phải
-    let statusBadge = `<span class="bd ok">Còn ${s.available} vé</span>`;
+    let statusBadge = `<span class="bd ok">Còn ${s.available} / ${s.max_capacity} vé</span>`;
     if (!s.is_active) {
       statusBadge = '<span class="bd no">Tạm ngừng</span>';
     } else if (s.available <= 0) {
       statusBadge = '<span class="bd no">Hết vé</span>';
     }
 
-    // Khối điều khiển riêng từng gói
+    const mediaHtml = s.image_url
+      ? `<figure class="ph" style="height:135px;padding:0"><img src="${s.image_url}" alt="${s.name}"></figure>`
+      : `<figure class="ph" style="height:135px"><span>📷 Ảnh gói dịch vụ ${s.name}</span></figure>`;
+
     let controlBlock = '';
     if (!s.is_active) {
       controlBlock = `
@@ -176,7 +287,7 @@ function renderFilteredResults() {
 
     return `
       <article class="cd ${!s.is_active ? 'inactive' : ''} ${isSel ? 'sel' : ''}">
-        <figure class="ph" style="height:135px"><span>📷 Ảnh gói dịch vụ ${s.name}</span></figure>
+        ${mediaHtml}
         <div class="row" style="justify-content:space-between;margin-top:12px">
           <span class="bd">${s.name}</span>
           ${statusBadge}
@@ -189,7 +300,6 @@ function renderFilteredResults() {
       </article>`;
   }).join('');
 
-  // Tính tổng số vé khách đã chọn across các gói
   const chosenItems = data.services
     .filter(s => s.is_active && (selectedQtys[s.id] || 0) > 0)
     .map(s => ({ id: s.id, name: s.name, qty: selectedQtys[s.id], subtotal: selectedQtys[s.id] * s.price_adult }));
@@ -229,6 +339,9 @@ function proceedToBooking() {
   window.location.href = `/khai-bao-thong-tin/?${params.toString()}`;
 }
 
+// ==========================================================================
+// 3. MODAL LỊCH VÉ & THƯ VIỆN ẢNH
+// ==========================================================================
 function openModal(html) {
   closeModal();
   const ov = document.createElement('div');
@@ -248,16 +361,32 @@ async function openCalendarModal(serviceId) {
   openModal('<p>Đang tải lịch ngày còn vé...</p>');
   const resp = await fetch(`/api/calendar/${serviceId}/`);
   const data = await resp.json();
-  const gridHtml = data.days.map(d => `
-    <button type="button" class="dc ${d.available ? '' : 'no'}" ${d.available ? `onclick="pickDateFromCal('${d.date}')"` : 'disabled'}>
-      <b>${d.short_date}</b>
-      <small>${d.weekday}</small>
-      <span>${d.available ? 'Còn ' + d.available : 'Hết'}</span>
-    </button>`).join('');
+
+  const headerHtml = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
+    .map(d => `<div>${d}</div>`)
+    .join('');
+
+  const gridHtml = data.days.map(d => {
+    if (d.is_past) {
+      return `
+        <button type="button" class="dc past" disabled aria-label="Ngày ${d.short_date} đã trôi qua">
+          <b>${d.short_date}</b>
+          <small>${d.weekday}</small>
+        </button>`;
+    }
+    const hasTickets = d.available > 0;
+    return `
+      <button type="button" class="dc ${hasTickets ? '' : 'no'}" ${hasTickets ? `onclick="pickDateFromCal('${d.date}')"` : 'disabled'}>
+        <b>${d.short_date}</b>
+        <small>${d.weekday}</small>
+        <span>${hasTickets ? 'Còn ' + d.available : 'Hết'}</span>
+      </button>`;
+  }).join('');
 
   openModal(`
     <h3>Lịch ngày còn vé – ${data.service_name}</h3>
-    <p class="sm" style="font-style:normal">Chọn một ngày còn vé để làm mới kết quả tìm kiếm.</p>
+    <p class="sm" style="font-style:normal">Chỉ hiển thị số lượng vé khả dụng từ ngày hôm nay trở đi.</p>
+    <div class="dg-head">${headerHtml}</div>
     <div class="dg">${gridHtml}</div>
     <button type="button" class="btn" onclick="closeModal()">Đóng</button>
   `);
@@ -290,4 +419,64 @@ function toggleCompareTable(btn) {
   if (!body) return;
   body.hidden = !body.hidden;
   btn.querySelector('span:last-child').textContent = body.hidden ? 'Mở bảng so sánh ▼' : 'Thu gọn ▲';
+}
+
+// ==========================================================================
+// 4. HIỆU ỨNG CHUYỂN ĐỘNG CHẠY NỐI TIẾP SƠ ĐỒ 3 BƯỚC ĐẶT VÉ
+// ==========================================================================
+const FLOW_STEPS_DATA = [
+  {
+    badge: 'Bước 1 / 3',
+    desc: 'Chọn ngày sử dụng dịch vụ, kiểm tra số vé trống theo thời gian thực và chọn cùng lúc 1 hoặc nhiều gói Onsen phù hợp.',
+  },
+  {
+    badge: 'Bước 2 / 3',
+    desc: 'Phân bổ vé theo chiều cao, nhập số CCCD Quảng Trị (044, 045) nhận ưu đãi tự động, áp mã voucher và thanh toán trực tuyến.',
+  },
+  {
+    badge: 'Bước 3 / 3',
+    desc: 'Nhận ngay vé điện tử kèm mã QR qua email sau 2 phút. Đưa mã QR quét tại cổng check-in mà không cần xếp hàng chờ đợi.',
+  },
+];
+
+let currentFlowStep = 0;
+let flowTimer = null;
+
+function renderFlowStep(stepIndex, animateBeam = false) {
+  const pills = document.querySelectorAll('.flow-pill');
+  const conns = document.querySelectorAll('.flow-conn');
+  if (!pills.length) return;
+
+  currentFlowStep = stepIndex;
+  pills.forEach((p, idx) => {
+    p.classList.toggle('is-active', idx === stepIndex);
+  });
+
+  conns.forEach((c, idx) => {
+    c.classList.remove('is-running', 'is-done');
+    void c.offsetWidth;
+    if (idx < stepIndex) {
+      if (animateBeam && idx === stepIndex - 1) {
+        c.classList.add('is-running');
+      } else {
+        c.classList.add('is-done');
+      }
+    }
+  });
+
+  const badgeEl = $('#fd-badge');
+  const descEl = $('#fd-desc');
+  if (badgeEl && descEl && FLOW_STEPS_DATA[stepIndex]) {
+    badgeEl.textContent = FLOW_STEPS_DATA[stepIndex].badge;
+    descEl.textContent = FLOW_STEPS_DATA[stepIndex].desc;
+  }
+}
+
+function activateFlowStep(stepIndex) {
+  renderFlowStep(stepIndex, false);
+  if (flowTimer) clearInterval(flowTimer);
+  flowTimer = setInterval(() => {
+    const next = (currentFlowStep + 1) % FLOW_STEPS_DATA.length;
+    renderFlowStep(next, next > 0);
+  }, 3200);
 }

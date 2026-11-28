@@ -1,939 +1,833 @@
-let RS_PACKAGES = [];
-let RS_STATE = {};
-let RS_ORIG_QT_CCCDS = [];
-let RS_ORIG_QT_ALLOC = {};
-let RS_REP_SERVICE_ID = 0;
-let RS_COMPANIONS = []; // [{ cccd: '045...', serviceId: 2 }]
-let RS_ORIG_CUSTOMER = {};
-let RS_VOUCHER = {};
-let RS_OLD_TOTAL = 0;
-let RS_ACTIVE_TAB = 'tickets';
-let RS_CURRENT_DIFF = 0;
-
-let RS_POLL_TIMER = null;
-let RS_COUNTDOWN_TIMER = null;
-let RS_ACTIVE_TXN_ID = null;
-
-function rsFmt(amount) {
-  if (typeof fm === 'function') return fm(amount);
-  return `${Math.round(Number(amount) || 0).toLocaleString('vi-VN')} VNĐ`;
-}
-
-function isValidQtCccd(code) {
-  const clean = String(code || '').trim();
-  return /^\d{12}$/.test(clean) && (clean.startsWith('044') || clean.startsWith('045'));
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-  const pkgEl = document.getElementById('rs-packages-data');
-  if (!pkgEl) return;
-
-  RS_PACKAGES = JSON.parse(pkgEl.textContent || '[]');
-  RS_ORIG_QT_CCCDS = JSON.parse(document.getElementById('rs-orig-qt-cccds-data')?.textContent || '[]');
-  RS_ORIG_QT_ALLOC = JSON.parse(document.getElementById('rs-orig-qt-alloc-data')?.textContent || '{}');
-  RS_REP_SERVICE_ID = Number(document.getElementById('rs-rep-cccd-service-data')?.textContent || 0);
-  const initExtraItems = JSON.parse(document.getElementById('rs-extra-qt-items-data')?.textContent || '[]');
-  RS_ORIG_CUSTOMER = JSON.parse(document.getElementById('rs-orig-customer-data')?.textContent || '{}');
-  RS_VOUCHER = JSON.parse(document.getElementById('rs-voucher-data')?.textContent || '{}');
-  RS_OLD_TOTAL = Number(document.getElementById('rs-old-total-data')?.textContent || 0);
-
-  const infoPane = document.getElementById('rs-tab-pane-info');
-  RS_ACTIVE_TAB = (infoPane && !infoPane.hidden) ? 'info' : 'tickets';
-
-  RS_PACKAGES.forEach(pkg => {
-    RS_STATE[pkg.id] = {
-      adult: pkg.init_adult || 0,
-      child: pkg.init_child || 0,
-      infant: pkg.init_infant || 0,
-    };
-  });
-
-  RS_COMPANIONS = (initExtraItems || []).map(item => ({
-    cccd: String(item.cccd || '').trim(),
-    serviceId: Number(item.service_id || 0),
-  }));
-
-  const form = document.getElementById('reschedule-form');
-  if (form) {
-    form.addEventListener('submit', handleRescheduleSubmit);
-  }
-
-  renderRepServiceBox();
-  renderCompanionRows();
-  renderRescheduleSummary();
-});
-
-function stopExchangePolling() {
-  if (RS_POLL_TIMER) {
-    clearInterval(RS_POLL_TIMER);
-    RS_POLL_TIMER = null;
-  }
-  if (RS_COUNTDOWN_TIMER) {
-    clearInterval(RS_COUNTDOWN_TIMER);
-    RS_COUNTDOWN_TIMER = null;
-  }
-}
-
-function showExchangePaymentPanel(stateName, payload = {}) {
-  const editorCard = document.getElementById('rs-editor-card');
-  const statusPanel = document.getElementById('rs-payment-status-panel');
-  const pendingBox = document.getElementById('rs-pay-state-pending');
-  const successBox = document.getElementById('rs-pay-state-success');
-  const failedBox = document.getElementById('rs-pay-state-failed');
-  const submitBtn = document.getElementById('rs-submit-btn');
-
-  if (editorCard) {
-    editorCard.hidden = true;
-    editorCard.style.display = 'none';
-  }
-  if (statusPanel) {
-    statusPanel.hidden = false;
-    statusPanel.style.display = 'block';
-  }
-
-  [pendingBox, successBox, failedBox].forEach(el => {
-    if (el) {
-      el.hidden = true;
-      el.style.display = 'none';
-    }
-  });
-
-  if (stateName === 'PENDING') {
-    if (pendingBox) {
-      pendingBox.hidden = false;
-      pendingBox.style.display = 'block';
-    }
-    const amtEl = document.getElementById('rs-pend-amount');
-    const reopenLink = document.getElementById('rs-reopen-vnpay-link');
-    if (amtEl) amtEl.textContent = payload.diff_amount_fmt || rsFmt(RS_CURRENT_DIFF);
-    if (reopenLink && payload.payment_url) {
-      reopenLink.href = payload.payment_url;
-    }
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Đang chờ thanh toán VNPAY...';
-    }
-  } else if (stateName === 'SUCCESS') {
-    if (successBox) {
-      successBox.hidden = false;
-      successBox.style.display = 'block';
-    }
-    const emailEl = document.getElementById('rs-succ-email');
-    const qrEl = document.getElementById('rs-succ-qr');
-    const dateEl = document.getElementById('rs-succ-date');
-    const totalEl = document.getElementById('rs-succ-total');
-    const lookupBtn = document.getElementById('rs-succ-lookup-btn');
-
-    if (emailEl) emailEl.textContent = payload.email || '';
-    if (qrEl) qrEl.textContent = payload.qr_code || 'Đã cập nhật';
-    if (dateEl) dateEl.textContent = payload.visit_date_display || '';
-    if (totalEl) totalEl.textContent = payload.total_amount_fmt || '';
-    if (lookupBtn && payload.lookup_url) lookupBtn.href = payload.lookup_url;
-
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = '✓ Đã hoàn tất đổi vé';
-    }
-  } else if (stateName === 'FAILED') {
-    if (failedBox) {
-      failedBox.hidden = false;
-      failedBox.style.display = 'block';
-    }
-    const failReasonEl = document.getElementById('rs-fail-reason');
-    if (failReasonEl && payload.message) {
-      failReasonEl.textContent = payload.message;
-    }
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = `Thử thanh toán lại ${rsFmt(RS_CURRENT_DIFF)} →`;
-    }
-  }
-}
-
-function resetExchangePaymentPanel() {
-  stopExchangePolling();
-  RS_ACTIVE_TXN_ID = null;
-
-  const editorCard = document.getElementById('rs-editor-card');
-  const statusPanel = document.getElementById('rs-payment-status-panel');
-  if (statusPanel) {
-    statusPanel.hidden = true;
-    statusPanel.style.display = 'none';
-  }
-  if (editorCard) {
-    editorCard.hidden = false;
-    editorCard.style.display = 'block';
-  }
-  renderRescheduleSummary();
-}
-
-function startExchangePolling(txnId, orderCode) {
-  stopExchangePolling();
-  RS_ACTIVE_TXN_ID = txnId;
-
-  let secondsLeft = 15 * 60;
-  const countdownEl = document.getElementById('rs-pend-countdown');
-
-  RS_COUNTDOWN_TIMER = setInterval(() => {
-    secondsLeft -= 1;
-    if (countdownEl) {
-      const m = String(Math.max(0, Math.floor(secondsLeft / 60))).padStart(2, '0');
-      const s = String(Math.max(0, secondsLeft % 60)).padStart(2, '0');
-      countdownEl.textContent = `${m}:${s}`;
-    }
-    if (secondsLeft <= 0) {
-      stopExchangePolling();
-      showExchangePaymentPanel('FAILED', {
-        message: 'Phiên thanh toán bổ sung (15 phút) đã hết hạn. Vui lòng thực hiện thanh toán lại.',
-      });
-    }
-  }, 1000);
-
-  const checkStatus = async () => {
+(function () {
+  function readJsonScript(id, fallback) {
+    const el = document.getElementById(id);
+    if (!el) return fallback;
     try {
-      const resp = await fetch(`/api/exchange-status/${encodeURIComponent(txnId)}/?order_code=${encodeURIComponent(orderCode)}`, {
-        cache: 'no-store',
-      });
-      const data = await resp.json();
-      if (data.status === 'SUCCESS') {
-        stopExchangePolling();
-        showExchangePaymentPanel('SUCCESS', data);
-      } else if (data.status === 'FAILED') {
-        stopExchangePolling();
-        showExchangePaymentPanel('FAILED', data);
-      }
+      return JSON.parse(el.textContent);
     } catch (e) {
-      // Bỏ qua lỗi mạng tạm thời, tiếp tục poll ở chu kỳ kế tiếp
+      return fallback;
+    }
+  }
+
+  function fmtVnd(amount) {
+    const val = Math.max(0, Math.round(Number(amount) || 0));
+    return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' VNĐ';
+  }
+
+  function isQuangTriCccd(val) {
+    return /^(044|045)\d{9}$/.test((val || '').trim());
+  }
+
+  const packages = readJsonScript('rs-packages-data', []);
+  const origQtCccds = readJsonScript('rs-orig-qt-cccds-data', []);
+  const origQtAlloc = readJsonScript('rs-orig-qt-alloc-data', {});
+  let repCccdServiceId = Number(readJsonScript('rs-rep-cccd-service-data', 0)) || 0;
+  let extraQtItems = readJsonScript('rs-extra-qt-items-data', []);
+  const origCustomer = readJsonScript('rs-orig-customer-data', {});
+  const voucherInfo = readJsonScript('rs-voucher-data', { has_voucher: false });
+  const oldTotal = Number(readJsonScript('rs-old-total-data', 0)) || 0;
+
+  let activeTab = document.getElementById('rs-tab-btn-info')?.classList.contains('is-active')
+    ? 'info'
+    : 'tickets';
+
+  let isCompareOpen = false;
+  let pollTimer = null;
+  let countdownTimer = null;
+  let lastPaymentUrl = '';
+  let activeTxnId = '';
+
+  window.toggleOrderCompareDrawer = function (forceState) {
+    isCompareOpen = typeof forceState === 'boolean' ? forceState : !isCompareOpen;
+    const popover = document.getElementById('rs-compare-popover');
+    const btn = document.getElementById('rs-compare-toggle-btn');
+
+    if (popover) {
+      popover.hidden = !isCompareOpen;
+      popover.classList.toggle('is-open', isCompareOpen);
+      popover.setAttribute('aria-hidden', isCompareOpen ? 'false' : 'true');
+    }
+    if (btn) {
+      btn.classList.toggle('is-active', isCompareOpen);
+      btn.setAttribute('aria-expanded', isCompareOpen ? 'true' : 'false');
+      btn.textContent = isCompareOpen ? '✕ Đóng so sánh' : '⇄ So sánh';
     }
   };
 
-  RS_POLL_TIMER = setInterval(checkStatus, 2500);
-}
-
-async function handleRescheduleSubmit(e) {
-  // Nếu không cần thanh toán bổ sung (đổi ngang giá), submit form bình thường
-  if (RS_CURRENT_DIFF <= 0) return;
-
-  e.preventDefault();
-  showRescheduleError('');
-
-  const form = e.currentTarget;
-  const orderCode = document.getElementById('hidden-order-code')?.value || '';
-  const submitBtn = document.getElementById('rs-submit-btn');
-
-  // Mở tab trống đồng bộ ngay trong sự kiện click để không bị trình duyệt chặn popup
-  const paymentTab = window.open('about:blank', '_blank');
-  if (paymentTab && paymentTab.document) {
-    paymentTab.document.write(
-      '<p style="font-family:sans-serif;padding:24px;color:#334155">Đang kết nối cổng thanh toán VNPAY, vui lòng chờ...</p>'
-    );
+  function getPkg(id) {
+    return packages.find((p) => Number(p.id) === Number(id));
   }
 
-  if (submitBtn) {
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Đang khởi tạo giao dịch VNPAY...';
+  function getQty(pkgId, type) {
+    const inp = document.getElementById(`${type}_qty_${pkgId}`);
+    return inp ? Math.max(0, parseInt(inp.value || '0', 10) || 0) : 0;
   }
 
-  try {
-    const resp = await fetch(form.action || window.location.href, {
-      method: 'POST',
-      headers: {
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      body: new FormData(form),
+  function setQty(pkgId, type, val) {
+    const safeVal = Math.max(0, parseInt(val, 10) || 0);
+    const inp = document.getElementById(`${type}_qty_${pkgId}`);
+    const disp = document.getElementById(`disp-${type}-${pkgId}`);
+    if (inp) inp.value = String(safeVal);
+    if (disp) disp.textContent = String(safeVal);
+  }
+
+  function getTotalsAcrossPackages() {
+    let totalAdult = 0;
+    let totalChild = 0;
+    let totalInfant = 0;
+    packages.forEach((p) => {
+      totalAdult += getQty(p.id, 'adult');
+      totalChild += getQty(p.id, 'child');
+      totalInfant += getQty(p.id, 'infant');
     });
+    return {
+      totalAdult,
+      totalChild,
+      totalInfant,
+      totalPaid: totalAdult + totalChild,
+      totalAll: totalAdult + totalChild + totalInfant,
+    };
+  }
 
-    const data = await resp.json();
-    if (!resp.ok || !data.ok) {
-      if (paymentTab && !paymentTab.closed) paymentTab.close();
-      if (data.active_tab) switchRescheduleTab(data.active_tab);
-      showRescheduleError(data.error || 'Không thể khởi tạo thanh toán bổ sung.');
-      renderRescheduleSummary();
-      return;
+  window.switchRescheduleTab = function (tabName) {
+    activeTab = tabName === 'info' ? 'info' : 'tickets';
+    const btnT = document.getElementById('rs-tab-btn-tickets');
+    const btnI = document.getElementById('rs-tab-btn-info');
+    const paneT = document.getElementById('rs-tab-pane-tickets');
+    const paneI = document.getElementById('rs-tab-pane-info');
+    const footBtn = document.getElementById('rs-foot-switch-btn');
+
+    if (btnT) btnT.classList.toggle('is-active', activeTab === 'tickets');
+    if (btnI) btnI.classList.toggle('is-active', activeTab === 'info');
+
+    if (paneT) {
+      paneT.hidden = activeTab !== 'tickets';
+      paneT.style.display = activeTab === 'tickets' ? '' : 'none';
     }
-
-    if (data.requires_payment && data.payment_url) {
-      if (paymentTab && !paymentTab.closed) {
-        paymentTab.location.href = data.payment_url;
-      }
-      showExchangePaymentPanel('PENDING', data);
-      startExchangePolling(data.transaction_id, orderCode);
+    if (paneI) {
+      paneI.hidden = activeTab !== 'info';
+      paneI.style.display = activeTab === 'info' ? '' : 'none';
     }
-  } catch (err) {
-    if (paymentTab && !paymentTab.closed) paymentTab.close();
-    showRescheduleError('Lỗi kết nối máy chủ khi tạo giao dịch VNPAY. Vui lòng thử lại.');
-    renderRescheduleSummary();
-  }
-}
-
-function retryExchangePayment() {
-  const form = document.getElementById('reschedule-form');
-  if (!form) return;
-  form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-}
-
-function switchRescheduleTab(tabName) {
-  RS_ACTIVE_TAB = (tabName === 'info') ? 'info' : 'tickets';
-  const isInfo = (RS_ACTIVE_TAB === 'info');
-
-  const paneTickets = document.getElementById('rs-tab-pane-tickets');
-  const paneInfo = document.getElementById('rs-tab-pane-info');
-  const btnTickets = document.getElementById('rs-tab-btn-tickets');
-  const btnInfo = document.getElementById('rs-tab-btn-info');
-  const footSwitchBtn = document.getElementById('rs-foot-switch-btn');
-
-  if (paneTickets) {
-    paneTickets.hidden = isInfo;
-    paneTickets.style.display = isInfo ? 'none' : 'block';
-  }
-  if (paneInfo) {
-    paneInfo.hidden = !isInfo;
-    paneInfo.style.display = isInfo ? 'block' : 'none';
-  }
-  if (btnTickets) btnTickets.classList.toggle('is-active', !isInfo);
-  if (btnInfo) btnInfo.classList.toggle('is-active', isInfo);
-  if (footSwitchBtn) {
-    footSwitchBtn.textContent = isInfo ? '← Quay lại điều chỉnh vé' : 'Điều chỉnh thông tin →';
-  }
-}
-
-function handleFooterTabSwitch() {
-  switchRescheduleTab(RS_ACTIVE_TAB === 'tickets' ? 'info' : 'tickets');
-}
-
-function showRescheduleError(msg) {
-  const box = document.getElementById('rs-client-err');
-  if (!box) return;
-  if (!msg) {
-    box.hidden = true;
-    box.style.display = 'none';
-    box.textContent = '';
-  } else {
-    box.textContent = '⚠ ' + msg;
-    box.hidden = false;
-    box.style.display = 'block';
-  }
-}
-
-function getTicketCounts() {
-  let totalAdultTickets = 0;
-  let totalChildTickets = 0;
-  let totalInfantTickets = 0;
-
-  RS_PACKAGES.forEach(pkg => {
-    const st = RS_STATE[pkg.id];
-    if (!st) return;
-    totalAdultTickets += st.adult || 0;
-    totalChildTickets += st.child || 0;
-    totalInfantTickets += st.infant || 0;
-  });
-
-  const totalPaidTickets = totalAdultTickets + totalChildTickets;
-  const totalAllTickets = totalPaidTickets + totalInfantTickets;
-  return { totalAdultTickets, totalChildTickets, totalInfantTickets, totalPaidTickets, totalAllTickets };
-}
-
-function renderRepServiceBox() {
-  const box = document.getElementById('rs-rep-service-box');
-  const sel = document.getElementById('rs-rep-cccd-service');
-  if (!box || !sel) return;
-
-  const repVal = (document.getElementById('rs-cust-cccd')?.value || '').trim();
-  const adultPackages = RS_PACKAGES.filter(p => (RS_STATE[p.id]?.adult || 0) > 0);
-
-  if (!isValidQtCccd(repVal) || adultPackages.length === 0) {
-    box.style.display = 'none';
-    sel.innerHTML = '';
-    return;
-  }
-
-  box.style.display = 'block';
-
-  const validRepPkg = adultPackages.find(p => p.id === Number(RS_REP_SERVICE_ID)) || adultPackages[0];
-  RS_REP_SERVICE_ID = validRepPkg ? validRepPkg.id : 0;
-
-  sel.innerHTML = adultPackages.map(pkg => {
-    const selectedAttr = (pkg.id === RS_REP_SERVICE_ID) ? 'selected' : '';
-    return `<option value="${pkg.id}" ${selectedAttr}>${pkg.name} – Trên 1,4m (${rsFmt(pkg.price_qt)})</option>`;
-  }).join('');
-}
-
-function handleRepServiceChange(serviceId) {
-  RS_REP_SERVICE_ID = Number(serviceId || 0);
-  renderCompanionRows();
-  renderRescheduleSummary();
-}
-
-function resolveEffectiveRepServiceId() {
-  const repVal = (document.getElementById('rs-cust-cccd')?.value || '').trim();
-  if (!isValidQtCccd(repVal)) return 0;
-
-  const adultPackages = RS_PACKAGES.filter(p => (RS_STATE[p.id]?.adult || 0) > 0);
-  if (adultPackages.length === 0) return 0;
-
-  const chosen = adultPackages.find(p => p.id === Number(RS_REP_SERVICE_ID)) || adultPackages[0];
-  RS_REP_SERVICE_ID = chosen.id;
-  return chosen.id;
-}
-
-function getRemainingAdultSlotsMap(excludeIdx = -1) {
-  const remaining = {};
-  RS_PACKAGES.forEach(p => {
-    remaining[p.id] = RS_STATE[p.id]?.adult || 0;
-  });
-
-  const repServiceId = resolveEffectiveRepServiceId();
-  if (repServiceId && (remaining[repServiceId] || 0) > 0) {
-    remaining[repServiceId] -= 1;
-  }
-
-  RS_COMPANIONS.forEach((item, idx) => {
-    if (idx === excludeIdx) return;
-    const sid = Number(item.serviceId || 0);
-    if ((remaining[sid] || 0) > 0) {
-      remaining[sid] -= 1;
+    if (footBtn) {
+      footBtn.textContent =
+        activeTab === 'info' ? '← Quay lại điều chỉnh vé' : 'Điều chỉnh thông tin →';
     }
-  });
-
-  return remaining;
-}
-
-function getNextAvailableServiceId() {
-  const remaining = getRemainingAdultSlotsMap(-1);
-  const nextPkg = RS_PACKAGES.find(p => (remaining[p.id] || 0) > 0);
-  if (nextPkg) return nextPkg.id;
-
-  const fallbackPkg = RS_PACKAGES.find(p => (RS_STATE[p.id]?.adult || 0) > 0);
-  return fallbackPkg ? fallbackPkg.id : (RS_PACKAGES[0]?.id || 0);
-}
-
-function addCompanionRow() {
-  showRescheduleError('');
-  const { totalAdultTickets, totalAllTickets } = getTicketCounts();
-  const maxCompanionSlots = Math.max(0, totalAdultTickets - 1);
-
-  if (totalAllTickets <= 1 || maxCompanionSlots <= 0) return;
-  if (RS_COMPANIONS.length >= maxCompanionSlots) return;
-
-  RS_COMPANIONS.push({
-    cccd: '',
-    serviceId: getNextAvailableServiceId(),
-  });
-  renderCompanionRows();
-  renderRescheduleSummary();
-}
-
-function removeCompanionRow(idx) {
-  showRescheduleError('');
-  RS_COMPANIONS.splice(idx, 1);
-  renderCompanionRows();
-  renderRescheduleSummary();
-}
-
-function updateCompanionCccd(idx, rawVal) {
-  if (!RS_COMPANIONS[idx]) return;
-  RS_COMPANIONS[idx].cccd = String(rawVal || '').replace(/\D/g, '').slice(0, 12);
-  syncHiddenCompanionInput();
-  renderRescheduleSummary();
-}
-
-function updateCompanionService(idx, serviceId) {
-  if (!RS_COMPANIONS[idx]) return;
-  RS_COMPANIONS[idx].serviceId = Number(serviceId || 0);
-  renderCompanionRows();
-  renderRescheduleSummary();
-}
-
-function syncHiddenCompanionInput() {
-  const hiddenList = document.getElementById('hidden-qt-cccd-list');
-  if (!hiddenList) return;
-  const serialized = RS_COMPANIONS
-    .filter(item => item.cccd.trim().length > 0)
-    .map(item => `${item.cccd.trim()}:${item.serviceId || getNextAvailableServiceId()}`);
-  hiddenList.value = serialized.join(',');
-}
-
-function renderCompanionRows() {
-  const container = document.getElementById('rs-companion-list');
-  if (!container) {
-    syncHiddenCompanionInput();
-    return;
-  }
-
-  const adultPackages = RS_PACKAGES.filter(p => (RS_STATE[p.id]?.adult || 0) > 0);
-  const selectablePackages = adultPackages.length > 0 ? adultPackages : RS_PACKAGES.filter(p => p.is_active);
-
-  const runningRemaining = {};
-  RS_PACKAGES.forEach(p => {
-    runningRemaining[p.id] = RS_STATE[p.id]?.adult || 0;
-  });
-
-  const repServiceId = resolveEffectiveRepServiceId();
-  if (repServiceId && (runningRemaining[repServiceId] || 0) > 0) {
-    runningRemaining[repServiceId] -= 1;
-  }
-
-  RS_COMPANIONS.forEach(item => {
-    const curSid = Number(item.serviceId || 0);
-    if ((runningRemaining[curSid] || 0) > 0) {
-      runningRemaining[curSid] -= 1;
-    } else {
-      const nextAvailablePkg = selectablePackages.find(p => (runningRemaining[p.id] || 0) > 0);
-      if (nextAvailablePkg) {
-        item.serviceId = nextAvailablePkg.id;
-        runningRemaining[nextAvailablePkg.id] -= 1;
-      } else if (selectablePackages[0]) {
-        item.serviceId = selectablePackages[0].id;
-      }
-    }
-  });
-
-  container.innerHTML = RS_COMPANIONS.map((item, idx) => {
-    const slotsForThisRow = getRemainingAdultSlotsMap(idx);
-
-    const optionsHtml = selectablePackages.map(pkg => {
-      const isSelected = (pkg.id === item.serviceId);
-      const hasSlot = (slotsForThisRow[pkg.id] || 0) > 0;
-      const selAttr = isSelected ? 'selected' : '';
-      const disAttr = (!isSelected && !hasSlot) ? 'disabled' : '';
-      const fullTag = (!isSelected && !hasSlot) ? ' – Đã đủ suất' : '';
-      return `<option value="${pkg.id}" ${selAttr} ${disAttr}>${pkg.name} – Trên 1,4m (${rsFmt(pkg.price_qt)})${fullTag}</option>`;
-    }).join('');
-
-    return `
-      <div class="rs-companion-row">
-        <input type="text" class="ck-inp" maxlength="12"
-               value="${item.cccd}"
-               placeholder="Nhập 12 số CCCD đi cùng"
-               oninput="this.value=this.value.replace(/\\D/g,'');updateCompanionCccd(${idx}, this.value)">
-        <select class="ck-inp" onchange="updateCompanionService(${idx}, this.value)">
-          ${optionsHtml}
-        </select>
-        <button type="button" class="rs-del-cccd-btn" onclick="removeCompanionRow(${idx})" title="Xóa CCCD này">✕</button>
-      </div>`;
-  }).join('');
-
-  syncHiddenCompanionInput();
-}
-
-function getQtAllocationsByService() {
-  const { totalAdultTickets, totalAllTickets } = getTicketCounts();
-  const repVal = (document.getElementById('rs-cust-cccd')?.value || '').trim();
-  const seen = new Set();
-  const allocByService = {};
-  const orderedValidCccds = [];
-
-  const remainingAdultsByService = {};
-  RS_PACKAGES.forEach(p => {
-    remainingAdultsByService[p.id] = RS_STATE[p.id]?.adult || 0;
-  });
-
-  const repServiceId = resolveEffectiveRepServiceId();
-  if (isValidQtCccd(repVal) && repServiceId && (remainingAdultsByService[repServiceId] || 0) > 0) {
-    seen.add(repVal);
-    orderedValidCccds.push(repVal);
-    remainingAdultsByService[repServiceId] -= 1;
-    allocByService[repServiceId] = (allocByService[repServiceId] || 0) + 1;
-  }
-
-  if (totalAllTickets > 1 && totalAdultTickets > 1) {
-    const maxSlots = totalAdultTickets - 1;
-    RS_COMPANIONS.slice(0, maxSlots).forEach(item => {
-      const code = (item.cccd || '').trim();
-      if (!isValidQtCccd(code) || seen.has(code)) return;
-
-      let chosenPkgId = Number(item.serviceId || 0);
-      if ((remainingAdultsByService[chosenPkgId] || 0) <= 0) {
-        const fallbackPkg = RS_PACKAGES.find(p => (remainingAdultsByService[p.id] || 0) > 0);
-        chosenPkgId = fallbackPkg ? fallbackPkg.id : 0;
-      }
-
-      if (chosenPkgId && (remainingAdultsByService[chosenPkgId] || 0) > 0) {
-        seen.add(code);
-        orderedValidCccds.push(code);
-        remainingAdultsByService[chosenPkgId] -= 1;
-        allocByService[chosenPkgId] = (allocByService[chosenPkgId] || 0) + 1;
-      }
-    });
-  }
-
-  return { allocByService, orderedValidCccds };
-}
-
-function syncCustomerInputsState() {
-  const { totalAdultTickets, totalAllTickets } = getTicketCounts();
-  const nameVal = (document.getElementById('rs-cust-name')?.value || '').trim();
-  const phoneVal = (document.getElementById('rs-cust-phone')?.value || '').trim();
-  const emailVal = (document.getElementById('rs-cust-email')?.value || '').trim();
-  const repCccdVal = (document.getElementById('rs-cust-cccd')?.value || '').trim();
-
-  const extraBox = document.getElementById('rs-extra-cccd-box');
-  const addBtn = document.getElementById('rs-add-cccd-btn');
-  const allowExtraBox = (totalAllTickets > 1 && totalAdultTickets > 1);
-
-  if (extraBox) {
-    extraBox.style.display = allowExtraBox ? 'block' : 'none';
-  }
-  if (!allowExtraBox && RS_COMPANIONS.length > 0) {
-    RS_COMPANIONS = [];
-    renderCompanionRows();
-  } else if (allowExtraBox) {
-    const maxSlots = totalAdultTickets - 1;
-    if (RS_COMPANIONS.length > maxSlots) {
-      RS_COMPANIONS = RS_COMPANIONS.slice(0, maxSlots);
-      renderCompanionRows();
-    }
-    if (addBtn) {
-      addBtn.disabled = (RS_COMPANIONS.length >= maxSlots);
-    }
-  }
-
-  const confirmEmailEl = document.getElementById('confirm-email-disp');
-  if (confirmEmailEl) {
-    confirmEmailEl.textContent = emailVal || RS_ORIG_CUSTOMER.email || '';
-  }
-
-  const hintEl = document.getElementById('rs-rep-cccd-hint');
-  if (hintEl) {
-    if (!repCccdVal) {
-      hintEl.style.display = 'none';
-    } else if (repCccdVal.length < 12) {
-      hintEl.style.display = 'block';
-      hintEl.style.color = '#64748b';
-      hintEl.textContent = `Đã nhập ${repCccdVal.length}/12 chữ số CCCD...`;
-    } else if (isValidQtCccd(repCccdVal)) {
-      hintEl.style.display = 'block';
-      hintEl.style.color = 'var(--ok)';
-      hintEl.textContent = '✓ CCCD Quảng Trị hợp lệ (đầu số 044/045).';
-    } else {
-      hintEl.style.display = 'block';
-      hintEl.style.color = '#64748b';
-      hintEl.textContent = 'CCCD tỉnh khác (không thuộc 044/045) – áp dụng giá tiêu chuẩn.';
-    }
-  }
-
-  const nonEmptyCompanions = allowExtraBox
-    ? RS_COMPANIONS.map(c => (c.cccd || '').trim()).filter(Boolean)
-    : [];
-  const allCompanionsValidFormat = nonEmptyCompanions.every(c => /^\d{12}$/.test(c));
-
-  const hasAnyCccd = repCccdVal.length > 0 || nonEmptyCompanions.length > 0;
-  const confirmWrap = document.getElementById('rs-cccd-confirm-wrap');
-  const confirmChk = document.getElementById('chk-cccd-confirm');
-  if (confirmWrap) {
-    confirmWrap.style.display = hasAnyCccd ? 'block' : 'none';
-  }
-  if (!hasAnyCccd && confirmChk) {
-    confirmChk.checked = false;
-  }
-
-  const isCustomerValid = (
-    nameVal.length > 0 &&
-    /^0\d{9}$/.test(phoneVal) &&
-    emailVal.includes('@') &&
-    emailVal.includes('.') &&
-    (repCccdVal === '' || /^\d{12}$/.test(repCccdVal)) &&
-    allCompanionsValidFormat &&
-    (!hasAnyCccd || Boolean(confirmChk?.checked))
-  );
-
-  return {
-    nameVal,
-    phoneVal,
-    emailVal,
-    isCustomerValid,
   };
-}
 
-function hasRescheduleChanged(custState, orderedValidCccds, allocByService) {
-  const origDate = document.getElementById('hidden-orig-date')?.value || '';
-  const curDate = document.getElementById('hidden-visit-date')?.value || '';
-  if (origDate && curDate && origDate !== curDate) return true;
+  window.handleFooterTabSwitch = function () {
+    switchRescheduleTab(activeTab === 'info' ? 'tickets' : 'info');
+  };
 
-  const qtyChanged = RS_PACKAGES.some(pkg => {
-    const st = RS_STATE[pkg.id] || { adult: 0, child: 0, infant: 0 };
-    return (
-      st.adult !== (pkg.init_adult || 0) ||
-      st.child !== (pkg.init_child || 0) ||
-      st.infant !== (pkg.init_infant || 0)
-    );
-  });
-  if (qtyChanged) return true;
+  window.adjustRescheduleTicket = function (pkgId, type, delta) {
+    const pkg = getPkg(pkgId);
+    if (!pkg || !pkg.is_active || pkg.available <= 0) return;
 
-  const qtChanged = (
-    orderedValidCccds.length !== RS_ORIG_QT_CCCDS.length ||
-    orderedValidCccds.some((v, idx) => v !== RS_ORIG_QT_CCCDS[idx])
-  );
-  if (qtChanged) return true;
+    const curAdult = getQty(pkgId, 'adult');
+    const curChild = getQty(pkgId, 'child');
+    const curInfant = getQty(pkgId, 'infant');
 
-  const allocChanged = RS_PACKAGES.some(pkg => {
-    const oldCnt = Number(RS_ORIG_QT_ALLOC[String(pkg.id)] || 0);
-    const newCnt = Number(allocByService[pkg.id] || 0);
-    return oldCnt !== newCnt;
-  });
-  if (allocChanged) return true;
+    let nextAdult = curAdult;
+    let nextChild = curChild;
+    let nextInfant = curInfant;
 
-  if (
-    custState.nameVal !== (RS_ORIG_CUSTOMER.full_name || '') ||
-    custState.phoneVal !== (RS_ORIG_CUSTOMER.phone || '') ||
-    custState.emailVal.toLowerCase() !== (RS_ORIG_CUSTOMER.email || '').toLowerCase()
-  ) {
-    return true;
-  }
-
-  return false;
-}
-
-async function changeRescheduleDate(newDateIso) {
-  if (!newDateIso) return;
-  showRescheduleError('');
-  const orderCode = document.getElementById('hidden-order-code')?.value || '';
-
-  try {
-    const resp = await fetch(`/api/availability/?date=${encodeURIComponent(newDateIso)}&exclude_order=${encodeURIComponent(orderCode)}`);
-    const data = await resp.json();
-    if (!resp.ok) {
-      showRescheduleError(data.error || 'Ngày sử dụng mới không hợp lệ.');
-      return;
+    if (type === 'adult') {
+      nextAdult = Math.max(0, curAdult + delta);
+      if (nextAdult + nextChild > pkg.available) {
+        nextAdult = Math.max(0, pkg.available - nextChild);
+      }
+      setQty(pkgId, 'adult', nextAdult);
+    } else if (type === 'child') {
+      nextChild = Math.max(0, curChild + delta);
+      if (nextAdult + nextChild > pkg.available) {
+        nextChild = Math.max(0, pkg.available - nextAdult);
+      }
+      setQty(pkgId, 'child', nextChild);
+    } else if (type === 'infant') {
+      nextInfant = Math.max(0, curInfant + delta);
+      setQty(pkgId, 'infant', nextInfant);
     }
 
-    const hiddenDate = document.getElementById('hidden-visit-date');
-    if (hiddenDate) hiddenDate.value = data.date;
-
-    const invDate = document.getElementById('inv-date-disp');
-    const dayBadge1 = document.getElementById('rs-day-badge');
-    const dayBadge2 = document.getElementById('inv-day-badge');
-    if (invDate) invDate.textContent = data.date_display;
-    if (dayBadge1) dayBadge1.textContent = data.day_label;
-    if (dayBadge2) dayBadge2.textContent = data.day_label;
-
-    data.services.forEach(srv => {
-      const pkg = RS_PACKAGES.find(p => p.id === srv.id);
-      if (!pkg) return;
-
-      pkg.is_active = srv.is_active;
-      pkg.available = srv.available;
-      pkg.price_adult = srv.price_adult;
-      pkg.price_child = srv.price_child;
-      pkg.price_qt = srv.price_qt;
-
-      const pAdultEl = document.getElementById(`price-adult-${pkg.id}`);
-      const pChildEl = document.getElementById(`price-child-${pkg.id}`);
-      const availBadge = document.getElementById(`avail-badge-${pkg.id}`);
-      if (pAdultEl) pAdultEl.textContent = rsFmt(pkg.price_adult);
-      if (pChildEl) pChildEl.textContent = rsFmt(pkg.price_child);
-      if (availBadge) {
-        if (!pkg.is_active) {
-          availBadge.className = 'bd no';
-          availBadge.textContent = 'Tạm ngừng';
-        } else if (pkg.available <= 0) {
-          availBadge.className = 'bd no';
-          availBadge.textContent = 'Hết vé';
-        } else {
-          availBadge.className = 'bd ok';
-          availBadge.textContent = `Còn ${pkg.available} vé`;
-        }
-      }
-
-      const st = RS_STATE[pkg.id];
-      if (st) {
-        if (!pkg.is_active || pkg.available <= 0) {
-          st.adult = 0;
-          st.child = 0;
-          st.infant = 0;
-        } else if (st.adult + st.child > pkg.available) {
-          st.adult = Math.min(st.adult, pkg.available);
-          st.child = Math.max(0, pkg.available - st.adult);
-        }
-      }
-    });
+    const totalPkg = nextAdult + nextChild + nextInfant;
+    const autoTotalEl = document.getElementById(`pkg-auto-total-${pkgId}`);
+    if (autoTotalEl) {
+      autoTotalEl.innerHTML = `Tổng: <b>${totalPkg}</b> vé`;
+    }
+    const cardEl = document.querySelector(`.ck-mini-card[data-pkg-id="${pkgId}"]`);
+    if (cardEl) {
+      cardEl.classList.toggle('is-picked', totalPkg > 0);
+    }
 
     renderRepServiceBox();
     renderCompanionRows();
     renderRescheduleSummary();
-  } catch (e) {
-    showRescheduleError('Không thể tải giá vé cho ngày mới.');
-  }
-}
+  };
 
-function adjustRescheduleTicket(pkgId, tier, delta) {
-  showRescheduleError('');
-  const pkg = RS_PACKAGES.find(p => p.id === pkgId);
-  const st = RS_STATE[pkgId];
-  if (!pkg || !st || !pkg.is_active || pkg.available <= 0) return;
+  window.changeRescheduleDate = async function (newDateStr) {
+    if (!newDateStr) return;
+    const hiddenDate = document.getElementById('hidden-visit-date');
+    if (hiddenDate) hiddenDate.value = newDateStr;
 
-  const curPaid = st.adult + st.child;
+    const formEl = document.getElementById('reschedule-form');
+    const availUrl = formEl?.dataset?.availUrl || '/api/check-availability/';
+    const orderCode = document.getElementById('hidden-order-code')?.value || '';
 
-  if (tier === 'adult') {
-    if (delta > 0 && curPaid < pkg.available) {
-      st.adult += 1;
-    } else if (delta < 0 && st.adult > 0) {
-      st.adult -= 1;
-      if (st.adult + st.child === 0) st.infant = 0;
-    }
-  } else if (tier === 'child') {
-    if (delta > 0 && curPaid < pkg.available) {
-      st.child += 1;
-    } else if (delta < 0 && st.child > 0) {
-      st.child -= 1;
-      if (st.adult + st.child === 0) st.infant = 0;
-    }
-  } else if (tier === 'infant') {
-    if (delta > 0) {
-      if (curPaid <= 0) {
-        showRescheduleError('Trẻ em dưới 1m miễn phí vé cần đi kèm ít nhất 01 vé có tính phí.');
+    try {
+      const url = `${availUrl}?date=${encodeURIComponent(newDateStr)}&exclude_order=${encodeURIComponent(orderCode)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        showClientError(data.error || 'Không thể tải bảng giá ngày đã chọn.');
         return;
       }
-      st.infant = Math.min(10, st.infant + 1);
-    } else if (delta < 0 && st.infant > 0) {
-      st.infant -= 1;
+
+      const dayBadge = document.getElementById('rs-day-badge');
+      const invDayBadge = document.getElementById('inv-day-badge');
+      const invDateDisp = document.getElementById('inv-date-disp');
+      if (dayBadge) dayBadge.textContent = data.day_label || '';
+      if (invDayBadge) invDayBadge.textContent = data.day_label || '';
+      if (invDateDisp) invDateDisp.textContent = data.date_display || newDateStr;
+
+      (data.services || []).forEach((srv) => {
+        const pkg = getPkg(srv.id);
+        if (!pkg) return;
+        pkg.is_active = Boolean(srv.is_active);
+        pkg.available = Number(srv.available || 0);
+        pkg.price_adult = Number(srv.price_adult || 0);
+        pkg.price_child = Number(srv.price_child || 0);
+        pkg.price_qt = Number(srv.price_qt || 0);
+
+        const pAdultEl = document.getElementById(`price-adult-${pkg.id}`);
+        const pChildEl = document.getElementById(`price-child-${pkg.id}`);
+        const badgeEl = document.getElementById(`avail-badge-${pkg.id}`);
+        if (pAdultEl) pAdultEl.textContent = fmtVnd(pkg.price_adult);
+        if (pChildEl) pChildEl.textContent = fmtVnd(pkg.price_child);
+        if (badgeEl) {
+          if (!pkg.is_active) {
+            badgeEl.className = 'bd no';
+            badgeEl.textContent = 'Tạm ngừng';
+          } else if (pkg.available <= 0) {
+            badgeEl.className = 'bd no';
+            badgeEl.textContent = 'Hết vé';
+          } else {
+            badgeEl.className = 'bd ok';
+            badgeEl.textContent = `Còn ${pkg.available} vé`;
+          }
+        }
+      });
+
+      renderRepServiceBox();
+      renderCompanionRows();
+      renderRescheduleSummary();
+    } catch (e) {
+      showClientError('Lỗi kết nối khi cập nhật giá vé theo ngày mới.');
+    }
+  };
+
+  function getActiveAdultPackages() {
+    return packages.filter((p) => p.is_active && getQty(p.id, 'adult') > 0);
+  }
+
+  window.renderRepServiceBox = function () {
+    const cccdInput = document.getElementById('rs-cust-cccd');
+    const hintEl = document.getElementById('rs-rep-cccd-hint');
+    const boxEl = document.getElementById('rs-rep-service-box');
+    const selectEl = document.getElementById('rs-rep-cccd-service');
+    const val = (cccdInput?.value || '').trim();
+
+    if (hintEl) {
+      if (!val) {
+        hintEl.style.display = 'none';
+      } else if (val.length < 12) {
+        hintEl.style.display = 'block';
+        hintEl.style.color = '#b45309';
+        hintEl.textContent = `Đã nhập ${val.length}/12 chữ số CCCD`;
+      } else if (isQuangTriCccd(val)) {
+        hintEl.style.display = 'block';
+        hintEl.style.color = 'var(--ok)';
+        hintEl.textContent = '✓ CCCD Quảng Trị hợp lệ (ưu đãi 01 vé người lớn)';
+      } else {
+        hintEl.style.display = 'block';
+        hintEl.style.color = '#64748b';
+        hintEl.textContent = 'CCCD 12 số hợp lệ (không thuộc đầu số 044/045)';
+      }
+    }
+
+    const adultPkgs = getActiveAdultPackages();
+    if (!isQuangTriCccd(val) || adultPkgs.length === 0) {
+      if (boxEl) boxEl.style.display = 'none';
+      updateCccdConfirmVisibility();
+      return;
+    }
+
+    if (!adultPkgs.some((p) => Number(p.id) === Number(repCccdServiceId))) {
+      repCccdServiceId = Number(adultPkgs[0].id);
+    }
+
+    if (selectEl) {
+      selectEl.innerHTML = adultPkgs
+        .map((p) => {
+          const selected = Number(p.id) === Number(repCccdServiceId) ? 'selected' : '';
+          return `<option value="${p.id}" ${selected}>${p.name} — Giá ưu đãi ${fmtVnd(p.price_qt)} (giá gốc ${fmtVnd(p.price_adult)})</option>`;
+        })
+        .join('');
+    }
+    if (boxEl) boxEl.style.display = 'block';
+    updateCccdConfirmVisibility();
+  };
+
+  window.handleRepServiceChange = function (val) {
+    repCccdServiceId = Number(val) || 0;
+    renderCompanionRows();
+    renderRescheduleSummary();
+  };
+
+  function syncHiddenCompanionList() {
+    const hiddenEl = document.getElementById('hidden-qt-cccd-list');
+    if (!hiddenEl) return;
+    const tokens = extraQtItems
+      .filter((item) => (item.cccd || '').trim().length > 0)
+      .map((item) => `${item.cccd.trim()}:${Number(item.service_id) || 0}`);
+    hiddenEl.value = tokens.join(',');
+    updateCccdConfirmVisibility();
+  }
+
+  function updateCccdConfirmVisibility() {
+    const wrap = document.getElementById('rs-cccd-confirm-wrap');
+    if (!wrap) return;
+    const repVal = (document.getElementById('rs-cust-cccd')?.value || '').trim();
+    const hasExtra = extraQtItems.some((item) => (item.cccd || '').trim().length > 0);
+    wrap.style.display = repVal || hasExtra ? 'block' : 'none';
+  }
+
+  window.renderCompanionRows = function () {
+    const boxEl = document.getElementById('rs-extra-cccd-box');
+    const listEl = document.getElementById('rs-companion-list');
+    const addBtn = document.getElementById('rs-add-cccd-btn');
+    if (!boxEl || !listEl) return;
+
+    const totals = getTotalsAcrossPackages();
+    const maxExtra = Math.max(0, totals.totalAdult - 1);
+    const adultPkgs = getActiveAdultPackages();
+
+    if (totals.totalAll <= 1 || maxExtra <= 0 || adultPkgs.length === 0) {
+      extraQtItems = [];
+      boxEl.style.display = 'none';
+      listEl.innerHTML = '';
+      syncHiddenCompanionList();
+      return;
+    }
+
+    if (extraQtItems.length > maxExtra) {
+      extraQtItems = extraQtItems.slice(0, maxExtra);
+    }
+
+    boxEl.style.display = 'block';
+    if (addBtn) {
+      addBtn.disabled = extraQtItems.length >= maxExtra;
+      addBtn.style.opacity = extraQtItems.length >= maxExtra ? '0.55' : '1';
+    }
+
+    listEl.innerHTML = extraQtItems
+      .map((item, idx) => {
+        const curSid = adultPkgs.some((p) => Number(p.id) === Number(item.service_id))
+          ? Number(item.service_id)
+          : Number(adultPkgs[0].id);
+        item.service_id = curSid;
+
+        const optionsHtml = adultPkgs
+          .map((p) => {
+            const sel = Number(p.id) === curSid ? 'selected' : '';
+            return `<option value="${p.id}" ${sel}>${p.name} (${fmtVnd(p.price_qt)})</option>`;
+          })
+          .join('');
+
+        return `
+          <div class="rs-companion-row">
+            <input type="text"
+                   class="ck-inp"
+                   maxlength="12"
+                   value="${item.cccd || ''}"
+                   placeholder="Nhập CCCD người đi cùng (12 số)"
+                   oninput="this.value=this.value.replace(/\\D/g,'');updateCompanionCccd(${idx}, this.value)">
+            <select class="ck-inp" onchange="updateCompanionService(${idx}, this.value)">
+              ${optionsHtml}
+            </select>
+            <button type="button" class="rs-del-cccd-btn" title="Xóa CCCD này" onclick="removeCompanionRow(${idx})">✕</button>
+          </div>
+        `;
+      })
+      .join('');
+
+    syncHiddenCompanionList();
+  };
+
+  window.addCompanionRow = function () {
+    const totals = getTotalsAcrossPackages();
+    const maxExtra = Math.max(0, totals.totalAdult - 1);
+    const adultPkgs = getActiveAdultPackages();
+    if (extraQtItems.length >= maxExtra || adultPkgs.length === 0) return;
+
+    extraQtItems.push({ cccd: '', service_id: Number(adultPkgs[0].id) });
+    renderCompanionRows();
+    renderRescheduleSummary();
+  };
+
+  window.removeCompanionRow = function (idx) {
+    extraQtItems.splice(idx, 1);
+    renderCompanionRows();
+    renderRescheduleSummary();
+  };
+
+  window.updateCompanionCccd = function (idx, val) {
+    if (!extraQtItems[idx]) return;
+    extraQtItems[idx].cccd = (val || '').replace(/\D/g, '').slice(0, 12);
+    syncHiddenCompanionList();
+    renderRescheduleSummary();
+  };
+
+  window.updateCompanionService = function (idx, sid) {
+    if (!extraQtItems[idx]) return;
+    extraQtItems[idx].service_id = Number(sid) || 0;
+    syncHiddenCompanionList();
+    renderRescheduleSummary();
+  };
+
+  function showClientError(msg) {
+    const errEl = document.getElementById('rs-client-err');
+    if (!errEl) return;
+    if (!msg) {
+      errEl.hidden = true;
+      errEl.style.display = 'none';
+      errEl.textContent = '';
+      return;
+    }
+    errEl.hidden = false;
+    errEl.style.display = 'block';
+    errEl.textContent = '⚠ ' + msg;
+  }
+
+  function calculateInheritedDiscount(newSubtotal) {
+    if (!voucherInfo || !voucherInfo.has_voucher) {
+      return 0;
+    }
+    if (voucherInfo.type === 'PERCENT') {
+      const pct = Number(voucherInfo.value || 0);
+      let disc = Math.min(newSubtotal, Math.round((newSubtotal * pct) / 100));
+      const maxDisc = Number(voucherInfo.max_discount || 0);
+      if (maxDisc > 0) {
+        disc = Math.min(disc, maxDisc);
+      }
+      return Math.max(0, disc);
+    }
+    const fixedVal = Math.round(Number(voucherInfo.value || voucherInfo.fixed_discount || 0));
+    return Math.max(0, Math.min(newSubtotal, fixedVal));
+  }
+
+  window.renderRescheduleSummary = function () {
+    const totals = getTotalsAcrossPackages();
+    const invTicketsEl = document.getElementById('inv-total-tickets');
+    if (invTicketsEl) {
+      invTicketsEl.textContent = `${totals.totalAll} vé`;
+    }
+
+    const emailVal = (document.getElementById('rs-cust-email')?.value || '').trim();
+    const confirmEmailDisp = document.getElementById('confirm-email-disp');
+    if (confirmEmailDisp) confirmEmailDisp.textContent = emailVal;
+
+    // Phân bổ CCCD Quảng Trị hợp lệ theo từng gói vé
+    const pkgStates = {};
+    packages.forEach((p) => {
+      const a = getQty(p.id, 'adult');
+      const c = getQty(p.id, 'child');
+      const i = getQty(p.id, 'infant');
+      pkgStates[p.id] = {
+        pkg: p,
+        adult: a,
+        remAdult: a,
+        qtAdult: 0,
+        child: c,
+        infant: i,
+      };
+    });
+
+    const seenCccds = new Set();
+    const validQtCccds = [];
+    const newQtAlloc = {};
+
+    const repCccd = (document.getElementById('rs-cust-cccd')?.value || '').trim();
+    if (isQuangTriCccd(repCccd)) {
+      let targetSid =
+        pkgStates[repCccdServiceId] && pkgStates[repCccdServiceId].remAdult > 0
+          ? repCccdServiceId
+          : Number(Object.keys(pkgStates).find((sid) => pkgStates[sid].remAdult > 0) || 0);
+
+      if (targetSid && pkgStates[targetSid]) {
+        pkgStates[targetSid].remAdult -= 1;
+        pkgStates[targetSid].qtAdult += 1;
+        seenCccds.add(repCccd);
+        validQtCccds.push(repCccd);
+        newQtAlloc[String(targetSid)] = (newQtAlloc[String(targetSid)] || 0) + 1;
+      }
+    }
+
+    extraQtItems.forEach((item) => {
+      const code = (item.cccd || '').trim();
+      if (!isQuangTriCccd(code) || seenCccds.has(code)) return;
+
+      const prefSid = Number(item.service_id || 0);
+      let targetSid =
+        pkgStates[prefSid] && pkgStates[prefSid].remAdult > 0
+          ? prefSid
+          : Number(Object.keys(pkgStates).find((sid) => pkgStates[sid].remAdult > 0) || 0);
+
+      if (targetSid && pkgStates[targetSid]) {
+        pkgStates[targetSid].remAdult -= 1;
+        pkgStates[targetSid].qtAdult += 1;
+        seenCccds.add(code);
+        validQtCccds.push(code);
+        newQtAlloc[String(targetSid)] = (newQtAlloc[String(targetSid)] || 0) + 1;
+      }
+    });
+
+    // Hiển thị danh sách gói dịch vụ & từng loại vé, giá từng loại giống trang đặt vé
+    let newSubtotal = 0;
+    const sumLinesEl = document.getElementById('sum-lines');
+    const lineHtmlParts = [];
+
+    packages.forEach((p) => {
+      const st = pkgStates[p.id];
+      if (!st || (st.adult === 0 && st.child === 0 && st.infant === 0)) return;
+
+      const regAdult = st.adult - st.qtAdult;
+      const lineTotal =
+        regAdult * p.price_adult + st.qtAdult * p.price_qt + st.child * p.price_child;
+      newSubtotal += lineTotal;
+
+      const pkgGuests = st.adult + st.child + st.infant;
+      const subRows = [];
+
+      if (regAdult > 0) {
+        subRows.push(`
+          <div class="ck-inv-subrow">
+            <span>${regAdult} × Trên 1,4m (Giá tiêu chuẩn)</span>
+            <span>${fmtVnd(regAdult * p.price_adult)}</span>
+          </div>
+        `);
+      }
+      if (st.qtAdult > 0) {
+        subRows.push(`
+          <div class="ck-inv-subrow is-qt">
+            <span>${st.qtAdult} × Trên 1,4m (Ưu đãi CCCD Quảng Trị)</span>
+            <span>${fmtVnd(st.qtAdult * p.price_qt)}</span>
+          </div>
+        `);
+      }
+      if (st.child > 0) {
+        subRows.push(`
+          <div class="ck-inv-subrow">
+            <span>${st.child} × Từ 1m – 1,4m</span>
+            <span>${fmtVnd(st.child * p.price_child)}</span>
+          </div>
+        `);
+      }
+      if (st.infant > 0) {
+        subRows.push(`
+          <div class="ck-inv-subrow">
+            <span>${st.infant} × Dưới 1m (Miễn phí vé vào)</span>
+            <span>0 VNĐ</span>
+          </div>
+        `);
+      }
+
+      lineHtmlParts.push(`
+        <div class="ck-inv-group">
+          <div class="ck-inv-group-head">
+            <strong>${p.name} (${pkgGuests} vé)</strong>
+            <b>${fmtVnd(lineTotal)}</b>
+          </div>
+          ${subRows.join('')}
+        </div>
+      `);
+    });
+
+    if (sumLinesEl) {
+      sumLinesEl.innerHTML =
+        lineHtmlParts.length > 0
+          ? lineHtmlParts.join('')
+          : '<div class="sm" style="padding:8px 0">Chưa chọn gói vé nào.</div>';
+    }
+
+    // Áp dụng giảm giá kế thừa từ đơn cũ
+    const inheritedDiscount = calculateInheritedDiscount(newSubtotal);
+    const newTotal = Math.max(0, newSubtotal - inheritedDiscount);
+    const diffAmount = newTotal - oldTotal;
+
+    const subEl = document.getElementById('sum-new-subtotal');
+    const discEl = document.getElementById('sum-inherited-discount');
+    const newTotalEl = document.getElementById('sum-new-total');
+    const diffAmountEl = document.getElementById('sum-diff-amount');
+    const diffTitleEl = document.getElementById('diff-title-lbl');
+    const diffNoteEl = document.getElementById('diff-sub-note');
+    const submitBtn = document.getElementById('rs-submit-btn');
+
+    if (subEl) subEl.textContent = fmtVnd(newSubtotal);
+    if (discEl) discEl.textContent = `-${fmtVnd(inheritedDiscount)}`;
+    if (newTotalEl) newTotalEl.textContent = fmtVnd(newTotal);
+
+    let validationMsg = '';
+    if (totals.totalPaid === 0) {
+      validationMsg = 'Vui lòng chọn ít nhất 01 vé có tính phí.';
+    } else if (diffAmount < 0) {
+      validationMsg = voucherInfo.has_voucher
+        ? `Vé chỉ được đổi ngang giá hoặc cao hơn số tiền đã thanh toán ở đơn cũ (${fmtVnd(oldTotal)}). Sau giảm giá kế thừa (${voucherInfo.short_badge}: -${fmtVnd(inheritedDiscount)}), giá vé mới sau giảm là ${fmtVnd(newTotal)}, thấp hơn ${fmtVnd(Math.abs(diffAmount))}.`
+        : `Vé chỉ được đổi ngang giá hoặc cao hơn giá trị đơn đã thanh toán (${fmtVnd(oldTotal)}). Giá trị đơn mới hiện tại là ${fmtVnd(newTotal)}, thấp hơn ${fmtVnd(Math.abs(diffAmount))}.`;
+    }
+
+    if (diffAmount < 0) {
+      if (diffTitleEl) diffTitleEl.textContent = 'Chênh lệch so với đơn cũ';
+      if (diffAmountEl) {
+        diffAmountEl.style.color = 'var(--red)';
+        diffAmountEl.textContent = `-${fmtVnd(Math.abs(diffAmount))}`;
+      }
+      if (diffNoteEl) {
+        diffNoteEl.textContent = `Cần chọn gói vé có giá sau giảm từ ${fmtVnd(oldTotal)} trở lên.`;
+      }
+    } else if (diffAmount === 0) {
+      if (diffTitleEl) diffTitleEl.textContent = 'Thanh toán bổ sung';
+      if (diffAmountEl) {
+        diffAmountEl.style.color = 'var(--ok)';
+        diffAmountEl.textContent = '0 VNĐ';
+      }
+      if (diffNoteEl) {
+        diffNoteEl.textContent = 'Đổi ngang giá — không phát sinh thêm chi phí.';
+      }
+    } else {
+      if (diffTitleEl) diffTitleEl.textContent = 'Thanh toán bổ sung';
+      if (diffAmountEl) {
+        diffAmountEl.style.color = 'var(--red)';
+        diffAmountEl.textContent = fmtVnd(diffAmount);
+      }
+      if (diffNoteEl) {
+        diffNoteEl.textContent = 'Thanh toán phần chênh lệch qua cổng VNPAY để hoàn tất đổi vé.';
+      }
+    }
+
+    showClientError(validationMsg);
+
+    const confirmChecked = Boolean(document.getElementById('chk-confirm-exchange')?.checked);
+    const hasAnyCccd =
+      Boolean(repCccd) || extraQtItems.some((item) => (item.cccd || '').trim().length > 0);
+    const cccdConfirmed = !hasAnyCccd || Boolean(document.getElementById('chk-cccd-confirm')?.checked);
+
+    if (submitBtn) {
+      submitBtn.disabled = Boolean(validationMsg) || !confirmChecked || !cccdConfirmed;
+      if (diffAmount > 0) {
+        submitBtn.textContent = `Thanh toán thêm ${fmtVnd(diffAmount)} →`;
+      } else {
+        submitBtn.textContent = 'Xác nhận đổi vé →';
+      }
+    }
+  };
+
+  function showPaymentStatusPanel(state, payload) {
+    const editorCard = document.getElementById('rs-editor-card');
+    const statusPanel = document.getElementById('rs-payment-status-panel');
+    const stPending = document.getElementById('rs-pay-state-pending');
+    const stSuccess = document.getElementById('rs-pay-state-success');
+    const stFailed = document.getElementById('rs-pay-state-failed');
+
+    if (isCompareOpen) {
+      window.toggleOrderCompareDrawer(false);
+    }
+
+    if (editorCard) {
+      editorCard.hidden = true;
+      editorCard.style.display = 'none';
+    }
+    if (statusPanel) {
+      statusPanel.hidden = false;
+      statusPanel.style.display = 'block';
+    }
+
+    [stPending, stSuccess, stFailed].forEach((el) => {
+      if (!el) return;
+      el.hidden = true;
+      el.style.display = 'none';
+    });
+
+    if (state === 'pending' && stPending) {
+      stPending.hidden = false;
+      stPending.style.display = 'block';
+      const pendAmt = document.getElementById('rs-pend-amount');
+      const reopenLink = document.getElementById('rs-reopen-vnpay-link');
+      if (pendAmt && payload.diff_amount_fmt) pendAmt.textContent = payload.diff_amount_fmt;
+      if (reopenLink && payload.payment_url) reopenLink.href = payload.payment_url;
+    } else if (state === 'success' && stSuccess) {
+      stSuccess.hidden = false;
+      stSuccess.style.display = 'block';
+      const emailEl = document.getElementById('rs-succ-email');
+      const qrEl = document.getElementById('rs-succ-qr');
+      const dateEl = document.getElementById('rs-succ-date');
+      const totalEl = document.getElementById('rs-succ-total');
+      const lookupBtn = document.getElementById('rs-succ-lookup-btn');
+      if (emailEl) emailEl.textContent = payload.email || '';
+      if (qrEl) qrEl.textContent = payload.qr_code || '—';
+      if (dateEl) dateEl.textContent = payload.visit_date_display || '—';
+      if (totalEl) totalEl.textContent = payload.total_amount_fmt || '—';
+      if (lookupBtn && payload.lookup_url) lookupBtn.href = payload.lookup_url;
+    } else if (state === 'failed' && stFailed) {
+      stFailed.hidden = false;
+      stFailed.style.display = 'block';
+      const reasonEl = document.getElementById('rs-fail-reason');
+      if (reasonEl && payload.message) reasonEl.textContent = payload.message;
     }
   }
 
-  renderRepServiceBox();
-  renderCompanionRows();
-  renderRescheduleSummary();
-}
+  function stopPolling() {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+    if (countdownTimer) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+  }
 
-function renderRescheduleSummary() {
-  renderRepServiceBox();
-  const custState = syncCustomerInputsState();
-  const { allocByService, orderedValidCccds } = getQtAllocationsByService();
+  function startExchangeStatusPolling(txnId, orderCode) {
+    stopPolling();
+    let secondsLeft = 15 * 60;
+    const cdEl = document.getElementById('rs-pend-countdown');
 
-  let sumLinesHtml = '';
-  let newSubtotal = 0;
-  let totalPaidTickets = 0;
-  let totalAllTickets = 0;
-
-  RS_PACKAGES.forEach(pkg => {
-    const st = RS_STATE[pkg.id];
-    if (!st) return;
-
-    const paidQty = st.adult + st.child;
-    const pkgAllQty = paidQty + st.infant;
-    totalPaidTickets += paidQty;
-    totalAllTickets += pkgAllQty;
-
-    const qtAdultQty = Math.min(st.adult, allocByService[pkg.id] || 0);
-    const regAdultQty = Math.max(0, st.adult - qtAdultQty);
-
-    const cardEl = document.querySelector(`.ck-mini-card[data-pkg-id="${pkg.id}"]`);
-    if (cardEl) cardEl.classList.toggle('is-picked', pkgAllQty > 0);
-
-    const autoTotalEl = document.getElementById(`pkg-auto-total-${pkg.id}`);
-    if (autoTotalEl) autoTotalEl.innerHTML = `Tổng: <b>${pkgAllQty}</b> vé`;
-
-    const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-
-    setTxt(`disp-adult-${pkg.id}`, st.adult);
-    setTxt(`disp-child-${pkg.id}`, st.child);
-    setTxt(`disp-infant-${pkg.id}`, st.infant);
-
-    setVal(`adult_qty_${pkg.id}`, st.adult);
-    setVal(`child_qty_${pkg.id}`, st.child);
-    setVal(`infant_qty_${pkg.id}`, st.infant);
-
-    if (pkgAllQty > 0) {
-      const regCost = regAdultQty * pkg.price_adult;
-      const qtCost = qtAdultQty * pkg.price_qt;
-      const childCost = st.child * pkg.price_child;
-      const lineTotal = regCost + qtCost + childCost;
-
-      newSubtotal += lineTotal;
-
-      let subRows = '';
-      if (regAdultQty > 0) {
-        subRows += `<div class="ck-inv-subrow"><span>${regAdultQty} × Trên 1,4m (Giá tiêu chuẩn)</span><span>${rsFmt(regCost)}</span></div>`;
+    countdownTimer = setInterval(() => {
+      secondsLeft = Math.max(0, secondsLeft - 1);
+      if (cdEl) {
+        const mm = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
+        const ss = String(secondsLeft % 60).padStart(2, '0');
+        cdEl.textContent = `${mm}:${ss}`;
       }
-      if (qtAdultQty > 0) {
-        subRows += `<div class="ck-inv-subrow is-qt"><span>${qtAdultQty} × Trên 1,4m <em>(Ưu đãi CCCD Quảng Trị)</em></span><b>${rsFmt(qtCost)}</b></div>`;
+      if (secondsLeft === 0) {
+        stopPolling();
+        showPaymentStatusPanel('failed', {
+          message: 'Giao dịch thanh toán bổ sung đã hết thời gian giữ 15 phút.',
+        });
       }
-      if (st.child > 0) {
-        subRows += `<div class="ck-inv-subrow"><span>${st.child} × Từ 1m – 1,4m</span><span>${rsFmt(childCost)}</span></div>`;
-      }
-      if (st.infant > 0) {
-        subRows += `<div class="ck-inv-subrow"><span>${st.infant} × Dưới 1m (Miễn phí)</span><span>0 VNĐ</span></div>`;
-      }
+    }, 1000);
 
-      sumLinesHtml += `
-        <div class="ck-inv-group">
-          <div class="ck-inv-group-head">
-            <strong>${pkg.name} (${pkgAllQty} vé)</strong>
-            <b>${rsFmt(lineTotal)}</b>
-          </div>
-          ${subRows}
-        </div>`;
+    pollTimer = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `/api/exchange-status/${encodeURIComponent(txnId)}/?order_code=${encodeURIComponent(orderCode)}`
+        );
+        const data = await res.json();
+        if (data.status === 'SUCCESS') {
+          stopPolling();
+          showPaymentStatusPanel('success', data);
+        } else if (data.status === 'FAILED') {
+          stopPolling();
+          showPaymentStatusPanel('failed', data);
+        }
+      } catch (e) {
+        // Bỏ qua lỗi mạng tạm thời, tiếp tục kiểm tra ở chu kỳ kế tiếp
+      }
+    }, 3000);
+  }
+
+  window.resetExchangePaymentPanel = function () {
+    stopPolling();
+    const editorCard = document.getElementById('rs-editor-card');
+    const statusPanel = document.getElementById('rs-payment-status-panel');
+    if (statusPanel) {
+      statusPanel.hidden = true;
+      statusPanel.style.display = 'none';
+    }
+    if (editorCard) {
+      editorCard.hidden = false;
+      editorCard.style.display = 'block';
+    }
+    renderRescheduleSummary();
+  };
+
+  window.retryExchangePayment = function () {
+    if (lastPaymentUrl) {
+      window.open(lastPaymentUrl, '_blank', 'noopener');
+      showPaymentStatusPanel('pending', { payment_url: lastPaymentUrl });
+      const orderCode = document.getElementById('hidden-order-code')?.value || '';
+      if (activeTxnId) {
+        startExchangeStatusPolling(activeTxnId, orderCode);
+      }
+    } else {
+      resetExchangePaymentPanel();
+    }
+  };
+
+  document.addEventListener('click', (ev) => {
+    if (!isCompareOpen) return;
+    const popover = document.getElementById('rs-compare-popover');
+    const toggleBtn = document.getElementById('rs-compare-toggle-btn');
+    if (popover && !popover.contains(ev.target) && toggleBtn && !toggleBtn.contains(ev.target)) {
+      window.toggleOrderCompareDrawer(false);
     }
   });
 
-  const invTicketsEl = document.getElementById('inv-total-tickets');
-  if (invTicketsEl) invTicketsEl.textContent = `${totalAllTickets} vé`;
+  document.addEventListener('DOMContentLoaded', () => {
+    renderRepServiceBox();
+    renderCompanionRows();
+    renderRescheduleSummary();
 
-  const sumLinesEl = document.getElementById('sum-lines');
-  if (sumLinesEl) {
-    sumLinesEl.innerHTML = sumLinesHtml || '<p class="sm" style="font-style:normal;margin:10px 0">Chưa có vé nào được chọn.</p>';
-  }
+    const formEl = document.getElementById('reschedule-form');
+    if (!formEl) return;
 
-  let appliedDiscount = 0;
-  if (RS_VOUCHER && RS_VOUCHER.has_voucher && newSubtotal > 0) {
-    if (RS_VOUCHER.type === 'PERCENT') {
-      appliedDiscount = Math.min(newSubtotal, Math.round(newSubtotal * RS_VOUCHER.value / 100));
-    } else {
-      appliedDiscount = Math.min(newSubtotal, Number(RS_VOUCHER.fixed_discount || 0));
-    }
-  }
+    formEl.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      syncHiddenCompanionList();
+      showClientError('');
 
-  const newGrandTotal = Math.max(0, newSubtotal - appliedDiscount);
-  const diffAmount = newGrandTotal - RS_OLD_TOTAL;
-  RS_CURRENT_DIFF = diffAmount;
-  const isChanged = hasRescheduleChanged(custState, orderedValidCccds, allocByService);
+      const submitBtn = document.getElementById('rs-submit-btn');
+      const prevText = submitBtn ? submitBtn.textContent : '';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Đang xử lý yêu cầu đổi vé...';
+      }
 
-  const newTotalEl = document.getElementById('sum-new-total');
-  if (newTotalEl) newTotalEl.textContent = rsFmt(newGrandTotal);
+      try {
+        const formData = new FormData(formEl);
+        const res = await fetch(formEl.action || window.location.href, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          body: formData,
+        });
+        const data = await res.json();
 
-  const diffCard = document.getElementById('diff-summary-card');
-  const diffTitle = document.getElementById('diff-title-lbl');
-  const diffAmountEl = document.getElementById('sum-diff-amount');
-  const diffNoteEl = document.getElementById('diff-sub-note');
-  const submitBtn = document.getElementById('rs-submit-btn');
+        if (!res.ok || !data.ok) {
+          if (data.active_tab) {
+            switchRescheduleTab(data.active_tab);
+          }
+          showClientError(data.error || 'Không thể xử lý đổi vé. Vui lòng kiểm tra lại thông tin.');
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = prevText;
+          }
+          return;
+        }
 
-  if (diffCard && diffTitle && diffAmountEl && diffNoteEl && submitBtn) {
-    const exchangeConfirmed = Boolean(document.getElementById('chk-confirm-exchange')?.checked);
-    const canSubmit = totalPaidTickets > 0 && isChanged && custState.isCustomerValid && exchangeConfirmed;
-
-    if (diffAmount < 0) {
-      diffCard.style.background = '#fef2f2';
-      diffCard.style.borderColor = '#fca5a5';
-      diffTitle.style.color = '#991b1b';
-      diffTitle.textContent = 'Không hỗ trợ đổi thấp giá hơn';
-      diffAmountEl.style.color = 'var(--red)';
-      diffAmountEl.textContent = `-${rsFmt(Math.abs(diffAmount))}`;
-      diffNoteEl.textContent = `Vé chỉ được đổi ngang giá hoặc cao hơn đơn đã thanh toán (${rsFmt(RS_OLD_TOTAL)}). Vui lòng chọn thêm vé hoặc nâng gói dịch vụ.`;
-      submitBtn.textContent = 'Giá trị vé mới phải ≥ đơn cũ';
-      submitBtn.disabled = true;
-    } else if (diffAmount > 0) {
-      diffCard.style.background = '#fff5f5';
-      diffCard.style.borderColor = '#fecaca';
-      diffTitle.style.color = '#991b1b';
-      diffTitle.textContent = 'Tổng cần thanh toán bổ sung';
-      diffAmountEl.style.color = 'var(--red)';
-      diffAmountEl.textContent = rsFmt(diffAmount);
-      diffNoteEl.textContent = 'Cổng VNPAY sẽ mở ở tab mới để thanh toán phần chênh lệch này.';
-      submitBtn.textContent = `Thanh toán bổ sung ${rsFmt(diffAmount)} qua VNPAY →`;
-      submitBtn.disabled = !canSubmit;
-    } else {
-      diffCard.style.background = '#f0fdf4';
-      diffCard.style.borderColor = '#bbf7d0';
-      diffTitle.style.color = '#166534';
-      diffTitle.textContent = 'Tổng cần thanh toán bổ sung';
-      diffAmountEl.style.color = 'var(--ok)';
-      diffAmountEl.textContent = '0 VNĐ (Đổi ngang giá)';
-      diffNoteEl.textContent = isChanged
-        ? 'Không phát sinh chi phí bổ sung. Hệ thống sẽ hủy mã QR cũ và cấp mã QR mới.'
-        : 'Hãy thay đổi ngày sử dụng, gói dịch vụ, số lượng vé hoặc thông tin khách hàng.';
-      submitBtn.textContent = 'Xác nhận đổi vé & Cấp mã QR mới →';
-      submitBtn.disabled = !canSubmit;
-    }
-  }
-}
+        if (data.requires_payment && data.payment_url) {
+          lastPaymentUrl = data.payment_url;
+          activeTxnId = data.transaction_id;
+          window.open(data.payment_url, '_blank', 'noopener');
+          showPaymentStatusPanel('pending', data);
+          const orderCode = document.getElementById('hidden-order-code')?.value || '';
+          startExchangeStatusPolling(data.transaction_id, orderCode);
+        } else if (data.redirect_url) {
+          window.location.href = data.redirect_url;
+        }
+      } catch (e) {
+        showClientError('Lỗi kết nối máy chủ khi gửi yêu cầu đổi vé.');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = prevText;
+        }
+      }
+    });
+  });
+})();

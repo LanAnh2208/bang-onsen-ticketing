@@ -5,7 +5,7 @@
   {{ block.super }}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600&display=swap" rel="stylesheet">
   <style>
     :root {
       --font: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -116,6 +116,317 @@
       background: #fee2e2;
     }
 
+    /* ==================== CỘT PHẢI DUY NHẤT & THANH SO SÁNH NỔI BÊN TRÁI ==================== */
+    .ck-grid-fixed,
+    .ck-right-col {
+      overflow: visible !important;
+    }
+    .ck-right-col {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      height: 100%;
+    }
+
+    /* Thẻ hóa đơn đồng bộ chuẩn trang đặt vé */
+    .rs-sync-card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 16px 20px;
+      box-shadow: 0 4px 18px rgba(15, 23, 42, .04);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Bảng chi tiết đơn hiện tại: mặc định ẩn, chỉ đẩy nổi sang trái khi bấm nút So sánh */
+    .rs-compare-popover {
+      position: absolute;
+      top: 0;
+      right: calc(100% + 14px);
+      width: 425px;
+      max-width: calc(100vw - 440px);
+      height: 100%;
+      max-height: 100%;
+      z-index: 80;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 16px;
+      box-shadow: 0 20px 48px rgba(15, 23, 42, 0.2), 0 4px 14px rgba(15, 23, 42, 0.08);
+      animation: rsPopLeft .18s cubic-bezier(.16, 1, .3, 1);
+    }
+    .rs-compare-popover:not(.is-open) {
+      display: none !important;
+    }
+    .rs-compare-popover.is-open {
+      display: flex !important;
+      flex-direction: column !important;
+    }
+    @keyframes rsPopLeft {
+      from {
+        opacity: 0;
+        transform: translateX(18px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .rs-sync-card .ck-inv-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-shrink: 0;
+    }
+    .rs-sync-card .ck-inv-head h3 {
+      margin: 0;
+      font-size: 16.5px;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.3;
+      white-space: nowrap;
+    }
+    .rs-sync-card .ck-inv-head .bd {
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Thanh tóm tắt sơ lược Đơn hiện tại + nút So sánh */
+    .rs-overview-strip {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      background: #fff8f8;
+      border: 1px solid #fecdd3;
+      border-radius: 10px;
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      flex-shrink: 0;
+    }
+    .rs-overview-strip.is-orig {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+    }
+    .rs-ov-main {
+      min-width: 0;
+    }
+    .rs-ov-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.35;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .rs-ov-code {
+      color: var(--red);
+      font-weight: 700;
+    }
+    .rs-ov-sub {
+      font-size: 12px;
+      font-weight: 500;
+      color: #475569;
+      margin-top: 2px;
+      line-height: 1.35;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .rs-ov-dot {
+      color: #94a3b8;
+      font-weight: 700;
+    }
+    .rs-compare-btn {
+      flex-shrink: 0;
+      height: 32px;
+      padding: 0 11px;
+      border-radius: 8px;
+      border: 1.5px solid var(--red);
+      background: #ffffff;
+      color: var(--red);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all .15s ease;
+      white-space: nowrap;
+    }
+    .rs-compare-btn:hover {
+      background: #fff1f2;
+    }
+    .rs-compare-btn.is-active {
+      background: var(--red);
+      color: #ffffff;
+    }
+    .rs-drawer-close-btn {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #475569;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: .15s;
+    }
+    .rs-drawer-close-btn:hover {
+      border-color: var(--red);
+      color: var(--red);
+      background: #fff5f5;
+    }
+
+    /* Khung Ngày sử dụng & Tổng số khách đồng bộ trang đặt vé */
+    .rs-sync-card .ck-inv-meta {
+      background: #f8fafc;
+      border: 1px solid #eef2f6;
+      border-radius: 10px;
+      padding: 9px 12px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      line-height: 1.6;
+      flex-shrink: 0;
+    }
+    .rs-sync-card .ck-inv-meta > div {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .rs-sync-card .ck-inv-meta span {
+      color: #475569;
+      font-weight: 500;
+    }
+    .rs-sync-card .ck-inv-meta b {
+      color: #0f172a;
+      font-weight: 700;
+    }
+
+    /* Danh sách nhóm dịch vụ đồng bộ 100% trang đặt vé */
+    .rs-sync-card .ck-inv-lines {
+      flex: 1 1 auto;
+      min-height: 92px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .rs-sync-card .ck-inv-group {
+      padding: 9px 0;
+      border-bottom: 1px solid #eef2f6;
+    }
+    .rs-sync-card .ck-inv-group:first-child {
+      padding-top: 2px;
+    }
+    .rs-sync-card .ck-inv-group:last-child {
+      border-bottom: none;
+    }
+    .rs-sync-card .ck-inv-group-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .rs-sync-card .ck-inv-group-head strong {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .rs-sync-card .ck-inv-group-head b {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      white-space: nowrap;
+    }
+    .rs-sync-card .ck-inv-subrow {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: #475569;
+      padding: 2px 0;
+    }
+    .rs-sync-card .ck-inv-subrow span:last-child {
+      white-space: nowrap;
+      font-weight: 500;
+    }
+    .rs-sync-card .ck-inv-subrow.is-qt {
+      color: var(--ok, #16a34a);
+      font-style: italic;
+      font-weight: 600;
+    }
+    .rs-sync-card .ck-inv-subrow.is-qt span:last-child {
+      font-style: normal;
+      font-weight: 700;
+    }
+
+    /* Phần tổng kết tiền ở đáy đồng bộ ảnh 2 & trang đặt vé */
+    .rs-sync-card .ck-inv-bottom {
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px solid #e2e8f0;
+      flex-shrink: 0;
+    }
+    .rs-sync-card .ck-sum-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      font-size: 13.5px;
+      color: #334155;
+      padding: 3px 0;
+    }
+    .rs-sync-card .ck-sum-row span {
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .rs-sync-card .ck-sum-row b {
+      font-weight: 700;
+      color: #0f172a;
+      white-space: nowrap;
+    }
+    .rs-sync-card .ck-sum-row.is-grand-total {
+      margin-top: 6px;
+      padding-top: 8px;
+      border-top: 1px solid #eef2f6;
+      align-items: center;
+    }
+    .rs-sync-card .ck-sum-row.is-grand-total span {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .rs-sync-card .ck-sum-row.is-grand-total strong {
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+    .rs-diff-caption {
+      font-size: 11.5px;
+      color: #64748b;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
     /* KHUNG TRẠNG THÁI THANH TOÁN BỔ SUNG */
     .rs-pay-status-card {
       background: #ffffff;
@@ -179,11 +490,22 @@
       padding: 4px 0;
       gap: 10px;
     }
-    @media (max-width: 900px) {
+
+    @media (max-width: 960px) {
       .rs-info-grid-top,
       .rs-info-grid-bot,
       .rs-companion-row {
         grid-template-columns: 1fr;
+      }
+      .rs-compare-popover {
+        position: fixed;
+        top: 76px;
+        right: 14px;
+        left: 14px;
+        width: auto;
+        max-width: none;
+        height: auto;
+        max-height: calc(100vh - 96px);
       }
     }
   </style>
@@ -201,12 +523,16 @@
         <strong style="font-size:15px">Đổi vé & Cập nhật thông tin khách hàng</strong>
       </div>
 
-      <div class="ck-hold-note" style="color:var(--ok)">✓ Đủ điều kiện đổi trước 48h</div>
+      <div class="ck-hold-note" style="color:var(--ok)">✓ Đủ điều kiện đổi trước 48h · Tối đa 1 lần/đơn</div>
     </div>
   </div>
 
   <!-- KHUNG 2 CỘT ĐỒNG BỘ GIAO DIỆN TRANG ĐẶT VÉ -->
-  <form method="post" id="reschedule-form" class="w w-wide ck-workspace" novalidate>
+  <form method="post"
+        id="reschedule-form"
+        class="w w-wide ck-workspace"
+        data-avail-url="{% url 'booking:check_availability' %}"
+        novalidate>
     {% csrf_token %}
     <input type="hidden" name="visit_date" id="hidden-visit-date" value="{{ target_date_iso }}">
     <input type="hidden" id="hidden-orig-date" value="{{ orig_date_iso }}">
@@ -222,9 +548,8 @@
           </div>
         {% endif %}
 
-        <!-- THẺ NHẬP THÔNG TIN ĐỔI VÉ (ẨN KHI CHUYỂN SANG TRẠNG THÁI CHỜ THANH TOÁN BỔ SUNG) -->
+        <!-- THẺ NHẬP THÔNG TIN ĐỔI VÉ -->
         <section class="ck-step-card is-active" id="rs-editor-card">
-          <!-- THANH CHUYỂN 2 TAB & CHỌN NGÀY -->
           <div class="ck-pane-head" style="gap:10px;flex-wrap:wrap">
             <div class="rs-seg-tabs">
               <button type="button" id="rs-tab-btn-tickets"
@@ -340,7 +665,6 @@
                 <span class="sm" style="font-style:normal">Vé điện tử QR mới sẽ gửi qua Email</span>
               </div>
 
-              <!-- HÀNG 1: HỌ TÊN | SỐ ĐIỆN THOẠI | SỐ CCCD (12 SỐ) -->
               <div class="rs-info-grid-top">
                 <label style="margin:0;font-size:13px">Họ và tên khách hàng <span style="color:var(--red)">*</span>
                   <input type="text" class="ck-inp" name="full_name" id="rs-cust-name"
@@ -362,7 +686,6 @@
                 </label>
               </div>
 
-              <!-- HÀNG 2: EMAIL NHẬN MÃ VÉ QR | LÝ DO ĐỔI VÉ / GHI CHÚ -->
               <div class="rs-info-grid-bot">
                 <label style="margin:0;font-size:13px">Email nhận mã vé QR <span style="color:var(--red)">*</span>
                   <input type="email" class="ck-inp" name="email" id="rs-cust-email"
@@ -376,7 +699,6 @@
                 </label>
               </div>
 
-              <!-- KHUNG CHỌN LOẠI VÉ ÁP ƯU ĐÃI CHO NGƯỜI ĐẠI DIỆN -->
               <div id="rs-rep-service-box" class="rs-rep-service-box" style="display:none">
                 <label for="rs-rep-cccd-service">
                   Áp ưu đãi CCCD người đại diện cho vé:
@@ -386,7 +708,6 @@
                 </label>
               </div>
 
-              <!-- KHU VỰC THÊM CCCD ĐI CÙNG -->
               <div id="rs-extra-cccd-box" class="rs-companion-divider" style="display:none">
                 <div class="rs-companion-head">
                   <span class="sm" style="color:#475569">
@@ -399,7 +720,6 @@
                 <div id="rs-companion-list"></div>
               </div>
 
-              <!-- Ô TICK XÁC NHẬN CCCD -->
               <div id="rs-cccd-confirm-wrap" class="ck-cccd-confirm-box" style="margin-top:10px;padding:8px 12px;display:none">
                 <label class="ck-agree ck-agree-box" style="margin:0;font-size:12.5px">
                   <input type="checkbox" name="cccd_confirmed" id="chk-cccd-confirm" value="1"
@@ -417,13 +737,12 @@
               <label class="ck-agree ck-agree-box" style="margin:0;font-size:12.5px">
                 <input type="checkbox" name="confirm_exchange" id="chk-confirm-exchange" value="1" onchange="renderRescheduleSummary()">
                 <span>
-                  Tôi xác nhận thông tin đổi vé mới; mã QR cũ sẽ tự động vô hiệu hóa và hệ thống cấp mã QR mới qua email <b id="confirm-email-disp">{{ form_customer.email }}</b>. <span style="color:var(--red)">*</span>
+                  Tôi xác nhận thông tin đổi vé mới (mỗi đơn chỉ được đổi tối đa <b>01 lần</b>); mã QR cũ sẽ tự động vô hiệu hóa và hệ thống cấp mã QR mới qua email <b id="confirm-email-disp">{{ form_customer.email }}</b>. <span style="color:var(--red)">*</span>
                 </span>
               </label>
             </div>
           </div>
 
-          <!-- CHÂN THẺ -->
           <div class="ck-pane-foot">
             <a href="{% url 'booking:lookup_ticket' %}?q={{ order.order_code }}" class="btn rs-btn-cancel-red">
               Hủy bỏ & Quay lại
@@ -434,9 +753,8 @@
           </div>
         </section>
 
-        <!-- ==================== MÀN HÌNH TRẠNG THÁI THANH TOÁN BỔ SUNG (GIỐNG TRANG ĐẶT VÉ) ==================== -->
+        <!-- ==================== MÀN HÌNH TRẠNG THÁI THANH TOÁN BỔ SUNG ==================== -->
         <section id="rs-payment-status-panel" class="rs-pay-status-card" hidden style="display:none">
-          <!-- 1. TRẠNG THÁI CHỜ THANH TOÁN -->
           <div id="rs-pay-state-pending">
             <div class="rs-spinner"></div>
             <span class="bd" style="background:#fef3c7;color:#92400e;border-color:#fde68a">CHỜ THANH TOÁN BỔ SUNG</span>
@@ -470,7 +788,6 @@
             </div>
           </div>
 
-          <!-- 2. TRẠNG THÁI THÀNH CÔNG -->
           <div id="rs-pay-state-success" hidden style="display:none">
             <div class="rs-status-icon-ok">✓</div>
             <span class="bd ok">THANH TOÁN THÀNH CÔNG</span>
@@ -501,7 +818,6 @@
             </div>
           </div>
 
-          <!-- 3. TRẠNG THÁI THẤT BẠI -->
           <div id="rs-pay-state-failed" hidden style="display:none">
             <div class="rs-status-icon-er">✕</div>
             <span class="bd no">THANH TOÁN THẤT BẠI</span>
@@ -522,59 +838,170 @@
         </section>
       </div>
 
-      <!-- ==================== CỘT PHẢI: THẺ ĐỐI SOÁNG & TỔNG THANH TOÁN BỔ SUNG ==================== -->
+      <!-- ==================== CỘT PHẢI: CHỈ 01 THANH ĐỐI SOÁT & THANH TOÁN BỔ SUNG ==================== -->
       <aside class="ck-right-col">
-        <div class="ck-invoice-card">
+        <!-- BẢNG NỔI BÊN TRÁI: CHI TIẾT ĐƠN HIỆN TẠI (MẶC ĐỊNH ẨN, CHỈ HIỆN KHI BẤM NÚT SO SÁNH) -->
+        <div id="rs-compare-popover" class="rs-sync-card rs-compare-popover" hidden aria-hidden="true">
           <div class="ck-inv-head">
-            <h3 style="margin:0;font-size:17px">Đối soát & Thanh toán bổ sung</h3>
-            <span class="bd" id="inv-day-badge">{{ day_label }}</span>
+            <h3>Chi tiết đơn hiện tại</h3>
+            <div class="row" style="gap:6px;flex-wrap:nowrap">
+              <span class="bd">{{ order.day_label }}</span>
+              <button type="button" class="rs-drawer-close-btn" onclick="toggleOrderCompareDrawer(false)" title="Đóng bảng so sánh">✕</button>
+            </div>
           </div>
 
-          <!-- Thẻ thông tin đơn gốc đã thanh toán -->
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px">
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-              <span style="color:#64748b">Đơn hiện tại ({{ order.visit_date_display }}):</span>
-              <b>{{ order.total_tickets }} vé</b>
+          <div class="rs-overview-strip is-orig">
+            <div class="rs-ov-main">
+              <div class="rs-ov-title">Mã đơn <span class="rs-ov-code">#{{ order.order_code }}</span></div>
+              <div class="rs-ov-sub">Trạng thái: <b style="color:var(--ok)">{{ order.status_label }}</b></div>
             </div>
-            <div style="display:flex;justify-content:space-between">
-              <span style="color:#64748b">Số tiền đã thanh toán:</span>
-              <b style="color:var(--ok)">{{ old_total_fmt }}</b>
-            </div>
+            <span class="bd ok">Đơn gốc</span>
           </div>
 
           <div class="ck-inv-meta">
-            <div><span>Ngày sử dụng mới:</span> <b id="inv-date-disp">{{ target_date_display }}</b></div>
-            <div><span>Tổng số vé mới:</span> <b id="inv-total-tickets">0 vé</b></div>
+            <div><span>Ngày sử dụng:</span> <b>{{ order.visit_date_display }}</b></div>
+            <div><span>Tổng số khách:</span> <b>{{ order.total_tickets }} vé</b></div>
           </div>
 
+          <div class="ck-inv-lines">
+            {% for line in order.lines %}
+              <div class="ck-inv-group">
+                <div class="ck-inv-group-head">
+                  <strong>{{ line.service_name }} ({{ line.total_guests }} vé)</strong>
+                  <b>{{ line.line_total_fmt }}</b>
+                </div>
+                {% if line.reg_adult_qty > 0 %}
+                  <div class="ck-inv-subrow">
+                    <span>{{ line.reg_adult_qty }} × Trên 1,4m (Giá tiêu chuẩn)</span>
+                    <span>{{ line.reg_adult_total_fmt }}</span>
+                  </div>
+                {% endif %}
+                {% if line.qt_adult_qty > 0 %}
+                  <div class="ck-inv-subrow is-qt">
+                    <span>{{ line.qt_adult_qty }} × Trên 1,4m (Ưu đãi CCCD Quảng Trị)</span>
+                    <span>{{ line.qt_adult_total_fmt }}</span>
+                  </div>
+                {% endif %}
+                {% if line.child_qty > 0 %}
+                  <div class="ck-inv-subrow">
+                    <span>{{ line.child_qty }} × Từ 1m – 1,4m</span>
+                    <span>{{ line.child_total_fmt }}</span>
+                  </div>
+                {% endif %}
+                {% if line.infant_qty > 0 %}
+                  <div class="ck-inv-subrow">
+                    <span>{{ line.infant_qty }} × Dưới 1m (Miễn phí vé vào)</span>
+                    <span>0 VNĐ</span>
+                  </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="ck-inv-bottom">
+            <div class="ck-sum-row">
+              <span>Tạm tính đơn cũ</span>
+              <b>{{ order.subtotal_fmt }}</b>
+            </div>
+            {% if order.discount_amount > 0 %}
+              <div class="ck-sum-row">
+                <span>Ưu đãi đã áp dụng{% if order.voucher_code %} ({{ order.voucher_code }}){% endif %}</span>
+                <b style="color:var(--ok)">-{{ order.discount_fmt }}</b>
+              </div>
+            {% endif %}
+            <div class="ck-sum-row">
+              <span>Hình thức thanh toán</span>
+              <b>{{ order.payment_method_label }}</b>
+            </div>
+
+            <div class="ck-sum-row is-grand-total">
+              <span>Đã thanh toán</span>
+              <strong style="color:var(--ok)">{{ old_total_fmt }}</strong>
+            </div>
+            <div class="rs-diff-caption">
+              Số tiền đã thanh toán được khấu trừ trực tiếp vào đơn vé mới.
+            </div>
+          </div>
+        </div>
+
+        <!-- THẺ DUY NHẤT BÊN PHẢI: ĐỐI SOÁT & THANH TOÁN BỔ SUNG -->
+        <div class="ck-invoice-card rs-sync-card">
+          <div class="ck-inv-head">
+            <h3>Đối soát & Thanh toán bổ sung</h3>
+            <span class="bd" id="inv-day-badge">{{ day_label }}</span>
+          </div>
+
+          <!-- Tóm tắt sơ lược Đơn hiện tại (Mã, Ngày, Tổng SL, Tổng thanh toán) + Nút So sánh -->
+          <div class="rs-overview-strip">
+            <div class="rs-ov-main">
+              <div class="rs-ov-title">
+                Đơn hiện tại <span class="rs-ov-code">#{{ order.order_code }}</span>
+              </div>
+              <div class="rs-ov-sub">
+                <span>{{ order.visit_date_display }}</span>
+                <span class="rs-ov-dot">·</span>
+                <span>{{ order.total_tickets }} vé</span>
+                <span class="rs-ov-dot">·</span>
+                <b style="color:var(--ok)">{{ old_total_fmt }}</b>
+              </div>
+            </div>
+            <button type="button"
+                    id="rs-compare-toggle-btn"
+                    class="rs-compare-btn"
+                    onclick="toggleOrderCompareDrawer()"
+                    aria-expanded="false"
+                    aria-controls="rs-compare-popover">
+              ⇄ So sánh
+            </button>
+          </div>
+
+          <!-- Thông tin chung đơn định đổi -->
+          <div class="ck-inv-meta">
+            <div><span>Ngày sử dụng mới:</span> <b id="inv-date-disp">{{ target_date_display }}</b></div>
+            <div><span>Tổng số khách mới:</span> <b id="inv-total-tickets">0 vé</b></div>
+          </div>
+
+          <!-- Danh sách vé đã chọn để đổi hiện tại (chi tiết từng vé & giá từng loại như trang đặt vé) -->
           <div id="sum-lines" class="ck-inv-lines"></div>
 
           <div id="rs-client-err" class="al er" hidden style="display:none;margin:8px 0;padding:8px 12px;font-size:12.5px"></div>
 
+          <!-- Phần thanh toán dưới cùng -->
           <div class="ck-inv-bottom">
+            {% if voucher_info.has_voucher %}
+              <div class="ck-sum-row" id="rs-subtotal-row">
+                <span>Tạm tính đơn mới</span>
+                <b id="sum-new-subtotal">0 VNĐ</b>
+              </div>
+              <div class="ck-sum-row" id="rs-inherited-voucher-row">
+                <span>Ưu đãi kế thừa ({{ voucher_info.short_badge }})</span>
+                <b id="sum-inherited-discount" style="color:var(--ok)">-0 VNĐ</b>
+              </div>
+              <div class="ck-sum-row">
+                <span>Tổng giá trị đơn mới</span>
+                <b id="sum-new-total">0 VNĐ</b>
+              </div>
+            {% else %}
+              <div class="ck-sum-row">
+                <span>Tổng giá trị đơn mới</span>
+                <b id="sum-new-total">0 VNĐ</b>
+              </div>
+            {% endif %}
+
             <div class="ck-sum-row">
-              <span>Giá trị đơn vé mới</span>
-              <b id="sum-new-total">0 VNĐ</b>
-            </div>
-            <div class="ck-sum-row">
-              <span>Trừ đã thanh toán đơn cũ</span>
+              <span>Đã thanh toán đơn hiện tại</span>
               <b style="color:var(--ok)">-{{ old_total_fmt }}</b>
             </div>
 
-            <!-- THẺ HIỂN THỊ TỔNG CẦN PHẢI THANH TOÁN BỔ SUNG -->
-            <div id="diff-summary-card" style="background:#fff5f5;border:1.5px solid #fecaca;border-radius:12px;padding:12px 14px;margin-top:8px">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-                <span id="diff-title-lbl" style="font-size:13.5px;font-weight:700;color:#991b1b">
-                  Tổng cần thanh toán bổ sung
-                </span>
-                <strong id="sum-diff-amount" style="font-size:19px;color:var(--red)">0 VNĐ</strong>
-              </div>
-              <small id="diff-sub-note" class="sm" style="font-style:normal;display:block;margin-top:4px;line-height:1.4">
-                Thanh toán phần chênh lệch qua cổng VNPAY để hoàn tất đổi vé.
-              </small>
+            <div class="ck-sum-row is-grand-total" id="diff-summary-row">
+              <span id="diff-title-lbl">Thanh toán bổ sung</span>
+              <strong id="sum-diff-amount" style="color:var(--red)">0 VNĐ</strong>
+            </div>
+            <div id="diff-sub-note" class="rs-diff-caption">
+              Thanh toán phần chênh lệch qua cổng VNPAY để hoàn tất đổi vé.
             </div>
 
-            <button type="submit" class="btn p" id="rs-submit-btn" style="width:100%;margin-top:10px" disabled>
+            <button type="submit" class="btn p" id="rs-submit-btn" style="width:100%;margin-top:12px" disabled>
               Xác nhận đổi vé →
             </button>
           </div>
@@ -596,5 +1023,5 @@
 
 {% block extra_js %}
   <script src="{% static 'js/booking.js' %}?v=12"></script>
-  <script src="{% static 'js/reschedule.js' %}?v=9"></script>
+  <script src="{% static 'js/reschedule.js' %}?v=13"></script>
 {% endblock %}

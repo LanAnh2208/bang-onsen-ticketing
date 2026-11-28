@@ -45,7 +45,37 @@
 
 {% block content %}
   <style>
-    /* Đảm bảo ảnh trong khung .ph luôn hiển thị rõ nét, không bị lớp phủ sọc chéo của placeholder che mất */
+    /* Làm rõ ảnh nền Hero Banner & giữ độ tương phản cho chữ trắng */
+    .hero {
+      background: #14171a !important;
+    }
+    .hero .hbg {
+      opacity: 0.88 !important;
+      filter: contrast(1.05) saturate(1.08);
+    }
+    .hero::before,
+    .hero::after {
+      background: linear-gradient(
+        90deg,
+        rgba(15, 18, 20, 0.52) 0%,
+        rgba(15, 18, 20, 0.24) 55%,
+        rgba(15, 18, 20, 0.08) 100%
+      ) !important;
+      opacity: 1 !important;
+    }
+    .hero h1,
+    .hero p,
+    .hero-trust span {
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+    }
+    .gal-cap {
+      display: none !important;
+    }
+    .gal-item {
+      cursor: default !important;
+    }
+
+    /* Đảm bảo ảnh trong khung .ph luôn hiển thị cố định, không bị lớp phủ placeholder che mất */
     .ph.has-img,
     .ph:has(img) {
       padding: 0 !important;
@@ -78,31 +108,42 @@
     .gal-item:hover .ph.has-img img {
       transform: scale(1.04);
     }
-       
-    .hero {
-      background: #14171a !important;
+    .gal-cap {
+      display: none !important;
     }
-
-    .hero .hbg {
-      opacity: 0.88 !important; /* Tăng từ mức mờ cũ lên 88% để ảnh rõ nét */
-      filter: contrast(1.05) saturate(1.08);
+    /* Căn ngang bằng nhau tuyệt đối cho tiêu đề 3 gói Onsen 1, 2, 3 */
+    .onsen-showcase-grid {
+      align-items: stretch !important;
     }
-
-    .hero::before,
-    .hero::after {
-      background: linear-gradient(
-        90deg,
-        rgba(15, 18, 20, 0.52) 0%,
-        rgba(15, 18, 20, 0.24) 55%,
-        rgba(15, 18, 20, 0.08) 100%
-      ) !important;
-      opacity: 1 !important;
+    .onsen-tile {
+      position: relative !important;
+      height: 100% !important;
     }
-
-    .hero h1,
-    .hero p,
-    .hero-trust span {
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+    .onsen-tile-center {
+      position: absolute !important;
+      inset: 0 !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      transform: none !important;
+      display: grid !important;
+      grid-template-rows: 1fr auto 1fr !important;
+      align-items: center !important;
+      justify-items: center !important;
+      padding: 20px !important;
+      text-align: center !important;
+    }
+    .onsen-tile-title {
+      grid-row: 2 !important;
+      margin: 0 !important;
+      line-height: 1.25 !important;
+    }
+    .onsen-tile-actions {
+      grid-row: 3 !important;
+      align-self: start !important;
+      margin-top: 14px !important;
+      justify-content: center !important;
     }
   </style>
 
@@ -112,7 +153,7 @@
       class="hbg"
       role="img"
       aria-label="Toàn cảnh suối khoáng nóng tự nhiên Bang Onsen Spa & Resort Quảng Trị"
-      style="background-image: url('{% static 'images/home/hero-banner.jpg' %}'); background-size: cover; background-position: center;"
+      style="background-image: url('{{ home_images.hero_banner }}'); background-size: cover; background-position: center;"
     ></div>
     <div class="w">
       <span class="hero-tag">♨ Nguồn khoáng nóng tự nhiên 105°C · Chuẩn nghỉ dưỡng Nhật Bản</span>
@@ -153,7 +194,7 @@
     </div>
   </div>
 
-  <!-- 3. BLOCK 1: BA GÓI DỊCH VỤ ONSEN (GÁN ẢNH TỪ static/images/home/onsen-1..3.jpg) -->
+  <!-- 3. BLOCK 1: BA GÓI DỊCH VỤ ONSEN -->
   <section class="sec-band band-light sec-showcase" aria-labelledby="onsen-sec">
     <div class="w w-wide">
       <div class="sec-head showcase-head">
@@ -169,11 +210,11 @@
           <article class="onsen-tile" id="cd{{ s.id }}">
             <div class="onsen-tile-media">
               {% if forloop.counter == 1 %}
-                <img src="{% static 'images/home/onsen-1.jpg' %}" onerror="this.onerror=null;this.src='{% static 'images/home/onsen-1.png' %}';" alt="{{ s.name }}">
+                <img src="{{ home_images.onsen_1 }}" alt="{{ s.name }}">
               {% elif forloop.counter == 2 %}
-                <img src="{% static 'images/home/onsen-2.jpg' %}" onerror="this.onerror=null;this.src='{% static 'images/home/onsen-2.png' %}';" alt="{{ s.name }}">
+                <img src="{{ home_images.onsen_2 }}" alt="{{ s.name }}">
               {% elif forloop.counter == 3 %}
-                <img src="{% static 'images/home/onsen-3.jpg' %}" onerror="this.onerror=null;this.src='{% static 'images/home/onsen-3.png' %}';" alt="{{ s.name }}">
+                <img src="{{ home_images.onsen_3 }}" alt="{{ s.name }}">
               {% elif s.image_url %}
                 <img src="{{ s.image_url }}" alt="{{ s.name }}">
               {% else %}
@@ -188,7 +229,13 @@
             <div class="onsen-tile-center">
               <h3 class="onsen-tile-title">{{ s.name }}</h3>
               <div class="onsen-tile-actions">
-                <button type="button" class="btn p sm" onclick="quickPickService({{ s.id }})">Đặt vé</button>
+                {% if s.is_active is False %}
+                  <button type="button" class="btn sm" disabled style="background:#e2e8f0;border-color:#cbd5e1;color:#475569;cursor:not-allowed;opacity:1">
+                    Dịch vụ tạm ngừng hoạt động
+                  </button>
+                {% else %}
+                  <button type="button" class="btn p sm" onclick="quickPickService({{ s.id }})">Đặt vé</button>
+                {% endif %}
                 <a class="btn tile-ghost sm" href="{% url 'booking:onsen_detail' s.id %}">Tìm hiểu thêm</a>
               </div>
             </div>
@@ -326,7 +373,7 @@
       <div class="g3">
         <article class="eco-card">
           <figure class="ph has-img" style="height:150px">
-            <img src="{% static 'images/home/eco-rooms.jpg' %}" alt="Không gian Phòng nghỉ Bang Onsen">
+            <img src="{{ home_images.eco_rooms }}" alt="Không gian Phòng nghỉ Bang Onsen">
           </figure>
           <h3>Phòng nghỉ</h3>
           <p class="sm">{{ info_pages.rooms.desc }}</p>
@@ -335,7 +382,7 @@
 
         <article class="eco-card">
           <figure class="ph has-img" style="height:150px">
-            <img src="{% static 'images/home/eco-spa.jpg' %}" alt="Không gian Spa & Trị liệu">
+            <img src="{{ home_images.eco_spa }}" alt="Không gian Spa & Trị liệu">
           </figure>
           <h3>Spa & Trị liệu</h3>
           <p class="sm">{{ info_pages.spa.desc }}</p>
@@ -344,7 +391,7 @@
 
         <article class="eco-card">
           <figure class="ph has-img" style="height:150px">
-            <img src="{% static 'images/home/eco-dining.jpg' %}" alt="Không gian Nhà hàng & Hội nghị">
+            <img src="{{ home_images.eco_dining }}" alt="Không gian Nhà hàng & Hội nghị">
           </figure>
           <h3>Nhà hàng & Hội nghị</h3>
           <p class="sm">{{ info_pages.dining.desc }}</p>
@@ -569,7 +616,7 @@
     </div>
   </section>
 
-  <!-- 7. BLOCK 5: THƯ VIỆN 7 ẢNH -->
+  <!-- 7. BLOCK 5: THƯ VIỆN 7 ẢNH (CHỈ HIỂN THỊ ẢNH, KHÔNG MỞ POPUP KHI BẤM) -->
   <section class="sec-band band-white sec-showcase" aria-labelledby="gal-sec">
     <div class="w w-wide">
       <div class="sec-head showcase-head">
@@ -577,58 +624,50 @@
           <span class="sec-sub">Thư viện hình ảnh</span>
           <h2 id="gal-sec" style="margin:0">Không gian & trải nghiệm tại Bang Onsen</h2>
         </div>
-        <span class="sm" style="font-style:normal">Bấm vào từng khung ảnh để xem phóng to</span>
       </div>
 
       <div class="gal-mosaic">
-        <div class="gal-item gal-main" onclick="previewGallery('Toàn cảnh suối khoáng nóng Bang Onsen', 'Nguồn khoáng nóng tự nhiên 105°C giữa núi rừng Quảng Trị')">
+        <div class="gal-item gal-main">
           <figure class="ph has-img">
-            <img src="{% static 'images/home/gal-1.jpg' %}" alt="Toàn cảnh suối khoáng nóng Bang Onsen">
+            <img src="{{ home_images.gal_1 }}" alt="Toàn cảnh suối khoáng nóng Bang Onsen">
           </figure>
-          <span class="gal-cap">Toàn cảnh suối khoáng nóng Bang Onsen</span>
         </div>
 
         <div class="gal-sub-grid">
-          <div class="gal-item" onclick="previewGallery('Bể Onsen ngoài trời', 'Bể khoáng nóng ngoài trời giữa rừng nguyên sinh')">
+          <div class="gal-item">
             <figure class="ph has-img">
-              <img src="{% static 'images/home/gal-2.jpg' %}" alt="Bể Onsen ngoài trời">
+              <img src="{{ home_images.gal_2 }}" alt="Bể Onsen ngoài trời">
             </figure>
-            <span class="gal-cap">Bể Onsen ngoài trời</span>
           </div>
 
-          <div class="gal-item" onclick="previewGallery('Khu xông hơi trị liệu', 'Phòng xông hơi tinh dầu & xông đá muối chuẩn Nhật')">
+          <div class="gal-item">
             <figure class="ph has-img">
-              <img src="{% static 'images/home/gal-3.jpg' %}" alt="Khu xông hơi trị liệu">
+              <img src="{{ home_images.gal_3 }}" alt="Khu xông hơi trị liệu">
             </figure>
-            <span class="gal-cap">Khu xông hơi trị liệu</span>
           </div>
 
-          <div class="gal-item" onclick="previewGallery('Bể ngâm khoáng trong nhà', 'Hệ thống bể khoáng nóng nhiệt độ phân tầng')">
+          <div class="gal-item">
             <figure class="ph has-img">
-              <img src="{% static 'images/home/gal-4.jpg' %}" alt="Bể ngâm khoáng trong nhà">
+              <img src="{{ home_images.gal_4 }}" alt="Bể ngâm khoáng trong nhà">
             </figure>
-            <span class="gal-cap">Bể khoáng trong nhà</span>
           </div>
 
-          <div class="gal-item" onclick="previewGallery('Công viên nước khoáng', 'Khu vui chơi nước khoáng nóng ngoài trời')">
+          <div class="gal-item">
             <figure class="ph has-img">
-              <img src="{% static 'images/home/gal-5.jpg' %}" alt="Công viên nước khoáng">
+              <img src="{{ home_images.gal_5 }}" alt="Công viên nước khoáng">
             </figure>
-            <span class="gal-cap">Công viên nước</span>
           </div>
 
-          <div class="gal-item" onclick="previewGallery('Ẩm thực Nhật – Việt', 'Set menu chuẩn Nhật và đặc sản địa phương')">
+          <div class="gal-item">
             <figure class="ph has-img">
-              <img src="{% static 'images/home/gal-6.jpg' %}" alt="Ẩm thực Nhật – Việt">
+              <img src="{{ home_images.gal_6 }}" alt="Ẩm thực Nhật – Việt">
             </figure>
-            <span class="gal-cap">Ẩm thực Nhật – Việt</span>
           </div>
 
-          <div class="gal-item" onclick="previewGallery('Phòng nghỉ chuẩn Nhật', 'Không gian lưu trú tĩnh tại tối giản')">
+          <div class="gal-item">
             <figure class="ph has-img">
-              <img src="{% static 'images/home/gal-7.jpg' %}" alt="Phòng nghỉ chuẩn Nhật">
+              <img src="{{ home_images.gal_7 }}" alt="Phòng nghỉ chuẩn Nhật">
             </figure>
-            <span class="gal-cap">Phòng nghỉ chuẩn Nhật</span>
           </div>
         </div>
       </div>

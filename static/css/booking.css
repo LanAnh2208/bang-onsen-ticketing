@@ -1,7 +1,18 @@
-/* ==========================================================================
-   CSS PHÂN HỆ KHÁCH HÀNG (.tc - TRANG CHỦ & ĐẶT VÉ TRỰC TUYẾN)
-   ========================================================================== */
-.pg {
+:root {
+  --font: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+html,
+body,
+button,
+input,
+select,
+option,
+optgroup,
+textarea {
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+   .pg {
   padding-bottom: 0;
   min-height: 72vh;
 }

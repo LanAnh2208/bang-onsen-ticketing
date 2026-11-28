@@ -7,11 +7,11 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 phone_validator = RegexValidator(
-    regex=r'^0\d{9}$',
+    regex=r'^0\\d{9}$',
     message='Số điện thoại phải gồm đúng 10 chữ số và bắt đầu bằng số 0.'
 )
 cccd_validator = RegexValidator(
-    regex=r'^\d{12}$',
+    regex=r'^\\d{12}$',
     message='Số CCCD phải gồm đúng 12 chữ số.'
 )
 
@@ -24,7 +24,6 @@ TICKET_TYPE_CHOICES = [
 PAYMENT_METHOD_CHOICES = [
     ('CASH', 'Tiền mặt'),
     ('BANK_TRANSFER', 'Chuyển khoản ngân hàng / VietQR'),
-    ('CARD', 'Thẻ ngân hàng / Máy POS'),
     ('E_WALLET', 'Cổng thanh toán VNPAY'),
 ]
 
@@ -37,20 +36,14 @@ class User(AbstractUser):
         ('ADMIN', 'Quản trị viên'),
         ('RECEPTIONIST', 'Nhân viên lễ tân'),
     ]
-    STATUS_CHOICES = [
-        ('Active', 'Đang hoạt động'),
-        ('Inactive', 'Ngừng hoạt động'),
-    ]
 
     account_id = models.CharField(max_length=15, unique=True, editable=False, verbose_name='Mã tài khoản')
     full_name = models.CharField(max_length=100, verbose_name='Họ và tên')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='RECEPTIONIST', verbose_name='Vai trò')
-    account_status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='Active', verbose_name='Trạng thái')
 
     def save(self, *args, **kwargs):
         if not self.account_id:
             self.account_id = f"ACC-{uuid.uuid4().hex[:8].upper()}"
-        self.is_active = (self.account_status == 'Active')
         if self.is_superuser:
             self.role = 'ADMIN'
         super().save(*args, **kwargs)
@@ -213,7 +206,6 @@ class Order(models.Model):
         ('New', 'Chờ thanh toán'),
         ('Paid', 'Đã thanh toán'),
         ('Cancelled', 'Đã hủy'),
-        ('Exchanged', 'Đã đổi vé'),
     ]
     TICKET_STATUS_CHOICES = [
         ('UNUSED', 'Chưa sử dụng'),
@@ -243,7 +235,6 @@ class Order(models.Model):
     exchange_time = models.DateTimeField(null=True, blank=True, verbose_name='Thời điểm đổi vé')
     checked_in_at = models.DateTimeField(null=True, blank=True, verbose_name='Thời điểm quét QR check-in')
 
-    original_order = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='exchanged_orders', verbose_name='Đơn gốc trước khi đổi')
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_orders', verbose_name='Nhân viên tạo đơn')
     checked_in_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='checked_in_orders', verbose_name='Nhân viên quét QR check-in')
 
@@ -281,13 +272,26 @@ class Order(models.Model):
         return self.ticket_status
 
     @property
-    def can_cancel_or_exchange(self):
+    def has_been_exchanged(self) -> bool:
+        """Kiểm tra đơn hàng đã từng thực hiện đổi vé hay chưa (mỗi đơn tối đa 1 lần)."""
+        return bool(self.exchange_time)
+
+    @property
+    def exchange_count(self) -> int:
+        return 1 if self.has_been_exchanged else 0
+
+    @property
+    def can_cancel(self) -> bool:
         return (
             self.channel == 'ONLINE'
             and self.order_status == 'Paid'
             and self.effective_ticket_status == 'UNUSED'
             and self.visit_date >= timezone.localdate()
         )
+
+    @property
+    def can_exchange(self) -> bool:
+        return self.can_cancel and not self.has_been_exchanged
 
     @classmethod
     def sync_overdue_tickets(cls):
@@ -428,7 +432,7 @@ class ShiftReconciliation(models.Model):
         User,
         on_delete=models.PROTECT,
         related_name='shift_reports',
-        limit_choices_to={'role': 'RECEPTIONIST', 'account_status': 'Active'},
+        limit_choices_to={'role': 'RECEPTIONIST', 'is_active': True},
         verbose_name='Nhân viên lễ tân'
     )
     shift_date = models.DateField(default=timezone.localdate, verbose_name='Ngày làm việc')

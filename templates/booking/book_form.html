@@ -141,6 +141,11 @@
       font-size: 12.5px;
       text-transform: uppercase;
     }
+    .bk-voucher-row .ck-inp:disabled {
+      background: #f1f5f9;
+      color: #94a3b8;
+      cursor: not-allowed;
+    }
     .bk-voucher-btn {
       padding: 0 12px;
       border-radius: 9px;
@@ -151,17 +156,21 @@
       font-weight: 700;
       cursor: pointer;
       white-space: nowrap;
-      transition: background .15s, color .15s, border-color .15s;
+      transition: background .15s, color .15s, border-color .15s, opacity .15s;
     }
-    .bk-voucher-btn:hover {
+    .bk-voucher-btn:hover:not(:disabled) {
       background: #1e293b;
+    }
+    .bk-voucher-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
     }
     .bk-voucher-btn.is-applied {
       border-color: var(--red);
       background: #ffffff;
       color: var(--red);
     }
-    .bk-voucher-btn.is-applied:hover {
+    .bk-voucher-btn.is-applied:hover:not(:disabled) {
       background: #fff5f5;
     }
     .bk-voucher-msg {
@@ -171,6 +180,18 @@
     }
     .bk-voucher-msg.ok { color: var(--ok); font-weight: 600; }
     .bk-voucher-msg.er { color: var(--red); font-weight: 600; }
+
+    /* Trạng thái vô hiệu hóa nút thanh toán góc dưới bên phải */
+    #btnSubmitBooking:disabled,
+    #btnSubmitBooking.is-disabled {
+      background: #cbd5e1 !important;
+      border-color: #cbd5e1 !important;
+      color: #64748b !important;
+      cursor: not-allowed !important;
+      pointer-events: none;
+      box-shadow: none !important;
+      opacity: 0.85;
+    }
 
     /* Định dạng chi tiết từng dòng vé bên hóa đơn phải */
     .ck-inv-subrow {
@@ -682,6 +703,8 @@
         pollTimer: null,
         countdownTimer: null,
         vnpayPopup: null,
+        paymentUiLocked: false, // true khi đang chờ VNPAY, đã thành công hoặc thất bại
+        paymentUiState: '',     // 'pending' | 'success' | 'failed'
       };
 
       const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
@@ -692,6 +715,45 @@
 
       function isQtPrefix(cccd) {
         return /^\d{12}$/.test(cccd) && (cccd.startsWith('044') || cccd.startsWith('045'));
+      }
+
+      // =======================================================================
+      // VÔ HIỆU HÓA / MỞ KHÓA NÚT THANH TOÁN & VOUCHER Ở GÓC DƯỚI BÊN PHẢI
+      // =======================================================================
+      function setRightCheckoutLocked(locked, mode = '') {
+        state.paymentUiLocked = Boolean(locked);
+        state.paymentUiState = locked ? mode : '';
+
+        const btnSubmit = document.getElementById('btnSubmitBooking');
+        const inpVoucher = document.getElementById('voucherInput');
+        const btnVoucher = document.getElementById('btnApplyVoucher');
+
+        if (btnSubmit) {
+          if (state.paymentUiLocked) {
+            btnSubmit.disabled = true;
+            btnSubmit.classList.add('is-disabled');
+            btnSubmit.setAttribute('aria-disabled', 'true');
+            if (mode === 'pending') {
+              btnSubmit.textContent = 'Đang chờ thanh toán VNPAY...';
+            } else if (mode === 'success') {
+              btnSubmit.textContent = 'Đã thanh toán hoàn tất';
+            } else if (mode === 'failed') {
+              btnSubmit.textContent = 'Thanh toán chưa hoàn tất';
+            }
+          } else {
+            btnSubmit.disabled = false;
+            btnSubmit.classList.remove('is-disabled');
+            btnSubmit.removeAttribute('aria-disabled');
+            btnSubmit.textContent = 'Thanh toán qua VNPAY →';
+          }
+        }
+
+        if (inpVoucher) {
+          inpVoucher.disabled = state.paymentUiLocked;
+        }
+        if (btnVoucher) {
+          btnVoucher.disabled = state.paymentUiLocked;
+        }
       }
 
       // =======================================================================
@@ -989,6 +1051,7 @@
           btn.textContent = 'Áp dụng';
           btn.classList.remove('is-applied');
         }
+        btn.disabled = state.paymentUiLocked;
       }
 
       function recalculateTotals() {
@@ -1104,6 +1167,10 @@
         }
         document.getElementById('sumGrandTotal').textContent = fmtVnd(grandTotal);
         syncVoucherButtonState();
+
+        if (state.paymentUiLocked) {
+          setRightCheckoutLocked(true, state.paymentUiState);
+        }
       }
 
       document.getElementById('packagesContainer').addEventListener('click', function (e) {
@@ -1245,6 +1312,7 @@
 
       // Nếu đang có mã áp dụng mà người dùng sửa sang mã khác -> tự bỏ áp mã cũ và chuyển nút về 'Áp dụng'
       voucherInpEl.addEventListener('input', function () {
+        if (state.paymentUiLocked) return;
         if (state.voucher) {
           const typed = this.value.trim().toUpperCase();
           const applied = (state.voucher.code || '').toUpperCase();
@@ -1255,6 +1323,8 @@
       });
 
       voucherBtnEl.addEventListener('click', async function () {
+        if (state.paymentUiLocked) return;
+
         // Nếu đang ở trạng thái 'Bỏ áp mã' -> xóa mã đã áp và đưa nút về 'Áp dụng'
         if (state.voucher) {
           clearAppliedVoucher(true);
@@ -1322,6 +1392,8 @@
         paySec.hidden = true;
         paySec.style.display = 'none';
         document.getElementById('bk-editor-card').style.display = 'flex';
+        setRightCheckoutLocked(false);
+        recalculateTotals();
       }
 
       function showPendingView(orderData) {
@@ -1338,6 +1410,9 @@
         document.getElementById('pendOrderCode').textContent = '#' + orderData.order_code;
         document.getElementById('pendAmountFmt').textContent = orderData.total_amount_fmt;
 
+        // Vô hiệu hóa nút thanh toán & ô mã giảm giá ở góc dưới bên phải khi chờ thanh toán
+        setRightCheckoutLocked(true, 'pending');
+
         startCountdown(orderData.expires_at_ts);
         startStatusPolling(orderData.order_code);
       }
@@ -1352,6 +1427,9 @@
         document.getElementById('statePendingCard').style.display = 'none';
         document.getElementById('stateSuccessCard').style.display = 'block';
         document.getElementById('stateFailedCard').style.display = 'none';
+
+        // Vô hiệu hóa nút thanh toán & ô mã giảm giá ở góc dưới bên phải khi thanh toán thành công
+        setRightCheckoutLocked(true, 'success');
 
         const orderCode = info.order_code || (state.activeOrder && state.activeOrder.order_code) || '';
         const email = info.email || (state.activeOrder && state.activeOrder.email) || '';
@@ -1380,6 +1458,9 @@
         document.getElementById('statePendingCard').style.display = 'none';
         document.getElementById('stateSuccessCard').style.display = 'none';
         document.getElementById('stateFailedCard').style.display = 'block';
+
+        // Vô hiệu hóa nút thanh toán & ô mã giảm giá ở góc dưới bên phải khi thanh toán thất bại
+        setRightCheckoutLocked(true, 'failed');
 
         const orderCode = (state.activeOrder && state.activeOrder.order_code) || '';
         const totalFmt = (state.activeOrder && state.activeOrder.total_amount_fmt) || '0 VNĐ';
@@ -1465,6 +1546,7 @@
 
       document.getElementById('bookingForm').addEventListener('submit', async function (e) {
         e.preventDefault();
+        if (state.paymentUiLocked) return;
         hideBannerError();
 
         // Nếu người dùng nhập text vào ô voucher nhưng chưa bấm Áp dụng -> xóa text nháp để không gửi mã chưa hợp lệ
@@ -1502,6 +1584,7 @@
               window.switchBookingTab('info');
             }
             showBannerError(data.error || 'Vui lòng kiểm tra lại thông tin đặt vé.');
+            setRightCheckoutLocked(false);
             return;
           }
 
@@ -1519,9 +1602,7 @@
         } catch (err) {
           if (popupWin && !popupWin.closed) popupWin.close();
           showBannerError('Lỗi kết nối máy chủ khi tạo đơn hàng. Vui lòng thử lại.');
-        } finally {
-          btnSubmit.disabled = false;
-          btnSubmit.textContent = 'Thanh toán qua VNPAY →';
+          setRightCheckoutLocked(false);
         }
       });
 

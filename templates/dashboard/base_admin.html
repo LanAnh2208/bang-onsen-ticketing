@@ -290,17 +290,6 @@
         .alert-warning { background-color: var(--warning-bg); color: var(--warning-text); border: 1px solid var(--warning-text); }
         .alert-error   { background-color: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger-text); }
 
-        .admin-footer {
-            background-color: var(--text-main);
-            color: var(--bg-main);
-            padding: 24px 32px;
-            border-top: 1px solid var(--border-muted);
-            font-size: 13px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
         /* ================= MODAL XÁC NHẬN THAO TÁC TOÀN ADMIN ================= */
         .admin-confirm-backdrop {
             display: none;
@@ -422,7 +411,11 @@
             <span class="admin-info">
                 Xin chào, <strong>{{ request.user.full_name|default:request.user.username }}</strong>
             </span>
-            <a href="/admin-django/logout/" class="btn-primary">Đăng xuất</a>
+            <form method="post" action="{% url 'dashboard:logout' %}" style="margin: 0;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="admin_logout">
+                <button type="submit" class="btn-primary">Đăng xuất</button>
+            </form>
         </div>
     </header>
 
@@ -435,11 +428,6 @@
 
         {% block content %}{% endblock %}
     </main>
-
-    <footer class="admin-footer">
-        <div>Bang Onsen Spa & Resort — Hệ thống Quản trị Bán vé Điện tử</div>
-        <div>Phân hệ Quản lý Lễ tân (Admin)</div>
-    </footer>
 
     {% block extra_js %}{% endblock %}
 
@@ -685,6 +673,9 @@
                 }
                 if (actionVal === 'create_staff') {
                     return 'Xác nhận tạo tài khoản nhân sự mới này?';
+                }
+                if (actionVal === 'admin_logout') {
+                    return 'Bạn có chắc chắn muốn đăng xuất khỏi phân hệ quản trị không?';
                 }
                 return btnText
                     ? `Bạn có chắc chắn muốn thực hiện thao tác "${btnText}" không?`

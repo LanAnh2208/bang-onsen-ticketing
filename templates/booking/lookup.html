@@ -2,7 +2,28 @@
 {% load static %}
 
 {% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
+
 <style>
+  :root {
+    --font: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  html,
+  body,
+  button,
+  input,
+  select,
+  option,
+  optgroup,
+  textarea,
+  .lk-viewport,
+  .lk-viewport * {
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  }
+
   /* Mở khóa chiều cao viewport của trang tra cứu để hiển thị đầy đủ Footer */
   html:has(.lk-viewport),
   body:has(.lk-viewport) {
@@ -45,6 +66,254 @@
     max-height: none !important;
     overflow: visible !important;
   }
+
+  /* ==================== GIAO DIỆN BỘ LỌC NỔI BẬT & DỄ THAO TÁC ==================== */
+  .lk-filter-card {
+    background: #ffffff;
+    border: 1.5px solid #dbe3ec;
+    border-radius: 14px;
+    padding: 14px 18px 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04);
+  }
+
+  .lk-filter-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #eef2f6;
+  }
+
+  .lk-filter-head-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .lk-filter-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #fef2f2;
+    color: var(--red, #b91c1c);
+    border: 1px solid #fecaca;
+    padding: 5px 11px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .lk-filter-count {
+    font-size: 13.5px;
+    color: #334155;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .lk-filter-count b {
+    color: #0f172a;
+    font-weight: 700;
+  }
+
+  .lk-filter-active-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    border-radius: 999px;
+    padding: 4px 11px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .lk-flt-reset-btn {
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 9px;
+    border: 1.5px solid #cbd5e1;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+  }
+
+  .lk-flt-reset-btn.is-enabled {
+    border-color: var(--red, #b91c1c);
+    background: #fff5f5;
+    color: var(--red, #b91c1c);
+  }
+
+  .lk-flt-reset-btn.is-enabled:hover {
+    background: var(--red, #b91c1c);
+    color: #ffffff;
+  }
+
+  .lk-flt-reset-btn:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  .lk-filter-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    gap: 12px;
+  }
+
+  .lk-flt-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .lk-flt-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  .lk-flt-select {
+    width: 100%;
+    height: 42px;
+    padding: 0 36px 0 13px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 10px;
+    background-color: #f8fafc;
+    color: #0f172a;
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.4;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 15px;
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .lk-flt-select option {
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #0f172a;
+    background-color: #ffffff;
+  }
+
+  .lk-flt-select:hover {
+    border-color: #94a3b8;
+    background-color: #ffffff;
+  }
+
+  .lk-flt-select:focus {
+    outline: none;
+    border-color: var(--red, #b91c1c);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.12);
+  }
+
+  .lk-flt-select.is-filtered {
+    border-color: var(--red, #b91c1c);
+    background-color: #fff5f5;
+    color: #991b1b;
+    font-weight: 700;
+  }
+
+  /* ==================== HÀNG ĐƠN VÉ & THANH TRỞ VỀ DANH SÁCH ==================== */
+  .lk-acc-trigger {
+    align-items: center !important;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .lk-acc-trigger:hover {
+    background-color: #fffafa !important;
+  }
+
+  .lk-acc-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .lk-view-detail-hint {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--red, #b91c1c);
+    padding-left: 2px;
+  }
+
+  .lk-detail-nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: #ffffff;
+    border: 1.5px solid #dbe3ec;
+    border-radius: 12px;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+  }
+
+  .lk-back-list-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 10px;
+    border: 1.5px solid var(--red, #b91c1c);
+    background: #fff5f5;
+    color: var(--red, #b91c1c);
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .lk-back-list-btn:hover {
+    background: var(--red, #b91c1c);
+    color: #ffffff;
+  }
+
+  .lk-detail-breadcrumb {
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+  }
+
+  @media (max-width: 900px) {
+    .lk-filter-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 520px) {
+    .lk-filter-grid {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
 
 <div class="lk-viewport">
@@ -70,7 +339,7 @@
     </div>
   </div>
 
-  <!-- KHÔNG GIAN HIỂN THỊ KẾT QUẢ CỐ ĐỊNH TRONG 1 MÀN HÌNH -->
+  <!-- KHÔNG GIAN HIỂN THỊ KẾT QUẢ -->
   <div class="w w-wide lk-workspace">
     {% if messages %}
       {% for m in messages %}
@@ -86,6 +355,7 @@
 </div>
 
 <input type="hidden" id="lk-csrf-token" value="{{ csrf_token }}">
+<input type="hidden" id="lk-today-iso" value="{{ today_iso }}">
 <input type="hidden" id="lk-min-reschedule-date" value="{{ min_reschedule_date }}">
 <input type="hidden" id="lk-api-lookup-url" value="{% url 'booking:lookup_ticket_api' %}">
 <input type="hidden" id="lk-api-check-url" value="{% url 'booking:check_reschedule' %}">
@@ -96,19 +366,40 @@
 
 <script>
 let CURRENT_LOOKUP_DATA = null;
-let EXPANDED_ORDER_CODE = '';
+let SELECTED_DETAIL_ORDER_CODE = '';
 let ACTIVE_TAB_BY_ORDER = {};
 
-// Trạng thái bộ lọc & phân trang
+// Trạng thái bộ lọc & phân trang (tối đa 10 đơn vé / 1 trang)
 let FILTER_STATE = {
-  status: 'all', // all | cancelled | rescheduled | checked_in | pending_checkin
+  status: 'all', // all | cancelled | rescheduled | checked_in | pending_checkin | unpaid | overdue
   day: '',
   month: '',
   year: '',
 };
-let CHANNEL_VIEW_MODE = 'auto'; // 'auto' | 'overview' | 'ONLINE' | 'COUNTER'
+let ACTIVE_CHANNEL_TAB = 'ONLINE'; // 'ONLINE' | 'COUNTER'
 let PAGE_BY_CHANNEL = { ONLINE: 1, COUNTER: 1 };
-const ITEMS_PER_CHANNEL_PAGE = 5;
+const ITEMS_PER_CHANNEL_PAGE = 10;
+
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&')
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '"');
+}
+
+function getActiveLookupQuery(fallbackCode = '') {
+  const inpVal = (document.getElementById('lk-query-inp')?.value || '').trim();
+  const dataQuery = (CURRENT_LOOKUP_DATA?.query || '').trim();
+  const urlQ = (new URLSearchParams(window.location.search).get('q') || '').trim();
+  return inpVal || dataQuery || urlQ || fallbackCode;
+}
+
+function persistLookupQuery(q) {
+  if (q) {
+    sessionStorage.setItem('bang_onsen_last_lookup_q', q);
+  }
+}
 
 window.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('header nav a').forEach(a => {
@@ -133,11 +424,23 @@ window.addEventListener('DOMContentLoaded', () => {
   const parsed = rawInit ? JSON.parse(rawInit.textContent || 'null') : null;
   if (parsed) {
     CURRENT_LOOKUP_DATA = parsed;
+    persistLookupQuery(getActiveLookupQuery());
+    initDefaultChannelTab(parsed);
     renderLookupStage(parsed);
   } else {
     renderEmptyGuide();
   }
 });
+
+function initDefaultChannelTab(data) {
+  if (!data || !data.ok) {
+    ACTIVE_CHANNEL_TAB = 'ONLINE';
+    return;
+  }
+  const onlineCount = (data.online_orders || []).length;
+  const counterCount = (data.counter_orders || []).length;
+  ACTIVE_CHANNEL_TAB = (onlineCount > 0 || counterCount === 0) ? 'ONLINE' : 'COUNTER';
+}
 
 function showLookupBanner(type, text) {
   const box = document.getElementById('lk-banner');
@@ -154,9 +457,8 @@ function showLookupBanner(type, text) {
 
 function resetFilterAndPaging() {
   FILTER_STATE = { status: 'all', day: '', month: '', year: '' };
-  CHANNEL_VIEW_MODE = 'auto';
   PAGE_BY_CHANNEL = { ONLINE: 1, COUNTER: 1 };
-  EXPANDED_ORDER_CODE = '';
+  SELECTED_DETAIL_ORDER_CODE = '';
 }
 
 function clearLookupInput() {
@@ -170,6 +472,7 @@ function clearLookupInput() {
   if (clearBtn) clearBtn.hidden = true;
   showLookupBanner('', '');
   CURRENT_LOOKUP_DATA = null;
+  sessionStorage.removeItem('bang_onsen_last_lookup_q');
   resetFilterAndPaging();
   window.history.replaceState({}, '', baseUrl);
   renderEmptyGuide();
@@ -200,7 +503,9 @@ async function submitInstantLookup(e) {
     }
 
     CURRENT_LOOKUP_DATA = data;
+    persistLookupQuery(query);
     resetFilterAndPaging();
+    initDefaultChannelTab(data);
 
     window.history.replaceState({}, '', `${baseUrl}?q=${encodeURIComponent(query)}`);
     renderLookupStage(data);
@@ -211,7 +516,7 @@ async function submitInstantLookup(e) {
   }
 }
 
-async function refreshLookupSilently(keepExpandedCode = '') {
+async function refreshLookupSilently(keepSelectedCode = '') {
   const inp = document.getElementById('lk-query-inp');
   const apiUrl = document.getElementById('lk-api-lookup-url')?.value || '/api/lookup/';
   const query = (inp?.value || '').trim();
@@ -220,7 +525,7 @@ async function refreshLookupSilently(keepExpandedCode = '') {
     const resp = await fetch(`${apiUrl}?q=${encodeURIComponent(query)}`);
     const data = await resp.json();
     CURRENT_LOOKUP_DATA = data;
-    EXPANDED_ORDER_CODE = keepExpandedCode;
+    SELECTED_DETAIL_ORDER_CODE = keepSelectedCode;
     renderLookupStage(data);
   } catch (e) {}
 }
@@ -246,7 +551,7 @@ function renderEmptyGuide() {
           <span class="bd ok" style="margin-bottom:10px">2. Đổi vé trước 48 giờ</span>
           <h3 style="margin:0 0 8px;font-size:16.5px">Đổi ngày, dịch vụ & số lượng vé</h3>
           <p class="sm" style="font-style:normal;margin:0;line-height:1.6">
-            Áp dụng cho vé Online trước tối thiểu <b>48 giờ</b> (đổi ngang giá hoặc cao hơn giá đơn cũ), thanh toán bổ sung chênh lệch qua VNPAY và cấp mã QR mới.
+            Áp dụng cho vé Online trước tối thiểu <b>48 giờ</b> (tối đa <b>01 lần/đơn</b>, đổi ngang giá hoặc cao hơn giá đơn cũ), thanh toán chênh lệch qua VNPAY và cấp mã QR mới.
           </p>
         </div>
 
@@ -265,10 +570,20 @@ function renderEmptyGuide() {
 // 2. BỘ LỌC TÌNH TRẠNG VÉ & THỜI GIAN (NGÀY / THÁNG / NĂM)
 // ==========================================================================
 function matchesOrderFilter(order) {
+  const todayIso = document.getElementById('lk-today-iso')?.value || '';
+  const isOverdue = (
+    order.checkin_state === 'pending_checkin' &&
+    todayIso &&
+    order.visit_date_iso &&
+    order.visit_date_iso < todayIso
+  );
+
   if (FILTER_STATE.status === 'cancelled' && !order.is_cancelled) return false;
   if (FILTER_STATE.status === 'rescheduled' && !(order.reschedule_count > 0)) return false;
   if (FILTER_STATE.status === 'checked_in' && order.checkin_state !== 'checked_in') return false;
-  if (FILTER_STATE.status === 'pending_checkin' && order.checkin_state !== 'pending_checkin') return false;
+  if (FILTER_STATE.status === 'unpaid' && order.checkin_state !== 'unpaid') return false;
+  if (FILTER_STATE.status === 'overdue' && !isOverdue) return false;
+  if (FILTER_STATE.status === 'pending_checkin' && (order.checkin_state !== 'pending_checkin' || isOverdue)) return false;
 
   if (FILTER_STATE.day && Number(order.visit_day) !== Number(FILTER_STATE.day)) return false;
   if (FILTER_STATE.month && Number(order.visit_month) !== Number(FILTER_STATE.month)) return false;
@@ -280,26 +595,36 @@ function matchesOrderFilter(order) {
 function updateFilterField(field, value) {
   FILTER_STATE[field] = value;
   PAGE_BY_CHANNEL = { ONLINE: 1, COUNTER: 1 };
-  EXPANDED_ORDER_CODE = '';
+  SELECTED_DETAIL_ORDER_CODE = '';
   if (CURRENT_LOOKUP_DATA) renderLookupStage(CURRENT_LOOKUP_DATA);
 }
 
 function clearFiltersOnly() {
   FILTER_STATE = { status: 'all', day: '', month: '', year: '' };
   PAGE_BY_CHANNEL = { ONLINE: 1, COUNTER: 1 };
-  EXPANDED_ORDER_CODE = '';
+  SELECTED_DETAIL_ORDER_CODE = '';
   if (CURRENT_LOOKUP_DATA) renderLookupStage(CURRENT_LOOKUP_DATA);
 }
 
-function switchChannelView(mode) {
-  CHANNEL_VIEW_MODE = mode;
-  EXPANDED_ORDER_CODE = '';
+function switchChannelTab(channel) {
+  ACTIVE_CHANNEL_TAB = (channel === 'COUNTER') ? 'COUNTER' : 'ONLINE';
+  SELECTED_DETAIL_ORDER_CODE = '';
   if (CURRENT_LOOKUP_DATA) renderLookupStage(CURRENT_LOOKUP_DATA);
 }
 
 function changeChannelPage(channel, pageNum) {
   PAGE_BY_CHANNEL[channel] = pageNum;
-  EXPANDED_ORDER_CODE = '';
+  SELECTED_DETAIL_ORDER_CODE = '';
+  if (CURRENT_LOOKUP_DATA) renderLookupStage(CURRENT_LOOKUP_DATA);
+}
+
+function openOrderDetail(orderCode) {
+  SELECTED_DETAIL_ORDER_CODE = orderCode;
+  if (CURRENT_LOOKUP_DATA) renderLookupStage(CURRENT_LOOKUP_DATA);
+}
+
+function backToOrderList() {
+  SELECTED_DETAIL_ORDER_CODE = '';
   if (CURRENT_LOOKUP_DATA) renderLookupStage(CURRENT_LOOKUP_DATA);
 }
 
@@ -308,53 +633,107 @@ function buildFilterToolbarHtml(allOrders, searchLabel, filteredTotal) {
   allOrders.forEach(o => { if (o.visit_year) yearsSet.add(Number(o.visit_year)); });
   const sortedYears = Array.from(yearsSet).sort((a, b) => b - a);
 
-  const dayOpts = ['<option value="">Ngày: Tất cả</option>'];
+  const dayOpts = ['<option value="">Tất cả các ngày</option>'];
   for (let d = 1; d <= 31; d++) {
     const sel = String(FILTER_STATE.day) === String(d) ? 'selected' : '';
     dayOpts.push(`<option value="${d}" ${sel}>Ngày ${String(d).padStart(2, '0')}</option>`);
   }
 
-  const monthOpts = ['<option value="">Tháng: Tất cả</option>'];
+  const monthOpts = ['<option value="">Tất cả các tháng</option>'];
   for (let m = 1; m <= 12; m++) {
     const sel = String(FILTER_STATE.month) === String(m) ? 'selected' : '';
     monthOpts.push(`<option value="${m}" ${sel}>Tháng ${String(m).padStart(2, '0')}</option>`);
   }
 
-  const yearOpts = ['<option value="">Năm: Tất cả</option>'];
+  const yearOpts = ['<option value="">Tất cả các năm</option>'];
   sortedYears.forEach(y => {
     const sel = String(FILTER_STATE.year) === String(y) ? 'selected' : '';
     yearOpts.push(`<option value="${y}" ${sel}>Năm ${y}</option>`);
   });
 
-  const hasActiveFilter = (
-    FILTER_STATE.status !== 'all' ||
-    FILTER_STATE.day !== '' ||
-    FILTER_STATE.month !== '' ||
-    FILTER_STATE.year !== ''
-  );
+  const statusLabelsMap = {
+    pending_checkin: 'Chờ check-in',
+    unpaid: 'Chờ thanh toán',
+    checked_in: 'Đã check-in',
+    overdue: 'Quá hạn check-in',
+    rescheduled: 'Đã đổi vé',
+    cancelled: 'Đã hủy vé',
+  };
+
+  const activeTags = [];
+  if (FILTER_STATE.status !== 'all') activeTags.push(statusLabelsMap[FILTER_STATE.status] || FILTER_STATE.status);
+  if (FILTER_STATE.day) activeTags.push(`Ngày ${String(FILTER_STATE.day).padStart(2, '0')}`);
+  if (FILTER_STATE.month) activeTags.push(`Tháng ${String(FILTER_STATE.month).padStart(2, '0')}`);
+  if (FILTER_STATE.year) activeTags.push(`Năm ${FILTER_STATE.year}`);
+
+  const hasActiveFilter = activeTags.length > 0;
 
   return `
-    <div class="lk-filter-bar">
-      <div class="lk-filter-info">
-        <span>Tìm thấy <b>${filteredTotal}/${allOrders.length} đơn vé</b> của ${searchLabel}</span>
+    <section class="lk-filter-card" aria-label="Bộ lọc danh sách vé">
+      <div class="lk-filter-card-head">
+        <div class="lk-filter-head-left">
+          <span class="lk-filter-tag">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+            Bộ lọc danh sách vé
+          </span>
+          <span class="lk-filter-count">Tìm thấy <b>${filteredTotal}/${allOrders.length} đơn vé</b> của ${searchLabel}</span>
+          ${hasActiveFilter ? `<span class="lk-filter-active-summary">Đang lọc (${activeTags.length}): ${escapeHtml(activeTags.join(' · '))}</span>` : ''}
+        </div>
+
+        <button type="button"
+                class="lk-flt-reset-btn ${hasActiveFilter ? 'is-enabled' : ''}"
+                onclick="clearFiltersOnly()"
+                ${hasActiveFilter ? '' : 'disabled'}>
+          ↺ Đặt lại bộ lọc
+        </button>
       </div>
 
-      <div class="lk-filter-controls">
-        <select class="lk-flt-sel" onchange="updateFilterField('status', this.value)" title="Lọc theo tình trạng vé">
-          <option value="all" ${FILTER_STATE.status === 'all' ? 'selected' : ''}>Tình trạng: Tất cả</option>
-          <option value="pending_checkin" ${FILTER_STATE.status === 'pending_checkin' ? 'selected' : ''}>Chờ check-in</option>
-          <option value="checked_in" ${FILTER_STATE.status === 'checked_in' ? 'selected' : ''}>Đã check-in</option>
-          <option value="rescheduled" ${FILTER_STATE.status === 'rescheduled' ? 'selected' : ''}>Đã đổi vé</option>
-          <option value="cancelled" ${FILTER_STATE.status === 'cancelled' ? 'selected' : ''}>Đã hủy vé</option>
-        </select>
+      <div class="lk-filter-grid">
+        <div class="lk-flt-field">
+          <label for="lk-flt-status" class="lk-flt-label">Tình trạng vé</label>
+          <select id="lk-flt-status"
+                  class="lk-flt-select ${FILTER_STATE.status !== 'all' ? 'is-filtered' : ''}"
+                  onchange="updateFilterField('status', this.value)">
+            <option value="all" ${FILTER_STATE.status === 'all' ? 'selected' : ''}>Tất cả tình trạng</option>
+            <option value="pending_checkin" ${FILTER_STATE.status === 'pending_checkin' ? 'selected' : ''}>Chờ check-in</option>
+            <option value="unpaid" ${FILTER_STATE.status === 'unpaid' ? 'selected' : ''}>Chờ thanh toán</option>
+            <option value="checked_in" ${FILTER_STATE.status === 'checked_in' ? 'selected' : ''}>Đã check-in</option>
+            <option value="overdue" ${FILTER_STATE.status === 'overdue' ? 'selected' : ''}>Quá hạn check-in</option>
+            <option value="rescheduled" ${FILTER_STATE.status === 'rescheduled' ? 'selected' : ''}>Đã đổi vé</option>
+            <option value="cancelled" ${FILTER_STATE.status === 'cancelled' ? 'selected' : ''}>Đã hủy vé</option>
+          </select>
+        </div>
 
-        <select class="lk-flt-sel" onchange="updateFilterField('day', this.value)" title="Lọc theo ngày sử dụng">${dayOpts.join('')}</select>
-        <select class="lk-flt-sel" onchange="updateFilterField('month', this.value)" title="Lọc theo tháng sử dụng">${monthOpts.join('')}</select>
-        <select class="lk-flt-sel" onchange="updateFilterField('year', this.value)" title="Lọc theo năm sử dụng">${yearOpts.join('')}</select>
+        <div class="lk-flt-field">
+          <label for="lk-flt-day" class="lk-flt-label">Ngày sử dụng</label>
+          <select id="lk-flt-day"
+                  class="lk-flt-select ${FILTER_STATE.day ? 'is-filtered' : ''}"
+                  onchange="updateFilterField('day', this.value)">
+            ${dayOpts.join('')}
+          </select>
+        </div>
 
-        ${hasActiveFilter ? `<button type="button" class="lk-flt-reset" onclick="clearFiltersOnly()">✕ Xóa lọc</button>` : ''}
+        <div class="lk-flt-field">
+          <label for="lk-flt-month" class="lk-flt-label">Tháng sử dụng</label>
+          <select id="lk-flt-month"
+                  class="lk-flt-select ${FILTER_STATE.month ? 'is-filtered' : ''}"
+                  onchange="updateFilterField('month', this.value)">
+            ${monthOpts.join('')}
+          </select>
+        </div>
+
+        <div class="lk-flt-field">
+          <label for="lk-flt-year" class="lk-flt-label">Năm sử dụng</label>
+          <select id="lk-flt-year"
+                  class="lk-flt-select ${FILTER_STATE.year ? 'is-filtered' : ''}"
+                  onchange="updateFilterField('year', this.value)">
+            ${yearOpts.join('')}
+          </select>
+        </div>
       </div>
-    </div>`;
+    </section>`;
 }
 
 // ==========================================================================
@@ -374,7 +753,7 @@ function renderLookupStage(data) {
     return;
   }
 
-  // CHẾ ĐỘ 1: TRA THEO MÃ ĐƠN -> CHỈ HIỆN THÔNG TIN CHI TIẾT ĐƠN ĐÓ
+  // CHẾ ĐỘ 1: TRA TRỰC TIẾP BẰNG MÃ ĐƠN -> CHỈ HIỆN CHI TIẾT ĐƠN ĐÓ
   if (data.search_type === 'order_code' && data.single_order) {
     stage.innerHTML = buildFullOrderDetailHtml(data.single_order, false);
     return;
@@ -384,6 +763,29 @@ function renderLookupStage(data) {
   const rawOnline = data.online_orders || [];
   const rawCounter = data.counter_orders || [];
   const allOrders = [...rawOnline, ...rawCounter];
+
+  // Nếu đang mở xem chi tiết 1 đơn vé -> chỉ hiện chi tiết đơn đó + nút Trở về danh sách
+  if (SELECTED_DETAIL_ORDER_CODE) {
+    const selectedOrder = allOrders.find(o => o.order_code === SELECTED_DETAIL_ORDER_CODE);
+    if (selectedOrder) {
+      const channelName = selectedOrder.channel === 'COUNTER' ? 'Vé mua tại quầy' : 'Vé mua Online';
+      const curPage = PAGE_BY_CHANNEL[selectedOrder.channel === 'COUNTER' ? 'COUNTER' : 'ONLINE'] || 1;
+      stage.innerHTML = `
+        <div class="lk-list-container">
+          <div class="lk-detail-nav-bar">
+            <button type="button" class="lk-back-list-btn" onclick="backToOrderList()">
+              ← Trở về danh sách
+            </button>
+            <span class="lk-detail-breadcrumb">
+              ${channelName} · Trang ${curPage} (${escapeHtml(data.query)})
+            </span>
+          </div>
+          ${buildFullOrderDetailHtml(selectedOrder, false)}
+        </div>`;
+      return;
+    }
+    SELECTED_DETAIL_ORDER_CODE = '';
+  }
 
   const onlineList = rawOnline.filter(matchesOrderFilter);
   const counterList = rawCounter.filter(matchesOrderFilter);
@@ -395,108 +797,46 @@ function renderLookupStage(data) {
 
   const filterToolbarHtml = buildFilterToolbarHtml(allOrders, searchLabel, totalFiltered);
 
-  const isTooLongForOneScreen = (totalFiltered > 3 || onlineList.length > 2 || counterList.length > 2);
-  let effectiveMode = CHANNEL_VIEW_MODE;
-  if (effectiveMode === 'auto') {
-    if (isTooLongForOneScreen) {
-      effectiveMode = onlineList.length > 0 ? 'ONLINE' : 'COUNTER';
-    } else {
-      effectiveMode = 'overview';
-    }
-  }
+  const effectiveTab = (ACTIVE_CHANNEL_TAB === 'COUNTER') ? 'COUNTER' : 'ONLINE';
+  const targetList = (effectiveTab === 'ONLINE') ? onlineList : counterList;
+  const channelTitle = (effectiveTab === 'ONLINE')
+    ? `Vé mua Online (${onlineList.length} đơn)`
+    : `Vé mua tại quầy (${counterList.length} đơn)`;
+  const channelCls = (effectiveTab === 'ONLINE') ? 'is-online' : 'is-counter';
+
+  // Phân trang tối đa 10 đơn vé / 1 lượt cho từng tab
+  const totalPages = Math.max(1, Math.ceil(targetList.length / ITEMS_PER_CHANNEL_PAGE));
+  let curPage = PAGE_BY_CHANNEL[effectiveTab] || 1;
+  curPage = Math.min(Math.max(1, curPage), totalPages);
+  PAGE_BY_CHANNEL[effectiveTab] = curPage;
+
+  const startIdx = (curPage - 1) * ITEMS_PER_CHANNEL_PAGE;
+  const pageItems = targetList.slice(startIdx, startIdx + ITEMS_PER_CHANNEL_PAGE);
 
   const channelSwitcherHtml = `
     <div class="lk-channel-nav">
       <div class="lk-channel-tabs">
-        ${!isTooLongForOneScreen ? `
-          <button type="button" class="lk-ch-tab ${effectiveMode === 'overview' ? 'is-active' : ''}"
-                  onclick="switchChannelView('overview')">
-            Hiển thị cả 2 mục (${totalFiltered})
-          </button>` : ''}
-        <button type="button" class="lk-ch-tab is-online ${effectiveMode === 'ONLINE' ? 'is-active' : ''}"
-                onclick="switchChannelView('ONLINE')">
+        <button type="button" class="lk-ch-tab is-online ${effectiveTab === 'ONLINE' ? 'is-active' : ''}"
+                onclick="switchChannelTab('ONLINE')">
           Vé mua Online (${onlineList.length} đơn)
         </button>
-        <button type="button" class="lk-ch-tab is-counter ${effectiveMode === 'COUNTER' ? 'is-active' : ''}"
-                onclick="switchChannelView('COUNTER')">
+        <button type="button" class="lk-ch-tab is-counter ${effectiveTab === 'COUNTER' ? 'is-active' : ''}"
+                onclick="switchChannelTab('COUNTER')">
           Vé mua tại quầy (${counterList.length} đơn)
         </button>
       </div>
-      ${isTooLongForOneScreen
-        ? `<span class="sm" style="font-style:normal">Danh sách dài được tách thành trang riêng cho từng kênh để không phải cuộn trang</span>`
-        : `<span class="sm" style="font-style:normal">Bấm vào từng đơn vé để xem chi tiết & mã QR</span>`
-      }
+      <span class="sm" style="font-style:normal">Hiển thị tối đa 10 đơn/trang · Bấm vào đơn vé để xem chi tiết</span>
     </div>`;
-
-  if (effectiveMode === 'overview') {
-    const onlineBlockHtml = `
-      <section class="lk-channel-block is-online">
-        <div class="lk-block-head">
-          <h2 class="lk-channel-heading is-online">Vé mua Online (${onlineList.length} đơn)</h2>
-          ${onlineList.length > 0
-            ? `<button type="button" class="lk-open-page-btn" onclick="switchChannelView('ONLINE')">Mở trang riêng →</button>`
-            : ''}
-        </div>
-        ${onlineList.length > 0
-          ? `<div class="lk-acc-list">${onlineList.map(o => buildAccordionRowHtml(o)).join('')}</div>`
-          : `<p class="sm" style="font-style:normal;margin:8px 0 2px">Không có đơn vé mua Online phù hợp.</p>`
-        }
-      </section>`;
-
-    const counterBlockHtml = `
-      <section class="lk-channel-block is-counter">
-        <div class="lk-block-head">
-          <h2 class="lk-channel-heading is-counter">Vé mua tại quầy (${counterList.length} đơn)</h2>
-          ${counterList.length > 0
-            ? `<button type="button" class="lk-open-page-btn" onclick="switchChannelView('COUNTER')">Mở trang riêng →</button>`
-            : ''}
-        </div>
-        ${counterList.length > 0
-          ? `<div class="lk-acc-list">${counterList.map(o => buildAccordionRowHtml(o)).join('')}</div>`
-          : `<p class="sm" style="font-style:normal;margin:8px 0 2px">Không có đơn vé mua tại quầy phù hợp.</p>`
-        }
-      </section>`;
-
-    stage.innerHTML = `
-      <div class="lk-list-container">
-        ${filterToolbarHtml}
-        ${channelSwitcherHtml}
-        <div class="lk-blocks-fit">
-          ${onlineBlockHtml}
-          ${counterBlockHtml}
-        </div>
-      </div>`;
-    return;
-  }
-
-  const targetList = (effectiveMode === 'ONLINE') ? onlineList : counterList;
-  const channelTitle = (effectiveMode === 'ONLINE')
-    ? `Vé mua Online (${onlineList.length} đơn)`
-    : `Vé mua tại quầy (${counterList.length} đơn)`;
-  const channelCls = (effectiveMode === 'ONLINE') ? 'is-online' : 'is-counter';
-
-  const pageSize = EXPANDED_ORDER_CODE ? 1 : ITEMS_PER_CHANNEL_PAGE;
-  const totalPages = Math.max(1, Math.ceil(targetList.length / pageSize));
-  let curPage = PAGE_BY_CHANNEL[effectiveMode] || 1;
-  if (EXPANDED_ORDER_CODE) {
-    const expIdx = targetList.findIndex(o => o.order_code === EXPANDED_ORDER_CODE);
-    if (expIdx >= 0) curPage = expIdx + 1;
-  }
-  curPage = Math.min(Math.max(1, curPage), totalPages);
-  PAGE_BY_CHANNEL[effectiveMode] = curPage;
-
-  const startIdx = (curPage - 1) * pageSize;
-  const pageItems = targetList.slice(startIdx, startIdx + pageSize);
 
   const paginationHtml = totalPages > 1 ? `
     <div class="lk-pagination">
       <button type="button" class="lk-pg-btn" ${curPage <= 1 ? 'disabled' : ''}
-              onclick="changeChannelPage('${effectiveMode}', ${curPage - 1})">
+              onclick="changeChannelPage('${effectiveTab}', ${curPage - 1})">
         ← Trang trước
       </button>
       <span class="lk-pg-info">Trang <b>${curPage}</b> / ${totalPages}</span>
       <button type="button" class="lk-pg-btn" ${curPage >= totalPages ? 'disabled' : ''}
-              onclick="changeChannelPage('${effectiveMode}', ${curPage + 1})">
+              onclick="changeChannelPage('${effectiveTab}', ${curPage + 1})">
         Trang sau →
       </button>
     </div>` : '';
@@ -511,22 +851,24 @@ function renderLookupStage(data) {
           ${paginationHtml}
         </div>
         ${pageItems.length > 0
-          ? `<div class="lk-acc-list">${pageItems.map(o => buildAccordionRowHtml(o)).join('')}</div>`
-          : `<p class="sm" style="font-style:normal;margin:12px 0">Không có đơn vé nào trong mục này khớp với bộ lọc hiện tại.</p>`
+          ? `<div class="lk-acc-list">${pageItems.map(o => buildOrderSummaryRowHtml(o)).join('')}</div>`
+          : `<p class="sm" style="font-style:normal;margin:14px 0">Không có đơn vé nào trong mục này khớp với điều kiện lọc hiện tại.</p>`
         }
       </section>
     </div>`;
 }
 
-function toggleAccordionOrder(orderCode) {
-  EXPANDED_ORDER_CODE = (EXPANDED_ORDER_CODE === orderCode) ? '' : orderCode;
-  if (CURRENT_LOOKUP_DATA) {
-    renderLookupStage(CURRENT_LOOKUP_DATA);
-  }
-}
+function buildOrderSummaryRowHtml(order) {
+  const todayIso = document.getElementById('lk-today-iso')?.value || '';
+  const isOverdue = (
+    order.checkin_state === 'pending_checkin' &&
+    todayIso &&
+    order.visit_date_iso &&
+    order.visit_date_iso < todayIso
+  );
 
-function buildAccordionRowHtml(order) {
-  const isOpen = (EXPANDED_ORDER_CODE === order.order_code);
+  const badgeLabel = isOverdue ? 'Quá hạn check-in' : order.checkin_label;
+  const badgeCls = isOverdue ? 'no' : order.checkin_badge_cls;
 
   let actionTimeBadge = '';
   if (order.is_cancelled && order.cancelled_at) {
@@ -536,8 +878,8 @@ function buildAccordionRowHtml(order) {
   }
 
   return `
-    <div class="lk-acc-item ${isOpen ? 'is-open' : ''}">
-      <button type="button" class="lk-acc-trigger" onclick="toggleAccordionOrder('${order.order_code}')" aria-expanded="${isOpen}">
+    <div class="lk-acc-item">
+      <button type="button" class="lk-acc-trigger" onclick="openOrderDetail('${order.order_code}')">
         <div class="lk-acc-main">
           <span class="bd">${order.order_code}</span>
           <strong style="font-size:13.5px;color:var(--tx)">Ngày đi: ${order.visit_date_display}</strong>
@@ -546,11 +888,10 @@ function buildAccordionRowHtml(order) {
         </div>
         <div class="lk-acc-right">
           <strong style="color:var(--red);font-size:14px">${order.total_fmt}</strong>
-          <span class="bd ${order.checkin_badge_cls}">${order.checkin_label}</span>
-          <span class="lk-acc-arrow">${isOpen ? '▲' : '▼'}</span>
+          <span class="bd ${badgeCls}">${badgeLabel}</span>
+          <span class="lk-view-detail-hint">Chi tiết →</span>
         </div>
       </button>
-      ${isOpen ? `<div class="lk-acc-drawer">${buildFullOrderDetailHtml(order, true)}</div>` : ''}
     </div>`;
 }
 
@@ -558,7 +899,23 @@ function buildAccordionRowHtml(order) {
 // 4. KHỐI CHI TIẾT ĐẦY ĐỦ CỦA 1 ĐƠN VÉ
 // ==========================================================================
 function buildFullOrderDetailHtml(order, isInsideAccordion) {
-  const activeTab = ACTIVE_TAB_BY_ORDER[order.order_code] || 'reschedule';
+  const canExchange = (order.policy.can_exchange !== undefined)
+    ? Boolean(order.policy.can_exchange)
+    : (Boolean(order.policy.can_modify) && !(order.reschedule_count > 0));
+  const defaultTab = canExchange ? 'reschedule' : 'cancel';
+  const activeTab = ACTIVE_TAB_BY_ORDER[order.order_code] || defaultTab;
+  const todayIso = document.getElementById('lk-today-iso')?.value || '';
+  const isOverdue = (
+    order.checkin_state === 'pending_checkin' &&
+    todayIso &&
+    order.visit_date_iso &&
+    order.visit_date_iso < todayIso
+  );
+  const badgeLabel = isOverdue ? 'Quá hạn check-in' : order.checkin_label;
+  const badgeCls = isOverdue ? 'no' : order.checkin_badge_cls;
+
+  const currentQuery = getActiveLookupQuery(order.order_code);
+  const rescheduleHref = `/doi-ve/${order.order_code}/?q=${encodeURIComponent(currentQuery)}`;
 
   const linesHtml = (order.lines || []).map(line => {
     let subHtml = '';
@@ -616,18 +973,33 @@ function buildFullOrderDetailHtml(order, isInsideAccordion) {
 
       <!-- TAB ĐỔI VÉ SANG TRANG RIÊNG -->
       <div id="pane-res-${order.order_code}" ${activeTab !== 'reschedule' ? 'hidden' : ''} style="margin-top:10px">
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:10px;font-size:12.5px;line-height:1.55;color:#334155">
-          <div style="font-weight:700;color:#0f172a;margin-bottom:4px">Chính sách đổi vé trực tuyến:</div>
-          <ul style="margin:0;padding-left:16px">
-            <li>Cho phép đổi <b>ngày sử dụng</b>, <b>gói dịch vụ Onsen</b> hoặc <b>số lượng vé</b>.</li>
-            <li>Chỉ áp dụng đổi ngang giá hoặc nâng cấp vé có giá trị cao hơn đơn hiện tại (<b>${order.total_fmt}</b>).</li>
-            <li>Thanh toán phần chênh lệch trực tuyến qua VNPAY và nhận mã QR mới qua email.</li>
-          </ul>
-        </div>
+        ${canExchange
+          ? `
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:10px;font-size:12.5px;line-height:1.55;color:#334155">
+              <div style="font-weight:700;color:#0f172a;margin-bottom:4px">Chính sách đổi vé trực tuyến:</div>
+              <ul style="margin:0;padding-left:16px">
+                <li>Mỗi đơn hàng chỉ được hỗ trợ <b>đổi vé tối đa 01 lần</b> duy nhất.</li>
+                <li>Cho phép đổi <b>ngày sử dụng</b>, <b>gói dịch vụ Onsen</b> hoặc <b>số lượng vé</b>.</li>
+                <li>Chỉ áp dụng đổi ngang giá hoặc nâng cấp vé có giá trị cao hơn đơn hiện tại (<b>${order.total_fmt}</b>).</li>
+                <li>Thanh toán phần chênh lệch trực tuyến qua VNPAY và nhận mã QR mới qua email.</li>
+              </ul>
+            </div>
 
-        <a href="/doi-ve/${order.order_code}/" class="btn p" style="width:100%;text-align:center;display:block">
-          Đổi ngày, dịch vụ & số lượng vé →
-        </a>
+            <a href="${rescheduleHref}"
+               onclick="persistLookupQuery('${escapeHtml(currentQuery)}')"
+               class="btn p" style="width:100%;text-align:center;display:block">
+              Đổi ngày, dịch vụ & số lượng vé →
+            </a>`
+          : `
+            <div class="al er" style="margin:0 0 10px;padding:10px 12px;font-size:12.5px;line-height:1.5">
+              ⚠ <strong>Đã sử dụng hết lượt đổi vé (1/1 lần)</strong><br>
+              ${escapeHtml(order.policy.exchange_reason || 'Mỗi đơn hàng chỉ được hỗ trợ đổi vé tối đa 01 lần duy nhất.')}
+            </div>
+            <button type="button" class="btn" disabled
+                    style="width:100%;opacity:0.65;cursor:not-allowed;background:#e2e8f0;border-color:#cbd5e1;color:#475569">
+              Đã đổi vé (1/1 lần)
+            </button>`
+        }
       </div>
 
       <!-- TAB HỦY VÉ -->
@@ -673,7 +1045,7 @@ function buildFullOrderDetailHtml(order, isInsideAccordion) {
           <div class="row" style="gap:6px;flex-wrap:wrap">
             <span class="bd">${order.order_code}</span>
             <span class="bd ${order.channel === 'ONLINE' ? 'ok' : ''}">${order.channel_label}</span>
-            <span class="bd ${order.checkin_badge_cls}">${order.checkin_label}</span>
+            <span class="bd ${badgeCls}">${badgeLabel}</span>
             ${order.reschedule_count > 0 ? `<span class="bd ok">Đã đổi vé (${order.reschedule_count} lần)</span>` : ''}
           </div>
           <strong style="font-size:18px;color:var(--red)">${order.total_fmt}</strong>
@@ -684,7 +1056,7 @@ function buildFullOrderDetailHtml(order, isInsideAccordion) {
             <div class="ck-inv-meta" style="margin-top:0">
               <div><span>Ngày sử dụng:</span> <b>${order.visit_date_display} (${order.day_label})</b></div>
               <div><span>Giờ mở cửa check-in:</span> <b>09:00 – 21:00 ngày ${order.visit_date_display}</b></div>
-              <div><span>Trạng thái check-in:</span> <b>${order.checkin_label}</b></div>
+              <div><span>Trạng thái check-in:</span> <b>${badgeLabel}</b></div>
               ${order.rescheduled_at ? `<div><span>Thời gian đổi vé gần nhất:</span> <b style="color:var(--ok)">${order.rescheduled_at}</b></div>` : ''}
               ${order.cancelled_at ? `<div><span>Thời gian hủy vé:</span> <b style="color:var(--red)">${order.cancelled_at}</b></div>` : ''}
               <div><span>Khách hàng:</span> <b>${escapeHtml(order.customer_name)} · ${escapeHtml(order.customer_phone)}</b></div>
@@ -769,14 +1141,6 @@ async function submitCancelAjax(e, orderCode) {
     showLookupBanner('er', 'Lỗi kết nối máy chủ khi hủy vé.');
     if (btn) btn.disabled = false;
   }
-}
-
-function escapeHtml(str) {
-  return String(str || '')
-    .replace(/&/g, '&')
-    .replace(/</g, '<')
-    .replace(/>/g, '>')
-    .replace(/"/g, '"');
 }
 </script>
 {% endblock %}

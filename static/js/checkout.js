@@ -19,9 +19,48 @@ let PAYMENT_POLL_TIMER = null;
 let PAYMENT_RESULT_HANDLED = false;
 let VNPAY_BROADCAST_CHANNEL = null;
 
+// Khóa nút thanh toán góc dưới bên phải trong lúc chờ / thành công / thất bại
+let PAYMENT_UI_LOCKED = false;
+let PAYMENT_UI_STATE = ''; // 'pending' | 'success' | 'failed'
+
 function formatVnd(amount) {
   if (typeof fm === 'function') return fm(amount);
   return `${Math.round(Number(amount) || 0).toLocaleString('vi-VN')} VNĐ`;
+}
+
+function setCheckoutRightActionLock(locked, stateMode = '') {
+  PAYMENT_UI_LOCKED = Boolean(locked);
+  PAYMENT_UI_STATE = locked ? stateMode : '';
+
+  const invBtn = document.getElementById('inv-cta-btn') || document.getElementById('btnSubmitBooking');
+  const voucherInp = document.getElementById('inp-voucher') || document.getElementById('voucherInput');
+  const voucherBtn = document.getElementById('btnApplyVoucher') || document.querySelector('.ck-voucher-row button');
+
+  if (invBtn) {
+    if (PAYMENT_UI_LOCKED) {
+      invBtn.disabled = true;
+      invBtn.classList.add('is-disabled');
+      invBtn.setAttribute('aria-disabled', 'true');
+      if (stateMode === 'pending') {
+        invBtn.textContent = 'Đang chờ thanh toán VNPAY...';
+      } else if (stateMode === 'success') {
+        invBtn.textContent = 'Đã thanh toán hoàn tất';
+      } else if (stateMode === 'failed') {
+        invBtn.textContent = 'Thanh toán chưa hoàn tất';
+      }
+    } else {
+      invBtn.classList.remove('is-disabled');
+      invBtn.removeAttribute('aria-disabled');
+      invBtn.textContent = 'Thanh toán qua VNPAY →';
+    }
+  }
+
+  if (voucherInp) {
+    voucherInp.disabled = PAYMENT_UI_LOCKED;
+  }
+  if (voucherBtn) {
+    voucherBtn.disabled = PAYMENT_UI_LOCKED;
+  }
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -169,6 +208,11 @@ function updateActionButtonsState() {
   const invBtn = document.getElementById('inv-cta-btn');
   const invHint = document.getElementById('inv-cta-hint');
   if (!invBtn) return;
+
+  if (PAYMENT_UI_LOCKED) {
+    setCheckoutRightActionLock(true, PAYMENT_UI_STATE);
+    return;
+  }
 
   if (CURRENT_STEP !== 3) {
     invBtn.hidden = true;
@@ -699,6 +743,7 @@ function reconcileAllAndRender() {
 // 5. BƯỚC 3: KIỂM TRA VOUCHER & THANH TOÁN QUA VNPAY Ở TAB MỚI
 // ==========================================================================
 function onVoucherInputChange(rawCode) {
+  if (PAYMENT_UI_LOCKED) return;
   const clean = rawCode.trim().toUpperCase();
   if (ACTIVE_VOUCHER && clean !== ACTIVE_VOUCHER.code) {
     ACTIVE_VOUCHER = null;
@@ -714,6 +759,7 @@ function onVoucherInputChange(rawCode) {
 }
 
 async function applyVoucherCode() {
+  if (PAYMENT_UI_LOCKED) return;
   const inp = document.getElementById('inp-voucher');
   const msgEl = document.getElementById('voucher-msg');
   if (!inp || !msgEl) return;
@@ -820,9 +866,12 @@ function openVnpayStatusModal({ badgeText, badgeClass, title, desc, actionsHtml 
 
 function closeVnpayStatusModal() {
   const modal = document.getElementById('vnpay-status-modal');
-  if (!modal) return;
-  modal.hidden = true;
-  modal.style.display = 'none';
+  if (modal) {
+    modal.hidden = true;
+    modal.style.display = 'none';
+  }
+  setCheckoutRightActionLock(false);
+  updateActionButtonsState();
 }
 
 function stopPaymentMonitoring() {
@@ -894,6 +943,8 @@ function startPaymentMonitoring(orderCode, vnpayUrl, payWin) {
   ACTIVE_VNPAY_URL = vnpayUrl;
   ACTIVE_PAYMENT_WIN = payWin;
 
+  setCheckoutRightActionLock(true, 'pending');
+
   openVnpayStatusModal({
     badgeText: `Đơn #${orderCode} · Đang chờ thanh toán`,
     badgeClass: '',
@@ -930,6 +981,7 @@ function handleVnpayCallbackPayload(payload) {
   const targetLookupUrl = payload.lookup_url || `/tra-cuu/?q=${encodeURIComponent(payload.order_code || ACTIVE_ORDER_CODE)}`;
 
   if (payload.status === 'success') {
+    setCheckoutRightActionLock(true, 'success');
     openVnpayStatusModal({
       badgeText: '✓ Thanh toán thành công',
       badgeClass: 'ok',
@@ -946,6 +998,7 @@ function handleVnpayCallbackPayload(payload) {
     return;
   }
 
+  setCheckoutRightActionLock(true, 'failed');
   openVnpayStatusModal({
     badgeText: '✕ Thanh toán chưa thành công',
     badgeClass: 'no',
@@ -1015,6 +1068,7 @@ async function retryVnpayFromModal() {
 
 async function handleCheckoutSubmit(e) {
   e.preventDefault();
+  if (PAYMENT_UI_LOCKED) return;
   showInlineError('');
 
   if (getTotalPaidTickets() <= 0) {
@@ -1057,6 +1111,7 @@ async function handleCheckoutSubmit(e) {
     if (!resp.ok || !data.ok) {
       if (payWin && !payWin.closed) payWin.close();
       showInlineError(data.error || 'Không thể khởi tạo đơn đặt vé, vui lòng kiểm tra lại.');
+      setCheckoutRightActionLock(false);
       updateActionButtonsState();
       return;
     }
@@ -1081,6 +1136,7 @@ async function handleCheckoutSubmit(e) {
   } catch (err) {
     if (payWin && !payWin.closed) payWin.close();
     showInlineError('Lỗi kết nối máy chủ, vui lòng thử lại.');
+    setCheckoutRightActionLock(false);
   } finally {
     updateActionButtonsState();
   }

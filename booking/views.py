@@ -1,21 +1,25 @@
+import os
 import hashlib
 import hmac
 import json
 import uuid
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
-from urllib.parse import quote, quote_plus
-from django.conf import settings
+from urllib.parse import parse_qs, quote, quote_plus, urlencode, urlparse
 from django.contrib import messages
+from django.contrib.staticfiles import finders
+from django.conf import settings
 from django.core.cache import cache
 from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
 from django.db.models import F, Q, Sum
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET
+
 from core.models import (
     Customer,
     Order,
@@ -62,9 +66,84 @@ PAYMENT_METHOD_LABELS = {
     'E_WALLET': 'Cổng thanh toán VNPAY',
 }
 
+ONSEN_DETAIL_PRESETS = {
+    1: {
+        'summary': '07 bể ngâm khoáng trong nhà · 01 phòng xông hơi tinh dầu · 01 xông hơi khô · 05 bể Onsen ngoài trời · 1 suất ăn Menu Nhật Bản',
+        'description': (
+            'Gói dịch vụ Onsen 1 mang đến hành trình tắm khoáng trị liệu chuẩn Nhật Bản trọn vẹn nhất tại Bang Onsen Spa & Resort. '
+            'Quý khách được tận hưởng toàn bộ hệ thống bể khoáng nóng phân tầng nhiệt độ trong nhà, bể ngâm ngoài trời giữa rừng nguyên sinh, '
+            'khu xông hơi tinh dầu – xông khô và thưởng thức 01 suất ăn Set Menu Nhật Bản tinh tế.'
+        ),
+        'highlights': [
+            '07 bể ngâm khoáng trong nhà phân tầng nhiệt độ trị liệu',
+            '01 phòng xông hơi tinh dầu thảo mộc tự nhiên',
+            '01 phòng xông hơi khô chuẩn Nhật Bản',
+            '05 bể Onsen ngoài trời hòa mình giữa thiên nhiên suối Bang',
+            '01 suất ăn Set Menu Nhật Bản tại nhà hàng khu nghỉ dưỡng',
+        ],
+        'fallback_photos': [
+            ('images/home/onsen-1.jpg', 'Không gian tắm khoáng Onsen 1'),
+            ('images/home/gal-2.jpg', 'Bể Onsen ngoài trời giữa thiên nhiên'),
+            ('images/home/gal-6.jpg', 'Suất ăn Set Menu Nhật Bản đi kèm'),
+        ],
+    },
+    2: {
+        'summary': '07 bể ngâm khoáng trong nhà · 05 bể Onsen ngoài trời · 01 phòng xông hơi đá muối & tinh dầu · Tự do tham quan vườn Nhật',
+        'description': (
+            'Gói dịch vụ Onsen 2 được thiết kế dành cho du khách muốn tập trung trải nghiệm trị liệu khoáng nóng tự nhiên 105°C và thư giãn xông hơi chuyên sâu. '
+            'Quý khách tự do sử dụng toàn bộ khu tắm khoáng trong nhà, bể khoáng ngoài trời và phòng xông hơi trị liệu trong suốt khung giờ mở cửa.'
+        ),
+        'highlights': [
+            '07 bể ngâm khoáng nóng trong nhà nhiều mức nhiệt độ',
+            '05 bể Onsen ngoài trời thoáng đãng giữa núi rừng Quảng Trị',
+            '01 phòng xông hơi đá muối Himalaya & xông hơi tinh dầu',
+            'Miễn phí khăn tắm, tủ đồ cá nhân & trà thảo mộc nghỉ chân',
+            'Tự do tham quan, check-in kiến trúc vườn Nhật tại Bang Onsen',
+        ],
+        'fallback_photos': [
+            ('images/home/onsen-2.jpg', 'Khu tắm khoáng Onsen 2'),
+            ('images/home/gal-4.jpg', 'Hệ thống bể ngâm khoáng trong nhà'),
+            ('images/home/gal-3.jpg', 'Phòng xông hơi đá muối & tinh dầu'),
+        ],
+    },
+    3: {
+        'summary': 'Công viên nước khoáng nóng ngoài trời · Hệ thống bể khoáng ấm gia đình · Khu trượt nước & vận động dưới nước',
+        'description': (
+            'Gói dịch vụ Onsen 3 kết hợp tắm khoáng ấm ngoài trời cùng khu công viên nước khoáng sôi động, đặc biệt phù hợp cho gia đình có trẻ nhỏ và nhóm bạn trẻ. '
+            'Nguồn nước khoáng tự nhiên được điều chỉnh nhiệt độ lý tưởng cho hoạt động vui chơi, giải nhiệt và phục hồi năng lượng.'
+        ),
+        'highlights': [
+            'Trải nghiệm toàn khu Công viên nước khoáng nóng ngoài trời',
+            'Hệ thống bể ngâm khoáng ấm ngoài trời dành cho cả gia đình',
+            'Khu máng trượt nước & trò chơi vận động dưới nước khoáng',
+            'Tủ đồ cá nhân, khăn tắm & khu vực ghế nghỉ ven hồ tiêu chuẩn',
+        ],
+        'fallback_photos': [
+            ('images/home/onsen-3.jpg', 'Công viên nước khoáng Onsen 3'),
+            ('images/home/gal-5.jpg', 'Khu vui chơi nước khoáng ngoài trời'),
+            ('images/home/gal-1.jpg', 'Toàn cảnh không gian suối Bang'),
+        ],
+    },
+}
+
 
 def _fmt_vnd(amount: int) -> str:
     return f"{int(amount):,}".replace(",", ".") + " VNĐ"
+
+
+def _resolve_back_lookup(request, default_query: str) -> tuple[str, str]:
+    """Xác định từ khóa tra cứu trước đó (SĐT, Email hoặc Mã đơn) và URL quay lại trang tra cứu."""
+    back_q = (request.GET.get('q') or request.POST.get('back_q') or '').strip()
+    if not back_q:
+        referer = request.META.get('HTTP_REFERER', '')
+        if referer:
+            ref_q = parse_qs(urlparse(referer).query).get('q', [])
+            if ref_q:
+                back_q = ref_q[0].strip()
+    if not back_q:
+        back_q = (default_query or '').strip()
+    back_lookup_url = f"{reverse('booking:lookup_ticket')}?{urlencode({'q': back_q})}"
+    return back_q, back_lookup_url
 
 
 # ==============================================================================
@@ -350,9 +429,113 @@ def _evaluate_voucher(code: str, subtotal: int) -> dict:
     }
 
 
+def _calculate_inherited_discount(order_obj: Order, new_subtotal: int) -> dict:
+    """
+    Tính toán ưu đãi kế thừa từ đơn cũ khi đổi vé:
+    - Nếu đơn cũ có Voucher: kế thừa nguyên tỷ lệ (%) hoặc mức giảm cố định (VNĐ) của đơn cũ,
+      không hoàn mã về kho, không cho phép áp thêm hay đổi sang mã khác.
+    - Nếu đơn cũ không có mã giảm giá: mức giảm = 0, không cho phép nhập mã mới.
+    """
+    old_discount = int(order_obj.discount_amount or 0)
+    v_obj = order_obj.voucher
+
+    if v_obj:
+        if v_obj.discount_type == 'Percent':
+            pct = float(v_obj.discount_value)
+            discount = min(new_subtotal, int(round(new_subtotal * pct / 100.0)))
+            max_disc = int(getattr(v_obj, 'max_discount', 0) or 0)
+            if max_disc > 0:
+                discount = min(discount, max_disc)
+            return {
+                'has_voucher': True,
+                'code': v_obj.voucher_code,
+                'type': 'PERCENT',
+                'value': pct,
+                'max_discount': max_disc,
+                'fixed_discount': 0,
+                'discount_amount': discount,
+                'short_badge': f"{v_obj.voucher_code} (-{pct:g}%)",
+                'row_label': f"Giảm giá kế thừa ({v_obj.voucher_code} -{pct:g}%)",
+            }
+
+        val = int(v_obj.discount_value)
+        discount = min(new_subtotal, val)
+        return {
+            'has_voucher': True,
+            'code': v_obj.voucher_code,
+            'type': 'FIXED',
+            'value': float(val),
+            'max_discount': val,
+            'fixed_discount': val,
+            'discount_amount': discount,
+            'short_badge': f"{v_obj.voucher_code} (-{_fmt_vnd(val)})",
+            'row_label': f"Giảm giá kế thừa ({v_obj.voucher_code})",
+        }
+
+    if old_discount > 0:
+        discount = min(new_subtotal, old_discount)
+        return {
+            'has_voucher': True,
+            'code': 'ƯU ĐÃI ĐƠN CŨ',
+            'type': 'FIXED',
+            'value': float(old_discount),
+            'max_discount': old_discount,
+            'fixed_discount': old_discount,
+            'discount_amount': discount,
+            'short_badge': f"Ưu đãi đơn cũ (-{_fmt_vnd(old_discount)})",
+            'row_label': "Giảm giá kế thừa từ đơn cũ",
+        }
+
+    return {
+        'has_voucher': False,
+        'code': '',
+        'type': 'NONE',
+        'value': 0.0,
+        'max_discount': 0,
+        'fixed_discount': 0,
+        'discount_amount': 0,
+        'short_badge': '',
+        'row_label': '',
+    }
+
+
 # ==============================================================================
-# CÁC VIEW TRANG CHỦ, ĐẶT VÉ & THANH TOÁN VNPAY
+# CÁC VIEW TRANG CHỦ, CHI TIẾT ONSEN, ĐẶT VÉ & THANH TOÁN VNPAY
 # ==============================================================================
+def _fresh_static_url(rel_path: str) -> str:
+    """
+    Đọc trực tiếp file ảnh từ thư mục static và gắn ?v=<mtime> theo thời điểm lưu file thực tế
+    để trình duyệt luôn tải ảnh mới nhất khi lưu đè file trong thư mục, không dùng cache cũ.
+    """
+    base_no_ext, orig_ext = os.path.splitext(rel_path)
+    exts = [orig_ext] if orig_ext else []
+    for ext in ('.jpg', '.jpeg', '.png', '.webp'):
+        if ext.lower() not in [e.lower() for e in exts]:
+            exts.append(ext)
+
+    candidates = []
+    for ext in exts:
+        cand_rel = f"{base_no_ext}{ext}"
+        abs_path = finders.find(cand_rel)
+        if not abs_path:
+            direct_path = os.path.join(settings.BASE_DIR, 'static', *cand_rel.split('/'))
+            if os.path.isfile(direct_path):
+                abs_path = direct_path
+        if abs_path and os.path.isfile(abs_path):
+            try:
+                mtime = int(os.path.getmtime(abs_path))
+            except OSError:
+                mtime = 0
+            candidates.append((mtime, cand_rel))
+
+    if candidates:
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        newest_mtime, newest_rel = candidates[0]
+        return f"{static(newest_rel)}?v={newest_mtime}"
+
+    return static(rel_path)
+
+
 def home(request):
     services = _get_all_services()
     active_services = [s for s in services if s['is_active'] and s['price_weekday'] > 0]
@@ -360,16 +543,117 @@ def home(request):
     day_type = ServicePrice.get_day_type_for_date(today)
     min_price = min((s['price_weekday'] for s in active_services), default=390000)
 
+    home_images = {
+        'hero_banner': _fresh_static_url('images/home/hero-banner.jpg'),
+        'onsen_1': _fresh_static_url('images/home/onsen-1.jpg'),
+        'onsen_2': _fresh_static_url('images/home/onsen-2.jpg'),
+        'onsen_3': _fresh_static_url('images/home/onsen-3.jpg'),
+        'eco_rooms': _fresh_static_url('images/home/eco-rooms.jpg'),
+        'eco_spa': _fresh_static_url('images/home/eco-spa.jpg'),
+        'eco_dining': _fresh_static_url('images/home/eco-dining.jpg'),
+        'gal_1': _fresh_static_url('images/home/gal-1.jpg'),
+        'gal_2': _fresh_static_url('images/home/gal-2.jpg'),
+        'gal_3': _fresh_static_url('images/home/gal-3.jpg'),
+        'gal_4': _fresh_static_url('images/home/gal-4.jpg'),
+        'gal_5': _fresh_static_url('images/home/gal-5.jpg'),
+        'gal_6': _fresh_static_url('images/home/gal-6.jpg'),
+        'gal_7': _fresh_static_url('images/home/gal-7.jpg'),
+    }
+
     context = {
         'services': services,
         'info_pages': INFO_PAGES,
+        'home_images': home_images,
         'today_iso': today.isoformat(),
         'default_date_iso': today.isoformat(),
         'default_day_label': 'Cuối tuần (T7–CN)' if day_type == 'WEEKEND' else 'Đầu tuần (T2–T6)',
         'min_price': min_price,
         'min_price_fmt': _fmt_vnd(min_price),
     }
-    return render(request, 'booking/home.html', context)
+    response = render(request, 'booking/home.html', context)
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
+
+def onsen_detail(request, service_id):
+    services = _get_all_services()
+    service = next((s for s in services if s['id'] == service_id), None)
+    if not service:
+        raise Http404("Không tìm thấy gói dịch vụ Onsen.")
+
+    preset = ONSEN_DETAIL_PRESETS.get(service['id'], ONSEN_DETAIL_PRESETS[1])
+
+    pub_wd_adult = int(service.get('price_weekday') or 650000)
+    pub_we_adult = int(service.get('price_weekend') or pub_wd_adult)
+    qt_wd_adult = int(service.get('price_qt_weekday') or pub_wd_adult)
+    qt_we_adult = int(service.get('price_qt_weekend') or pub_we_adult)
+
+    pub_wd_child = int(service.get('price_child_weekday') or (pub_wd_adult // 2))
+    pub_we_child = int(service.get('price_child_weekend') or (pub_we_adult // 2))
+
+    child_prices = {
+        sp.day_type: sp
+        for sp in ServicePrice.objects.filter(service_id=service['id'], ticket_type='CHILD')
+    }
+    sp_child_wd = child_prices.get('WEEKDAY')
+    sp_child_we = child_prices.get('WEEKEND')
+
+    qt_wd_child = (
+        int(sp_child_wd.quang_tri_price)
+        if (sp_child_wd and sp_child_wd.quang_tri_price is not None)
+        else (qt_wd_adult // 2)
+    )
+    qt_we_child = (
+        int(sp_child_we.quang_tri_price)
+        if (sp_child_we and sp_child_we.quang_tri_price is not None)
+        else (qt_we_adult // 2)
+    )
+
+    pricing = {
+        'pub_wd_adult': _fmt_vnd(pub_wd_adult),
+        'pub_wd_child': _fmt_vnd(pub_wd_child),
+        'pub_we_adult': _fmt_vnd(pub_we_adult),
+        'pub_we_child': _fmt_vnd(pub_we_child),
+        'qt_wd_adult': _fmt_vnd(qt_wd_adult),
+        'qt_wd_child': _fmt_vnd(qt_wd_child),
+        'qt_we_adult': _fmt_vnd(qt_we_adult),
+        'qt_we_child': _fmt_vnd(qt_we_child),
+    }
+
+    gallery_items = []
+    for idx, (fb_rel, caption) in enumerate(preset['fallback_photos'], start=1):
+        gallery_items.append({
+            'primary': f"images/home/onsen-{service['id']}-{idx}.jpg",
+            'fallback_url': static(fb_rel),
+            'caption': caption,
+        })
+
+    other_services = []
+    for s in services:
+        if s['id'] == service['id']:
+            continue
+        s_preset = ONSEN_DETAIL_PRESETS.get(s['id'], ONSEN_DETAIL_PRESETS[1])
+        other_services.append({
+            'id': s['id'],
+            'name': s['name'],
+            'is_active': s['is_active'],
+            'price_weekday_fmt': s.get('price_weekday_fmt', _fmt_vnd(0)),
+            'short_desc': s_preset['summary'],
+            'thumb_primary': f"images/home/onsen-{s['id']}.jpg",
+            'thumb_fallback': static('images/home/gal-1.jpg'),
+        })
+
+    return render(request, 'booking/onsen_detail.html', {
+        'services': services,
+        'info_pages': INFO_PAGES,
+        'service': service,
+        'hero_image_path': f"images/home/onsen-{service['id']}.jpg",
+        'summary_line': preset['summary'],
+        'description_text': preset['description'],
+        'highlights_list': list(preset['highlights']),
+        'gallery_items': gallery_items,
+        'pricing': pricing,
+        'other_services': other_services,
+    })
 
 
 def check_availability(request):
@@ -464,7 +748,6 @@ def apply_voucher_api(request):
     return JsonResponse(result, status=status_code)
 
 
-# 1. Cập nhật hàm order_payment_status_api trong booking/views.py
 def order_payment_status_api(request, order_code):
     """API kiểm tra trạng thái thanh toán thực tế của đơn hàng."""
     order_obj = _find_order_by_code(order_code)
@@ -506,6 +789,7 @@ def order_payment_status_api(request, order_code):
         'lookup_url': lookup_url,
     })
 
+
 def book_form(request):
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     today = timezone.localdate()
@@ -529,6 +813,10 @@ def book_form(request):
                 sid_part, qty_part = pair.split(':', 1)
                 if sid_part.isdigit() and qty_part.isdigit():
                     initial_qty_map[int(sid_part)] = max(0, int(qty_part))
+
+    raw_service = (request.GET.get('service') or '').strip()
+    if not initial_qty_map and raw_service.isdigit():
+        initial_qty_map[int(raw_service)] = 1
 
     all_services = _get_all_services()
     service_packages = []
@@ -765,8 +1053,6 @@ def book_form(request):
 
             lookup_url = f"{reverse('booking:lookup_ticket')}?q={quote(order_obj.order_id)}"
 
-            # 2. Cập nhật đoạn trả về JSON của book_form (khi final_amount == 0 và khi tạo link VNPAY)
-            # Trường hợp đơn 0đ (voucher giảm 100%)
             if final_amount == 0:
                 txn_obj.payment_status = 'Success'
                 txn_obj.completed_time = timezone.now()
@@ -908,11 +1194,6 @@ def _apply_reschedule_customer_update(order_obj: Order, customer_data: dict):
 
 
 def vnpay_return(request):
-    """
-    Đón kết quả từ VNPAY Sandbox:
-    - Hỗ trợ cả thanh toán đơn đặt vé mới lẫn thanh toán bổ sung khi đổi vé.
-    - Xác thực chữ ký, cập nhật Order/PaymentTransaction/Customer, gửi email QR mới.
-    """
     params = request.GET
     if not params:
         return redirect('booking:home')
@@ -967,7 +1248,7 @@ def vnpay_return(request):
         )
 
     order_obj = txn_obj.order
-    lookup_url = f"{reverse('booking:lookup_ticket')}?q={quote(order_obj.order_id)}"
+    default_lookup_url = f"{reverse('booking:lookup_ticket')}?q={quote(order_obj.order_id)}"
 
     cache_key = f'pending_exchange_{txn_ref}'
     pending_exchange = request.session.pop(cache_key, None)
@@ -977,23 +1258,33 @@ def vnpay_return(request):
 
     is_exchange_txn = bool(pending_exchange and pending_exchange.get('order_id') == order_obj.order_id)
 
-    fallback_url = (
-        reverse('booking:reschedule_page', kwargs={'order_code': order_obj.order_id})
-        if is_exchange_txn
-        else reverse('booking:payment_page', kwargs={'order_code': order_obj.order_id})
+    saved_back_url = cache.get(f'exchange_back_{txn_ref}')
+    exchange_lookup_url = (
+        ((pending_exchange.get('back_lookup_url') or '').strip() if is_exchange_txn else '')
+        or saved_back_url
+        or default_lookup_url
     )
+    back_q_from_exchange = (pending_exchange.get('back_q') or '').strip() if is_exchange_txn else ''
 
-    # Trường hợp F5 lại URL sau khi giao dịch này đã thành công
+    if is_exchange_txn or saved_back_url:
+        reschedule_base = reverse('booking:reschedule_page', kwargs={'order_code': order_obj.order_id})
+        fallback_url = (
+            f"{reschedule_base}?{urlencode({'q': back_q_from_exchange})}"
+            if back_q_from_exchange
+            else reschedule_base
+        )
+    else:
+        fallback_url = reverse('booking:payment_page', kwargs={'order_code': order_obj.order_id})
+
     if txn_obj.payment_status == 'Success' and order_obj.order_status == 'Paid':
         return _render_callback(
             status='success',
             order_code=order_obj.order_id,
             message=f"Thanh toán VNPAY thành công cho đơn {order_obj.order_id}! Đang chuyển sang trang tra cứu vé...",
-            lookup_url=lookup_url,
-            fallback_url=lookup_url,
+            lookup_url=exchange_lookup_url,
+            fallback_url=exchange_lookup_url,
         )
 
-    # Giao dịch thất bại hoặc khách bấm Hủy thanh toán trên VNPAY
     if response_code != '00' or txn_status != '00':
         txn_obj.payment_status = 'Failed'
         if vnp_bank_ref:
@@ -1009,11 +1300,10 @@ def vnpay_return(request):
             status='failed',
             order_code=order_obj.order_id,
             message=reason_msg,
-            lookup_url=lookup_url,
+            lookup_url=exchange_lookup_url,
             fallback_url=fallback_url,
         )
 
-    # Kiểm tra khớp số tiền
     if paid_amount_vnd != int(txn_obj.amount):
         txn_obj.payment_status = 'Failed'
         txn_obj.save(update_fields=['payment_status'])
@@ -1021,13 +1311,25 @@ def vnpay_return(request):
             status='failed',
             order_code=order_obj.order_id,
             message='Số tiền thanh toán từ VNPAY không khớp với giá trị giao dịch.',
-            lookup_url=lookup_url,
+            lookup_url=exchange_lookup_url,
             fallback_url=fallback_url,
         )
 
     # TRƯỜNG HỢP A: THANH TOÁN BỔ SUNG CHO YÊU CẦU ĐỔI VÉ
     if is_exchange_txn:
         with transaction.atomic():
+            locked_order = Order.objects.select_for_update().get(pk=order_obj.pk)
+            if locked_order.has_been_exchanged:
+                txn_obj.payment_status = 'Failed'
+                txn_obj.save(update_fields=['payment_status'])
+                return _render_callback(
+                    status='failed',
+                    order_code=locked_order.order_id,
+                    message=f'Đơn hàng {locked_order.order_id} đã hoàn tất đổi vé 1 lần trước đó. Theo quy định, mỗi đơn chỉ được đổi vé tối đa 01 lần.',
+                    lookup_url=exchange_lookup_url,
+                    fallback_url=exchange_lookup_url,
+                )
+
             txn_obj.payment_status = 'Success'
             txn_obj.completed_time = timezone.now()
             if vnp_txn_no and not PaymentTransaction.objects.filter(gateway_transaction_id=vnp_txn_no).exclude(pk=txn_obj.pk).exists():
@@ -1036,14 +1338,14 @@ def vnpay_return(request):
                 txn_obj.bank_ref = vnp_bank_ref
             txn_obj.save(update_fields=['payment_status', 'completed_time', 'gateway_transaction_id', 'bank_ref'])
 
-            _apply_reschedule_customer_update(order_obj, pending_exchange.get('customer_data'))
+            _apply_reschedule_customer_update(locked_order, pending_exchange.get('customer_data'))
 
-            order_obj.items.all().delete()
+            locked_order.items.all().delete()
             for ln in pending_exchange.get('lines', []):
                 sid = ln['service_id']
                 if ln['reg_adult_qty'] > 0:
                     OrderItem.objects.create(
-                        order=order_obj,
+                        order=locked_order,
                         service_id=sid,
                         ticket_type='ADULT',
                         cccd_number=None,
@@ -1052,7 +1354,7 @@ def vnpay_return(request):
                     )
                 for q_cccd in ln['assigned_qt_cccds']:
                     OrderItem.objects.create(
-                        order=order_obj,
+                        order=locked_order,
                         service_id=sid,
                         ticket_type='ADULT',
                         cccd_number=q_cccd,
@@ -1061,7 +1363,7 @@ def vnpay_return(request):
                     )
                 if ln['child_qty'] > 0:
                     OrderItem.objects.create(
-                        order=order_obj,
+                        order=locked_order,
                         service_id=sid,
                         ticket_type='CHILD',
                         cccd_number=None,
@@ -1070,7 +1372,7 @@ def vnpay_return(request):
                     )
                 if ln['infant_qty'] > 0:
                     OrderItem.objects.create(
-                        order=order_obj,
+                        order=locked_order,
                         service_id=sid,
                         ticket_type='INFANT',
                         cccd_number=None,
@@ -1078,15 +1380,16 @@ def vnpay_return(request):
                         unit_price=Decimal(0),
                     )
 
-            order_obj.visit_date = date.fromisoformat(pending_exchange['visit_date'])
-            order_obj.total_quantity = int(pending_exchange['total_quantity'])
-            order_obj.discount_amount = Decimal(pending_exchange['discount_amount'])
-            order_obj.total_amount = Decimal(pending_exchange['new_total'])
-            order_obj.exchange_time = timezone.now()
-            order_obj.qr_code = f"BOS-{order_obj.order_id}-{uuid.uuid4().hex[:6].upper()}"
-            order_obj.save(update_fields=[
+            locked_order.visit_date = date.fromisoformat(pending_exchange['visit_date'])
+            locked_order.total_quantity = int(pending_exchange['total_quantity'])
+            locked_order.discount_amount = Decimal(pending_exchange['discount_amount'])
+            locked_order.total_amount = Decimal(pending_exchange['new_total'])
+            locked_order.exchange_time = timezone.now()
+            locked_order.qr_code = f"BOS-{locked_order.order_id}-{uuid.uuid4().hex[:6].upper()}"
+            locked_order.save(update_fields=[
                 'visit_date', 'total_quantity', 'discount_amount', 'total_amount', 'exchange_time', 'qr_code'
             ])
+            order_obj = locked_order
 
         _send_qr_ticket_email(order_obj, request=request)
         exchange_msg = (
@@ -1098,8 +1401,8 @@ def vnpay_return(request):
             status='success',
             order_code=order_obj.order_id,
             message=exchange_msg,
-            lookup_url=lookup_url,
-            fallback_url=lookup_url,
+            lookup_url=exchange_lookup_url,
+            fallback_url=exchange_lookup_url,
         )
 
     # TRƯỜNG HỢP B: THANH TOÁN ĐƠN ĐẶT VÉ BAN ĐẦU
@@ -1128,8 +1431,8 @@ def vnpay_return(request):
         status='success',
         order_code=order_obj.order_id,
         message=success_msg,
-        lookup_url=lookup_url,
-        fallback_url=lookup_url,
+        lookup_url=default_lookup_url,
+        fallback_url=default_lookup_url,
     )
 
 
@@ -1146,156 +1449,6 @@ def payment_page(request, order_code):
         'services': _get_all_services(),
         'info_pages': INFO_PAGES,
         'order': order_detail,
-    })
-
-
-from django.http import Http404
-from django.templatetags.static import static
-
-
-ONSEN_DETAIL_PRESETS = {
-    1: {
-        "summary": "07 bể ngâm khoáng trong nhà · 01 phòng xông hơi tinh dầu · 01 xông hơi khô · 05 bể Onsen ngoài trời · 1 suất ăn Menu Nhật Bản",
-        "description": (
-            "Gói dịch vụ Onsen 1 mang đến hành trình tắm khoáng trị liệu chuẩn Nhật Bản trọn vẹn nhất tại Bang Onsen Spa & Resort. "
-            "Quý khách được tận hưởng toàn bộ hệ thống bể khoáng nóng phân tầng nhiệt độ trong nhà, bể ngâm ngoài trời giữa rừng nguyên sinh, "
-            "khu xông hơi tinh dầu – xông khô và thưởng thức 01 suất ăn Set Menu Nhật Bản tinh tế."
-        ),
-        "highlights": [
-            "07 bể ngâm khoáng trong nhà phân tầng nhiệt độ trị liệu",
-            "01 phòng xông hơi tinh dầu thảo mộc tự nhiên",
-            "01 phòng xông hơi khô chuẩn Nhật Bản",
-            "05 bể Onsen ngoài trời hòa mình giữa thiên nhiên suối Bang",
-            "01 suất ăn Set Menu Nhật Bản tại nhà hàng khu nghỉ dưỡng",
-        ],
-        "fallback_photos": [
-            ("images/home/onsen-1.jpg", "Không gian tắm khoáng Onsen 1"),
-            ("images/home/gal-2.jpg", "Bể Onsen ngoài trời giữa thiên nhiên"),
-            ("images/home/gal-6.jpg", "Suất ăn Set Menu Nhật Bản đi kèm"),
-        ],
-    },
-    2: {
-        "summary": "07 bể ngâm khoáng trong nhà · 05 bể Onsen ngoài trời · 01 phòng xông hơi đá muối & tinh dầu · Tự do tham quan vườn Nhật",
-        "description": (
-            "Gói dịch vụ Onsen 2 được thiết kế dành cho du khách muốn tập trung trải nghiệm trị liệu khoáng nóng tự nhiên 105°C và thư giãn xông hơi chuyên sâu. "
-            "Quý khách tự do sử dụng toàn bộ khu tắm khoáng trong nhà, bể khoáng ngoài trời và phòng xông hơi trị liệu trong suốt khung giờ mở cửa."
-        ),
-        "highlights": [
-            "07 bể ngâm khoáng nóng trong nhà nhiều mức nhiệt độ",
-            "05 bể Onsen ngoài trời thoáng đãng giữa núi rừng Quảng Trị",
-            "01 phòng xông hơi đá muối Himalaya & xông hơi tinh dầu",
-            "Miễn phí khăn tắm, tủ đồ cá nhân & trà thảo mộc nghỉ chân",
-            "Tự do tham quan, check-in kiến trúc vườn Nhật tại Bang Onsen",
-        ],
-        "fallback_photos": [
-            ("images/home/onsen-2.jpg", "Khu tắm khoáng Onsen 2"),
-            ("images/home/gal-4.jpg", "Hệ thống bể ngâm khoáng trong nhà"),
-            ("images/home/gal-3.jpg", "Phòng xông hơi đá muối & tinh dầu"),
-        ],
-    },
-    3: {
-        "summary": "Công viên nước khoáng nóng ngoài trời · Hệ thống bể khoáng ấm gia đình · Khu trượt nước & vận động dưới nước",
-        "description": (
-            "Gói dịch vụ Onsen 3 kết hợp tắm khoáng ấm ngoài trời cùng khu công viên nước khoáng sôi động, đặc biệt phù hợp cho gia đình có trẻ nhỏ và nhóm bạn trẻ. "
-            "Nguồn nước khoáng tự nhiên được điều chỉnh nhiệt độ lý tưởng cho hoạt động vui chơi, giải nhiệt và phục hồi năng lượng."
-        ),
-        "highlights": [
-            "Trải nghiệm toàn khu Công viên nước khoáng nóng ngoài trời",
-            "Hệ thống bể ngâm khoáng ấm ngoài trời dành cho cả gia đình",
-            "Khu máng trượt nước & trò chơi vận động dưới nước khoáng",
-            "Tủ đồ cá nhân, khăn tắm & khu vực ghế nghỉ ven hồ tiêu chuẩn",
-        ],
-        "fallback_photos": [
-            ("images/home/onsen-3.jpg", "Công viên nước khoáng Onsen 3"),
-            ("images/home/gal-5.jpg", "Khu vui chơi nước khoáng ngoài trời"),
-            ("images/home/gal-1.jpg", "Toàn cảnh không gian suối Bang"),
-        ],
-    },
-}
-
-
-def _parse_vnd_int(val, default=0):
-    if isinstance(val, (int, float)):
-        return int(val)
-    digits = "".join(ch for ch in str(val or "") if ch.isdigit())
-    return int(digits) if digits else default
-
-
-def onsen_detail(request, service_id):
-    services = _get_all_services()
-    service = next((s for s in services if s['id'] == service_id), None)
-    if not service:
-        raise Http404("Không tìm thấy gói dịch vụ Onsen.")
-
-    preset = ONSEN_DETAIL_PRESETS.get(service['id'], ONSEN_DETAIL_PRESETS[1])
-
-    # Đọc bảng giá từ dữ liệu service & ServicePrice trong DB
-    pub_wd_adult = _parse_vnd_int(service.get('price_weekday') or service.get('price_weekday_fmt'), 650000)
-    pub_we_adult = _parse_vnd_int(service.get('price_weekend') or service.get('price_weekend_fmt'), 780000)
-    qt_wd_adult = _parse_vnd_int(service.get('price_qt_weekday') or service.get('price_qt_weekday_fmt'), int(pub_wd_adult * 0.8))
-    pub_wd_child = _parse_vnd_int(service.get('price_child_weekday') or service.get('price_child_weekday_fmt'), pub_wd_adult // 2)
-
-    sp_we = ServicePrice.objects.filter(service_id=service_id, day_type='WEEKEND').first()
-    qt_we_raw = (
-        service.get('price_qt_weekend')
-        or (getattr(sp_we, 'price_qt', None) if sp_we else None)
-        or (getattr(sp_we, 'qt_adult_price', None) if sp_we else None)
-        or (getattr(sp_we, 'price_quang_tri', None) if sp_we else None)
-    )
-    qt_we_adult = _parse_vnd_int(qt_we_raw, int(round(pub_we_adult * 0.8)))
-
-    pub_we_child_raw = (
-        service.get('price_child_weekend')
-        or (getattr(sp_we, 'price_child', None) if sp_we else None)
-        or (getattr(sp_we, 'child_price', None) if sp_we else None)
-    )
-    pub_we_child = _parse_vnd_int(pub_we_child_raw, pub_we_adult // 2)
-    qt_wd_child = _parse_vnd_int(service.get('price_qt_child_weekday'), qt_wd_adult // 2)
-    qt_we_child = _parse_vnd_int(service.get('price_qt_child_weekend'), qt_we_adult // 2)
-
-    pricing = {
-        'pub_wd_adult': _fmt_vnd(pub_wd_adult),
-        'pub_wd_child': _fmt_vnd(pub_wd_child),
-        'pub_we_adult': _fmt_vnd(pub_we_adult),
-        'pub_we_child': _fmt_vnd(pub_we_child),
-        'qt_wd_adult': _fmt_vnd(qt_wd_adult),
-        'qt_wd_child': _fmt_vnd(qt_wd_child),
-        'qt_we_adult': _fmt_vnd(qt_we_adult),
-        'qt_we_child': _fmt_vnd(qt_we_child),
-    }
-
-    gallery_items = []
-    for idx, (fb_rel, caption) in enumerate(preset['fallback_photos'], start=1):
-        gallery_items.append({
-            'primary': f"images/home/onsen-{service['id']}-{idx}.jpg",
-            'fallback_url': static(fb_rel),
-            'caption': caption,
-        })
-
-    other_services = []
-    for s in services:
-        if s['id'] == service['id']:
-            continue
-        s_preset = ONSEN_DETAIL_PRESETS.get(s['id'], ONSEN_DETAIL_PRESETS[1])
-        other_services.append({
-            'id': s['id'],
-            'name': s['name'],
-            'price_weekday_fmt': s.get('price_weekday_fmt', _fmt_vnd(0)),
-            'short_desc': s_preset['summary'],
-            'thumb_primary': f"images/home/onsen-{s['id']}.jpg",
-            'thumb_fallback': static('images/home/gal-1.jpg'),
-        })
-
-    return render(request, 'booking/onsen_detail.html', {
-        'services': services,
-        'service': service,
-        'hero_image_path': f"images/home/onsen-{service['id']}.jpg",
-        'summary_line': preset['summary'],
-        'description_text': preset['description'],
-        'highlights_list': list(preset['highlights']),
-        'gallery_items': gallery_items,
-        'pricing': pricing,
-        'other_services': other_services,
     })
 
 
@@ -1325,29 +1478,48 @@ def _evaluate_48h_policy(order_obj: Order) -> dict:
     tz = timezone.get_current_timezone()
     checkin_dt = timezone.make_aware(datetime.combine(order_obj.visit_date, time(9, 0)), tz)
     hours_left = (checkin_dt - now).total_seconds() / 3600.0
+    checkin_disp = checkin_dt.strftime('09:00 ngày %d/%m/%Y')
 
     if order_obj.channel == 'COUNTER':
+        msg = 'Vé mua trực tiếp tại quầy Lễ tân không áp dụng đổi/hủy trực tuyến. Quý khách vui lòng liên hệ quầy Lễ tân hoặc hotline 1900 8888 (09:00 – 21:00).'
         return {
             'can_modify': False,
+            'can_exchange': False,
+            'can_cancel': False,
+            'exchange_count': order_obj.exchange_count,
             'hours_left': 0,
-            'checkin_display': checkin_dt.strftime('09:00 ngày %d/%m/%Y'),
-            'reason': 'Vé mua trực tiếp tại quầy Lễ tân không áp dụng đổi/hủy trực tuyến. Quý khách vui lòng liên hệ quầy Lễ tân hoặc hotline 1900 8888 (09:00 – 21:00).',
+            'checkin_display': checkin_disp,
+            'reason': msg,
+            'exchange_reason': msg,
+            'cancel_reason': msg,
         }
 
     if order_obj.ticket_status == 'VOID' or order_obj.order_status == 'Cancelled':
+        msg = 'Vé thuộc đơn hàng này đã được hủy và không còn hiệu lực sử dụng.'
         return {
             'can_modify': False,
+            'can_exchange': False,
+            'can_cancel': False,
+            'exchange_count': order_obj.exchange_count,
             'hours_left': 0,
-            'checkin_display': checkin_dt.strftime('09:00 ngày %d/%m/%Y'),
-            'reason': 'Vé thuộc đơn hàng này đã được hủy và không còn hiệu lực sử dụng.',
+            'checkin_display': checkin_disp,
+            'reason': msg,
+            'exchange_reason': msg,
+            'cancel_reason': msg,
         }
 
     if order_obj.ticket_status == 'USED':
+        msg = 'Vé đã được check-in sử dụng tại khu nghỉ dưỡng, không thể đổi hoặc hủy.'
         return {
             'can_modify': False,
+            'can_exchange': False,
+            'can_cancel': False,
+            'exchange_count': order_obj.exchange_count,
             'hours_left': 0,
-            'checkin_display': checkin_dt.strftime('09:00 ngày %d/%m/%Y'),
-            'reason': 'Vé đã được check-in sử dụng tại khu nghỉ dưỡng, không thể đổi hoặc hủy.',
+            'checkin_display': checkin_disp,
+            'reason': msg,
+            'exchange_reason': msg,
+            'cancel_reason': msg,
         }
 
     if hours_left < 48:
@@ -1360,21 +1532,44 @@ def _evaluate_48h_policy(order_obj: Order) -> dict:
             )
         return {
             'can_modify': False,
+            'can_exchange': False,
+            'can_cancel': False,
+            'exchange_count': order_obj.exchange_count,
             'hours_left': max(0.0, hours_left),
-            'checkin_display': checkin_dt.strftime('09:00 ngày %d/%m/%Y'),
+            'checkin_display': checkin_disp,
             'reason': msg,
+            'exchange_reason': msg,
+            'cancel_reason': msg,
         }
+
+    has_exchanged = order_obj.has_been_exchanged
+    exchanged_at_disp = (
+        timezone.localtime(order_obj.exchange_time).strftime('%H:%M ngày %d/%m/%Y')
+        if order_obj.exchange_time
+        else ''
+    )
+    exchange_reason = ''
+    if has_exchanged:
+        time_note = f' (vào lúc {exchanged_at_disp})' if exchanged_at_disp else ''
+        exchange_reason = (
+            f'Đơn hàng {order_obj.order_id} đã thực hiện đổi vé 1 lần{time_note}. '
+            f'Theo quy định của Bang Onsen, mỗi đơn chỉ được hỗ trợ đổi vé tối đa 01 lần.'
+        )
 
     days_part = int(hours_left // 24)
     rem_hours = int(hours_left % 24)
     return {
         'can_modify': True,
+        'can_exchange': not has_exchanged,
+        'can_cancel': True,
+        'exchange_count': 1 if has_exchanged else 0,
         'hours_left': hours_left,
-        'checkin_display': checkin_dt.strftime('09:00 ngày %d/%m/%Y'),
+        'checkin_display': checkin_disp,
         'time_left_label': f'Còn {days_part} ngày {rem_hours} giờ ({int(hours_left)} giờ) trước hạn 48h',
-        'reason': '',
+        'reason': exchange_reason,
+        'exchange_reason': exchange_reason,
+        'cancel_reason': '',
     }
-
 
 def _recalculate_order_for_date(order_obj: Order, target_date: date) -> dict:
     services_map = {s['id']: s for s in _get_all_services()}
@@ -1429,8 +1624,8 @@ def _recalculate_order_for_date(order_obj: Order, target_date: date) -> dict:
             'new_line_total': new_line_total,
         })
 
-    old_discount = int(order_obj.discount_amount or 0)
-    applied_discount = min(new_subtotal, old_discount)
+    inherited = _calculate_inherited_discount(order_obj, new_subtotal)
+    applied_discount = inherited['discount_amount']
     new_total = max(0, new_subtotal - applied_discount)
     old_total = int(order_obj.total_amount or 0)
     diff_amount = new_total - old_total
@@ -1443,13 +1638,13 @@ def _recalculate_order_for_date(order_obj: Order, target_date: date) -> dict:
         'old_total': old_total,
         'old_total_fmt': _fmt_vnd(old_total),
         'new_subtotal': new_subtotal,
+        'new_discount': applied_discount,
         'new_total': new_total,
         'new_total_fmt': _fmt_vnd(new_total),
         'diff_amount': diff_amount,
         'diff_abs_fmt': _fmt_vnd(abs(diff_amount)),
         'items': item_updates,
     }
-
 
 def _serialize_order_detail(order_obj: Order) -> dict:
     order_code = order_obj.order_id
@@ -1495,9 +1690,13 @@ def _serialize_order_detail(order_obj: Order) -> dict:
             grouped_services[sid] = {
                 'service_name': it.service.service_name,
                 'quantity': 0,
+                'total_guests': 0,
                 'reg_adult_qty': 0,
+                'reg_adult_total': 0,
                 'qt_adult_qty': 0,
+                'qt_adult_total': 0,
                 'child_qty': 0,
+                'child_total': 0,
                 'infant_qty': 0,
                 'line_total': 0,
             }
@@ -1515,15 +1714,21 @@ def _serialize_order_detail(order_obj: Order) -> dict:
 
         if it.ticket_type == 'ADULT':
             grp['quantity'] += qty
+            grp['total_guests'] += qty
             if it.is_quang_tri_local or ServicePrice.is_quang_tri_cccd(c_val):
                 grp['qt_adult_qty'] += qty
+                grp['qt_adult_total'] += sub
                 has_qt_discount = True
             else:
                 grp['reg_adult_qty'] += qty
+                grp['reg_adult_total'] += sub
         elif it.ticket_type == 'CHILD':
             grp['quantity'] += qty
+            grp['total_guests'] += qty
             grp['child_qty'] += qty
+            grp['child_total'] += sub
         elif it.ticket_type == 'INFANT':
+            grp['total_guests'] += qty
             grp['infant_qty'] += qty
 
     cccd = ', '.join(order_cccds)
@@ -1531,15 +1736,20 @@ def _serialize_order_detail(order_obj: Order) -> dict:
     lines = []
     summary_parts = []
     for grp in grouped_services.values():
-        pkg_guests = grp['quantity'] + grp['infant_qty']
+        pkg_guests = grp['total_guests']
         summary_parts.append(f"{grp['service_name']} ({pkg_guests} vé)")
         lines.append({
             'service_name': grp['service_name'],
             'quantity': grp['quantity'],
+            'total_guests': pkg_guests,
             'reg_adult_qty': grp['reg_adult_qty'],
+            'reg_adult_total_fmt': _fmt_vnd(grp['reg_adult_total']),
             'qt_adult_qty': grp['qt_adult_qty'],
+            'qt_adult_total_fmt': _fmt_vnd(grp['qt_adult_total']),
             'child_qty': grp['child_qty'],
+            'child_total_fmt': _fmt_vnd(grp['child_total']),
             'infant_qty': grp['infant_qty'],
+            'infant_total_fmt': _fmt_vnd(0),
             'line_total_fmt': _fmt_vnd(grp['line_total']),
         })
 
@@ -1594,7 +1804,7 @@ def _serialize_order_detail(order_obj: Order) -> dict:
         'qr_image_url': qr_image_url,
         'is_cancelled': is_cancelled,
         'is_checked_in': is_checked_in,
-        'reschedule_count': 1 if order_obj.exchange_time else 0,
+        'reschedule_count': order_obj.exchange_count,
         'rescheduled_at': rescheduled_at,
         'cancelled_at': cancelled_at,
         'checkin_state': checkin_state,
@@ -1608,6 +1818,7 @@ def _serialize_order_detail(order_obj: Order) -> dict:
         'email': customer_email,
         'cccd': cccd,
         'is_qt_cccd': has_qt_discount,
+        'voucher_code': order_obj.voucher.voucher_code if order_obj.voucher else '',
         'payment_method': order_obj.payment_method,
         'payment_method_label': PAYMENT_METHOD_LABELS.get(order_obj.payment_method, order_obj.get_payment_method_display()),
         'visit_date_iso': order_obj.visit_date.isoformat(),
@@ -1636,7 +1847,6 @@ def _serialize_order_detail(order_obj: Order) -> dict:
         'lines': lines,
         'policy': policy,
     }
-
 
 def _execute_ticket_lookup(raw_query: str) -> dict:
     q = (raw_query or '').strip()
@@ -1737,8 +1947,8 @@ def check_reschedule_api(request):
         return JsonResponse({'ok': False, 'error': 'Không tìm thấy đơn hàng.'}, status=404)
 
     policy = _evaluate_48h_policy(order_obj)
-    if not policy['can_modify']:
-        return JsonResponse({'ok': False, 'error': policy['reason']}, status=400)
+    if not policy['can_exchange']:
+        return JsonResponse({'ok': False, 'error': policy['exchange_reason']}, status=400)
 
     try:
         target_date = date.fromisoformat(new_date_str)
@@ -1788,17 +1998,22 @@ def _extract_order_qt_cccds(order_obj: Order) -> list[str]:
 
 
 def reschedule_page(request, order_code):
-    """Trang riêng cho phép đổi ngày sử dụng, gói dịch vụ, số lượng vé & thông tin khách hàng."""
+    policy = _evaluate_48h_policy(order_obj)
+    if not policy['can_exchange']:
+        messages.error(request, policy['exchange_reason'])
+        return redirect(back_lookup_url)
+    
     order_obj = _find_order_by_code(order_code)
     if not order_obj:
         messages.error(request, 'Không tìm thấy đơn vé cần đổi.')
         return redirect('booking:lookup_ticket')
 
-    lookup_url = f"{reverse('booking:lookup_ticket')}?q={quote(order_obj.order_id)}"
+    back_q, back_lookup_url = _resolve_back_lookup(request, order_obj.order_id)
+
     policy = _evaluate_48h_policy(order_obj)
     if not policy['can_modify']:
         messages.error(request, policy['reason'])
-        return redirect(lookup_url)
+        return redirect(back_lookup_url)
 
     today = timezone.localdate()
     min_reschedule_date = today + timedelta(days=2)
@@ -1883,13 +2098,16 @@ def reschedule_page(request, order_code):
     cccd_confirmed_checked = bool(orig_qt_items)
 
     old_total = int(order_obj.total_amount or 0)
-    old_discount = int(order_obj.discount_amount or 0)
+    inherited_meta = _calculate_inherited_discount(order_obj, old_total + int(order_obj.discount_amount or 0))
     voucher_info = {
-        'has_voucher': bool(order_obj.voucher_id or old_discount > 0),
-        'code': order_obj.voucher.voucher_code if order_obj.voucher else '',
-        'type': 'PERCENT' if (order_obj.voucher and order_obj.voucher.discount_type == 'Percent') else 'FIXED',
-        'value': float(order_obj.voucher.discount_value) if order_obj.voucher else float(old_discount),
-        'fixed_discount': old_discount,
+        'has_voucher': inherited_meta['has_voucher'],
+        'code': inherited_meta['code'],
+        'type': inherited_meta['type'],
+        'value': inherited_meta['value'],
+        'max_discount': inherited_meta['max_discount'],
+        'fixed_discount': inherited_meta['fixed_discount'],
+        'short_badge': inherited_meta['short_badge'],
+        'row_label': inherited_meta['row_label'],
     }
 
     error_msg = ''
@@ -2079,19 +2297,24 @@ def reschedule_page(request, order_code):
                 error_msg = 'Bạn chưa thay đổi ngày sử dụng, gói dịch vụ, số lượng vé hoặc thông tin khách hàng nào so với đơn hiện tại.'
 
         if not error_msg:
-            if order_obj.voucher and order_obj.voucher.discount_type == 'Percent':
-                new_discount = min(new_subtotal, int(round(new_subtotal * float(order_obj.voucher.discount_value) / 100)))
-            else:
-                new_discount = min(new_subtotal, old_discount)
-
+            # Kế thừa ưu đãi từ đơn cũ (không cho phép nhập hoặc áp mã mới)
+            inherited_calc = _calculate_inherited_discount(order_obj, new_subtotal)
+            new_discount = inherited_calc['discount_amount']
             new_total = max(0, new_subtotal - new_discount)
             diff_amount = new_total - old_total
 
             if diff_amount < 0:
-                error_msg = (
-                    f"Vé chỉ được đổi ngang giá hoặc cao hơn giá trị đơn đã thanh toán ({_fmt_vnd(old_total)}). "
-                    f"Giá trị đơn mới hiện tại là {_fmt_vnd(new_total)}, thấp hơn {_fmt_vnd(abs(diff_amount))}."
-                )
+                if inherited_calc['has_voucher']:
+                    error_msg = (
+                        f"Vé chỉ được đổi ngang giá hoặc cao hơn số tiền đã thanh toán ở đơn cũ ({_fmt_vnd(old_total)}). "
+                        f"Sau khi áp dụng giảm giá kế thừa ({inherited_calc['short_badge']}: -{_fmt_vnd(new_discount)}), "
+                        f"giá trị đơn mới sau giảm là {_fmt_vnd(new_total)}, thấp hơn {_fmt_vnd(abs(diff_amount))}."
+                    )
+                else:
+                    error_msg = (
+                        f"Vé chỉ được đổi ngang giá hoặc cao hơn giá trị đơn đã thanh toán ({_fmt_vnd(old_total)}). "
+                        f"Giá trị đơn mới hiện tại là {_fmt_vnd(new_total)}, thấp hơn {_fmt_vnd(abs(diff_amount))}."
+                    )
 
         if error_msg and is_ajax:
             return JsonResponse({
@@ -2123,6 +2346,8 @@ def reschedule_page(request, order_code):
                     'discount_amount': new_discount,
                     'new_total': new_total,
                     'diff_amount': diff_amount,
+                    'back_q': back_q,
+                    'back_lookup_url': back_lookup_url,
                     'lines': parsed_lines,
                     'customer_data': customer_payload,
                 }
@@ -2130,6 +2355,7 @@ def reschedule_page(request, order_code):
                 request.session[cache_key] = exchange_payload
                 request.session.modified = True
                 cache.set(cache_key, exchange_payload, timeout=3600)
+                cache.set(f'exchange_back_{txn_obj.transaction_id}', back_lookup_url, timeout=3600)
 
                 vnpay_url = _build_vnpay_payment_url(request, order_obj, txn_obj)
                 if is_ajax:
@@ -2142,18 +2368,27 @@ def reschedule_page(request, order_code):
                         'diff_amount_fmt': _fmt_vnd(diff_amount),
                         'target_date_display': target_date.strftime('%d/%m/%Y'),
                         'email': form_customer['email'],
+                        'lookup_url': back_lookup_url,
                     })
                 return redirect(vnpay_url)
 
             with transaction.atomic():
-                _apply_reschedule_customer_update(order_obj, customer_payload)
+                locked_order = Order.objects.select_for_update().get(pk=order_obj.pk)
+                if locked_order.has_been_exchanged:
+                    dup_msg = f'Đơn hàng {locked_order.order_id} đã thực hiện đổi vé 1 lần trước đó. Mỗi đơn chỉ được đổi vé tối đa 01 lần.'
+                    if is_ajax:
+                        return JsonResponse({'ok': False, 'error': dup_msg}, status=400)
+                    messages.error(request, dup_msg)
+                    return redirect(back_lookup_url)
 
-                order_obj.items.all().delete()
+                _apply_reschedule_customer_update(locked_order, customer_payload)
+
+                locked_order.items.all().delete()
                 for ln in parsed_lines:
                     sid = ln['service_id']
                     if ln['reg_adult_qty'] > 0:
                         OrderItem.objects.create(
-                            order=order_obj,
+                            order=locked_order,
                             service_id=sid,
                             ticket_type='ADULT',
                             cccd_number=None,
@@ -2162,7 +2397,7 @@ def reschedule_page(request, order_code):
                         )
                     for q_cccd in ln['assigned_qt_cccds']:
                         OrderItem.objects.create(
-                            order=order_obj,
+                            order=locked_order,
                             service_id=sid,
                             ticket_type='ADULT',
                             cccd_number=q_cccd,
@@ -2171,7 +2406,7 @@ def reschedule_page(request, order_code):
                         )
                     if ln['child_qty'] > 0:
                         OrderItem.objects.create(
-                            order=order_obj,
+                            order=locked_order,
                             service_id=sid,
                             ticket_type='CHILD',
                             cccd_number=None,
@@ -2180,7 +2415,7 @@ def reschedule_page(request, order_code):
                         )
                     if ln['infant_qty'] > 0:
                         OrderItem.objects.create(
-                            order=order_obj,
+                            order=locked_order,
                             service_id=sid,
                             ticket_type='INFANT',
                             cccd_number=None,
@@ -2188,23 +2423,29 @@ def reschedule_page(request, order_code):
                             unit_price=Decimal(0),
                         )
 
-                order_obj.visit_date = target_date
-                order_obj.total_quantity = total_paid_tickets
-                order_obj.discount_amount = Decimal(new_discount)
-                order_obj.total_amount = Decimal(new_total)
-                order_obj.exchange_time = timezone.now()
-                if order_obj.order_status == 'Paid':
-                    order_obj.qr_code = f"BOS-{order_obj.order_id}-{uuid.uuid4().hex[:6].upper()}"
-                order_obj.save(update_fields=[
+                locked_order.visit_date = target_date
+                locked_order.total_quantity = total_paid_tickets
+                locked_order.discount_amount = Decimal(new_discount)
+                locked_order.total_amount = Decimal(new_total)
+                locked_order.exchange_time = timezone.now()
+                if locked_order.order_status == 'Paid':
+                    locked_order.qr_code = f"BOS-{locked_order.order_id}-{uuid.uuid4().hex[:6].upper()}"
+                locked_order.save(update_fields=[
                     'visit_date', 'total_quantity', 'discount_amount', 'total_amount', 'exchange_time', 'qr_code'
                 ])
+                order_obj = locked_order
 
             _send_qr_ticket_email(order_obj, request=request)
-            messages.success(
-                request,
-                f"Đổi vé đơn {order_obj.order_id} thành công! Mã QR mới đã được cấp và gửi về email {form_customer['email']}."
-            )
-            return redirect(lookup_url)
+            ok_msg = f"Đổi vé đơn {order_obj.order_id} thành công! Mã QR mới đã được cấp và gửi về email {form_customer['email']}."
+            if is_ajax:
+                return JsonResponse({
+                    'ok': True,
+                    'requires_payment': False,
+                    'redirect_url': back_lookup_url,
+                    'message': ok_msg,
+                })
+            messages.success(request, ok_msg)
+            return redirect(back_lookup_url)
 
     order_detail = _serialize_order_detail(order_obj)
     context = {
@@ -2226,12 +2467,15 @@ def reschedule_page(request, order_code):
         'orig_customer_json': json.dumps(orig_customer, ensure_ascii=False),
         'form_customer': form_customer,
         'cccd_confirmed_checked': cccd_confirmed_checked,
-        'voucher_json': json.dumps(voucher_info),
+        'voucher_info': voucher_info,
+        'voucher_json': json.dumps(voucher_info, ensure_ascii=False),
         'old_total': old_total,
         'old_total_fmt': _fmt_vnd(old_total),
         'error_msg': error_msg,
         'reason_note': reason_note,
         'active_tab': active_tab,
+        'back_q': back_q,
+        'back_lookup_url': back_lookup_url,
     }
     return render(request, 'booking/reschedule_form.html', context)
 
@@ -2243,20 +2487,21 @@ def reschedule_ticket(request):
 
     order_code = (request.POST.get('order_code') or '').strip().upper()
     new_date_str = (request.POST.get('new_date') or '').strip()
+    _, back_lookup_url = _resolve_back_lookup(request, order_code)
 
     def _err(msg):
         if is_ajax:
             return JsonResponse({'ok': False, 'error': msg}, status=400)
         messages.error(request, msg)
-        return redirect(f"/tra-cuu/?q={quote(order_code)}")
+        return redirect(back_lookup_url)
 
     order_obj = _find_order_by_code(order_code)
     if not order_obj:
         return _err('Không tìm thấy thông tin đơn vé cần đổi.')
 
     policy = _evaluate_48h_policy(order_obj)
-    if not policy['can_modify']:
-        return _err(policy['reason'])
+    if not policy['can_exchange']:
+        return _err(policy['exchange_reason'])
 
     try:
         target_date = date.fromisoformat(new_date_str)
@@ -2269,7 +2514,11 @@ def reschedule_ticket(request):
         return _err('Ngày sử dụng mới không hợp lệ hoặc chưa đảm bảo cách hiện tại tối thiểu 48 giờ.')
 
     with transaction.atomic():
-        calc = _recalculate_order_for_date(order_obj, target_date)
+        locked_order = Order.objects.select_for_update().get(pk=order_obj.pk)
+        if locked_order.has_been_exchanged:
+            return _err(f'Đơn hàng {locked_order.order_id} đã thực hiện đổi vé 1 lần trước đó. Mỗi đơn chỉ được đổi vé tối đa 01 lần.')
+
+        calc = _recalculate_order_for_date(locked_order, target_date)
         if not calc['ok']:
             return _err(calc['error'])
 
@@ -2281,42 +2530,42 @@ def reschedule_ticket(request):
             item_obj.unit_price = Decimal(row['new_unit_price'])
             item_obj.save()
 
-        order_obj.visit_date = target_date
-        order_obj.total_amount = Decimal(calc['new_total'])
-        order_obj.exchange_time = now
-        if order_obj.order_status == 'Paid':
-            order_obj.qr_code = f"BOS-{order_obj.order_id}-{uuid.uuid4().hex[:6].upper()}"
-        order_obj.save(update_fields=['visit_date', 'total_amount', 'exchange_time', 'qr_code'])
-
+        locked_order.visit_date = target_date
+        locked_order.discount_amount = Decimal(calc['new_discount'])
+        locked_order.total_amount = Decimal(calc['new_total'])
+        locked_order.exchange_time = now
+        if locked_order.order_status == 'Paid':
+            locked_order.qr_code = f"BOS-{locked_order.order_id}-{uuid.uuid4().hex[:6].upper()}"
+        locked_order.save(update_fields=['visit_date', 'discount_amount', 'total_amount', 'exchange_time', 'qr_code'])
+        
     ok_msg = (
         f"Đổi ngày đơn {order_code} thành công sang {calc['target_date_display']} ({calc['day_label']}). "
         f"Hệ thống đã cập nhật mã vé QR và gửi thông báo về email đăng ký."
     )
     if is_ajax:
-        return JsonResponse({'ok': True, 'message': ok_msg, 'order_code': order_code})
+        return JsonResponse({'ok': True, 'message': ok_msg, 'order_code': order_code, 'redirect_url': back_lookup_url})
     messages.success(request, ok_msg)
-    return redirect(f"/tra-cuu/?q={quote(order_code)}")
+    return redirect(back_lookup_url)
 
 
-# 3. Cập nhật hàm cancel_ticket để cho phép hủy đơn New chưa thanh toán khi khách bấm "Hủy chờ & Chỉnh sửa lại"
 def cancel_ticket(request):
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     if request.method != 'POST':
         return redirect('booking:lookup_ticket')
 
     order_code = (request.POST.get('order_code') or '').strip().upper()
+    _, back_lookup_url = _resolve_back_lookup(request, order_code)
 
     def _err(msg):
         if is_ajax:
             return JsonResponse({'ok': False, 'error': msg}, status=400)
         messages.error(request, msg)
-        return redirect(f"/tra-cuu/?q={quote(order_code)}")
+        return redirect(back_lookup_url)
 
     order_obj = _find_order_by_code(order_code)
     if not order_obj:
         return _err('Không tìm thấy thông tin đơn vé cần hủy.')
 
-    # Đơn online chưa thanh toán (New) luôn được phép hủy để khách chỉnh sửa lại
     is_unpaid_online = (
         order_obj.channel == 'ONLINE'
         and order_obj.order_status == 'New'
@@ -2351,7 +2600,7 @@ def cancel_ticket(request):
     if is_ajax:
         return JsonResponse({'ok': True, 'message': ok_msg, 'order_code': order_code})
     messages.success(request, ok_msg)
-    return redirect(f"/tra-cuu/?q={quote(order_code)}")
+    return redirect(back_lookup_url)
 
 
 def info_page(request, slug):
@@ -2384,7 +2633,13 @@ def api_exchange_status(request, txn_id):
 
     st = (txn.payment_status or '').strip()
     if st in ('Completed', 'Paid', 'Success'):
-        lookup_url = f"{reverse('booking:lookup_ticket')}?q={quote(order_obj.order_id)}"
+        saved_back_url = cache.get(f'exchange_back_{txn.transaction_id}')
+        req_q = (request.GET.get('q') or '').strip()
+        lookup_url = (
+            saved_back_url
+            or (f"{reverse('booking:lookup_ticket')}?{urlencode({'q': req_q})}" if req_q else None)
+            or f"{reverse('booking:lookup_ticket')}?q={quote(order_obj.order_id)}"
+        )
         return JsonResponse({
             'status': 'SUCCESS',
             'order_code': order_obj.order_id,

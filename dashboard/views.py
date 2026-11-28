@@ -1,7 +1,7 @@
 from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, logout
 from django.db import IntegrityError
 from django.db.models import Q
 from django.utils import timezone
@@ -453,3 +453,10 @@ def staff_list(request):
         'form_data': form_data,
     }
     return render(request, 'dashboard/staff_list.html', context)
+
+def admin_logout(request):
+    if request.method == 'POST':
+        logout(request)
+        messages.success(request, "Đã đăng xuất khỏi phân hệ quản trị.")
+        return redirect('/pos/login/')
+    return redirect('dashboard:overview')

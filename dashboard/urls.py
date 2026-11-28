@@ -8,4 +8,5 @@ urlpatterns = [
     path('pricing/', views.pricing_matrix, name='pricing_matrix'),
     path('vouchers/', views.voucher_list, name='voucher_list'),
     path('staff/', views.staff_list, name='staff_list'),
+    path('logout/', views.admin_logout, name='logout'),
 ]
